@@ -80,3 +80,11 @@ git push
 
 - Contraseñas con bcrypt, sesión en cookie httpOnly y segura en producción, límites de intentos de inicio de sesión, cabeceras de seguridad (helmet), comprobación de origen en cada petición que modifica datos, imágenes privadas por usuario, y el radar solo para los emails de `RADAR_OWNER_EMAILS`.
 - Con `INVITE_CODE` nadie ajeno puede crear una cuenta; con `REGISTRATION=closed`, nadie más puede registrarse.
+
+## Lo que aprendimos al desplegar de verdad (2026-09-18)
+
+- **Volumen y permisos**: Railway monta el volumen como root y el `Dockerfile` corre como usuario `node`, así que la app no podía crear `journal.db` ("unable to open database file"). Solución sin tocar código: variable `RAILWAY_RUN_UID=0`.
+- **Puerto**: Railway inyecta `PORT=8080` y la app escucha ahí (`API_PORT || PORT`). El dominio personalizado debe apuntar al **puerto 8080** (Settings → Networking → editar dominio), no al 3200 del Dockerfile. Con el puerto equivocado el borde devuelve 502 "Application failed to respond" aunque el healthcheck pase.
+- **Límite de usuarios**: `MAX_USERS=4` cierra el registro cuando ya hay 4 cuentas (el inicio de sesión sigue). Junto con `INVITE_CODE`, solo entra quien tiene el código y mientras haya sitio.
+- **DNS en Hostinger**: Railway pide dos registros, el CNAME `journal` y un TXT `_railway-verify.journal`; con ambos verifica el dominio en pocos minutos y emite el certificado.
+- Railway detecta el monorepo y crea dos servicios (`client` y `server`); hay que borrar `client` y poner el `server` con constructor Dockerfile y ruta `/Dockerfile`. Su comando de inicio `npm run start --workspace=server` funciona igual.
