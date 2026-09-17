@@ -55,9 +55,18 @@ function respondWithSession(res, user, status = 200) {
  *  - INVITE_CODE=xxx      → solo quien escriba ese código de invitación.
  *  - sin ninguna de las dos → registro abierto (desarrollo).
  */
+/** MAX_USERS=4 → cuando ya hay 4 usuarios, no se admiten más registros (el inicio de sesión sigue). */
+function usersFull() {
+  const max = Number(process.env.MAX_USERS || 0);
+  if (!Number.isFinite(max) || max <= 0) return false;
+  const row = getDb().prepare('SELECT COUNT(*) AS n FROM users').get();
+  return !!row && Number(row.n) >= max;
+}
+
 function registrationGate(body) {
   const mode = String(process.env.REGISTRATION || '').trim().toLowerCase();
   if (mode === 'closed') return 'El registro está cerrado. Pide acceso al administrador.';
+  if (usersFull()) return 'Se ha alcanzado el número máximo de usuarios de este journal.';
   const invite = String(process.env.INVITE_CODE || '').trim();
   if (!invite) return null;
   const given = typeof body?.invite_code === 'string' ? body.invite_code.trim() : '';
@@ -74,7 +83,8 @@ function timingSafeEqualStr(a, b) {
 // GET /api/auth/registration -> si el registro está abierto y si pide código (para la pantalla de registro)
 router.get('/registration', (_req, res) => {
   const mode = String(process.env.REGISTRATION || '').trim().toLowerCase();
-  res.json({ open: mode !== 'closed', invite_required: mode !== 'closed' && !!String(process.env.INVITE_CODE || '').trim() });
+  const open = mode !== 'closed' && !usersFull();
+  res.json({ open, invite_required: open && !!String(process.env.INVITE_CODE || '').trim() });
 });
 
 router.post('/register', authLimiter, async (req, res, next) => {
