@@ -1,0 +1,13 @@
+node_modules/
+server/data/*.db
+server/data/*.db-*
+server/uploads/
+client/dist/
+.env
+*.log
+.DS_Store
+data/mt5/
+server/data/*.json
+server/data/*.log
+.claude/
+README.tmp

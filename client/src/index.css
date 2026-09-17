@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    font-variant-numeric: tabular-nums;
+  }
+  body {
+    @apply bg-bg text-gray-200 antialiased;
+    font-family: theme('fontFamily.sans');
+    font-variant-numeric: tabular-nums;
+    min-height: 100vh;
+  }
+  ::selection {
+    @apply bg-accent/40;
+  }
+  /* Scrollbars discretas */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1d2a23 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #1d2a23;
+    border-radius: 9999px;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .text-glow-accent {
+    text-shadow: 0 0 18px rgba(22, 245, 122, 0.45);
+  }
+  .bg-brand-grid {
+    background-image: linear-gradient(rgba(22, 245, 122, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 245, 122, 0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -1,0 +1,193 @@
+<title>Global Traders FX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #060a08;
+    --bg-2: #0a100d;
+    --panel: #0e1512;
+    --line: #1d2a23;
+    --steel: #3b434a;
+    --steel-light: #6b7680;
+    --neon: #16f57a;
+    --neon-dark: #0fbf5e;
+    --neon-soft: #7dffb5;
+    --profit: #22d36f;
+    --loss: #ff4d5e;
+    --warn: #f5b400;
+    --text: #e8f0ec;
+    --muted: #8aa398;
+    --display: 'Chakra Petch', 'Segoe UI', Arial, sans-serif;
+    --body: 'Manrope', 'Segoe UI', Arial, sans-serif;
+    --mono: 'JetBrains Mono', Consolas, monospace;
+  }
+  html { color-scheme: dark; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 16px; line-height: 1.6;
+    background-image: linear-gradient(rgba(22,245,122,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(22,245,122,0.045) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 24px 96px; }
+  h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1; font-weight: 700; font-style: italic; letter-spacing: 0.02em; text-transform: uppercase; }
+  h1 .fx { color: var(--neon); text-shadow: 0 0 24px rgba(22,245,122,0.5); }
+  h2 { font-size: 1.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  h3 { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.04em; }
+  p { max-width: 62ch; }
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--neon); }
+  .muted { color: var(--muted); }
+  .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; padding: 32px 0 56px; border-bottom: 1px solid var(--line); }
+  .hero p.lead { font-size: 1.15rem; color: var(--text); }
+  .shield { justify-self: center; filter: drop-shadow(0 0 40px rgba(22,245,122,0.35)); }
+  section { padding: 48px 0; border-bottom: 1px solid var(--line); }
+  .grid { display: grid; gap: 16px; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .swatches { grid-template-columns: repeat(4, 1fr); }
+  .swatch { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; overflow: hidden; }
+  .swatch .chip { height: 84px; }
+  .swatch .meta { padding: 10px 12px; display: grid; gap: 2px; }
+  .swatch .name { font-family: var(--display); font-weight: 700; letter-spacing: 0.04em; }
+  .swatch .hex { font-family: var(--mono); font-size: 0.8rem; color: var(--neon-soft); }
+  .swatch .use { font-size: 0.78rem; color: var(--muted); }
+  .type-sample { border: 1px solid var(--line); background: var(--panel); padding: 20px; border-radius: 6px; display: grid; gap: 10px; }
+  .type-sample .label { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .display-demo { font-family: var(--display); font-size: 2rem; font-weight: 700; font-style: italic; text-transform: uppercase; line-height: 1.05; }
+  .body-demo { font-family: var(--body); }
+  .mono-demo { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.3rem; }
+  .ui { display: grid; gap: 16px; grid-template-columns: 1.2fr 1fr; align-items: start; }
+  .card { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 16px; }
+  .stat { display: grid; gap: 4px; }
+  .stat .k { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-family: var(--display); font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .up { color: var(--profit); } .down { color: var(--loss); }
+  .banner { border: 1px solid rgba(255,77,94,0.45); background: rgba(255,77,94,0.10); border-radius: 8px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+  .banner .tag { font-family: var(--display); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--loss); }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { font-family: var(--body); font-weight: 600; font-size: 0.9rem; padding: 10px 18px; border-radius: 6px; border: 1px solid transparent; }
+  .btn.primary { background: var(--neon); color: #041a0e; box-shadow: 0 0 22px -6px rgba(22,245,122,0.8); }
+  .btn.secondary { background: transparent; color: var(--text); border-color: var(--steel); }
+  .btn.danger { background: rgba(255,77,94,0.12); color: var(--loss); border-color: rgba(255,77,94,0.4); }
+  .bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 72%; background: linear-gradient(90deg, var(--neon-dark), var(--warn)); }
+  .rules { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .rule { border-left: 3px solid var(--neon); padding: 4px 0 4px 14px; }
+  .rule.no { border-left-color: var(--loss); }
+  .rule b { font-family: var(--display); letter-spacing: 0.04em; }
+  .logo-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+  .logo-box { border: 1px dashed var(--line); border-radius: 8px; padding: 18px 22px; display: flex; align-items: center; gap: 14px; }
+  .logo-box.light { background: #f2f5f3; color: #0b100d; }
+  .wordmark { font-family: var(--display); line-height: 0.95; text-transform: uppercase; }
+  .wordmark .g { font-weight: 700; letter-spacing: 0.18em; display: block; font-size: 0.95rem; }
+  .wordmark .t { font-weight: 700; font-style: italic; letter-spacing: 0.12em; font-size: 0.95rem; }
+  .wordmark .fx { font-weight: 700; font-style: italic; color: var(--neon); font-size: 1.1rem; }
+  .light .wordmark .fx { color: var(--neon-dark); }
+  footer { padding-top: 32px; color: var(--muted); font-size: 0.85rem; font-family: var(--mono); }
+  @media (max-width: 760px) {
+    .hero, .ui, .cols-3, .cols-2, .rules { grid-template-columns: 1fr; }
+    .swatches { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .shield { animation: pulse 4s ease-in-out infinite; }
+    @keyframes pulse { 50% { filter: drop-shadow(0 0 64px rgba(22,245,122,0.55)); } }
+  }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Guía de marca · Journal con guardián de riesgo</div>
+      <h1 style="margin-top:12px">Global<br>Traders <span class="fx">FX</span></h1>
+      <p class="lead" style="margin-top:18px">Negro profundo, acero del escudo y un solo verde neón que marca lo que importa: la ganancia, la acción y el límite que protege la cuenta.</p>
+      <p class="muted">Esta guía fija paleta, tipografía, logo y componentes de la plataforma para que cada pantalla, post o documento se vea de la misma casa.</p>
+    </div>
+    <svg class="shield" width="220" height="220" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Escudo Global Traders FX">
+      <defs>
+        <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b6570"/><stop offset=".5" stop-color="#2d343a"/><stop offset="1" stop-color="#151a1e"/></linearGradient>
+        <linearGradient id="green" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0fbf5e"/><stop offset="1" stop-color="#16f57a"/></linearGradient>
+      </defs>
+      <path d="M32 3 L56 11 V31 C56 45 46 55 32 61 C18 55 8 45 8 31 V11 Z" fill="url(#steel)" stroke="#16f57a" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M32 8 L51 14.5 V31 C51 42 43 50 32 55 C21 50 13 42 13 31 V14.5 Z" fill="#0b100d" opacity=".55"/>
+      <g stroke="url(#green)" stroke-width="3" stroke-linecap="round"><line x1="22" y1="24" x2="22" y2="42"/><line x1="31" y1="18" x2="31" y2="40"/><line x1="40" y1="26" x2="40" y2="36"/></g>
+      <g fill="url(#green)"><rect x="19" y="29" width="6" height="9" rx="1"/><rect x="28" y="23" width="6" height="11" rx="1"/><rect x="37" y="29" width="6" height="5" rx="1"/></g>
+      <path d="M17 45 L27 36 L34 41 L46 26" stroke="#16f57a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M40 25 H47 V32" stroke="#16f57a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </header>
+
+  <section>
+    <div class="eyebrow">01 · Paleta</div>
+    <h2>Un verde, un negro, un acero</h2>
+    <p class="muted">El verde neón se gasta en una sola cosa por pantalla: el dato o la acción principal. Todo lo demás vive en negros y grises con un leve tinte verde para que no se sienta frío.</p>
+    <div class="grid swatches" style="margin-top:20px">
+      <div class="swatch"><div class="chip" style="background:#060a08;border-bottom:1px solid var(--line)"></div><div class="meta"><span class="name">Negro base</span><span class="hex">#060a08</span><span class="use">Fondo de la app</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#0e1512"></div><div class="meta"><span class="name">Panel</span><span class="hex">#0e1512</span><span class="use">Tarjetas y formularios</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#3b434a"></div><div class="meta"><span class="name">Acero</span><span class="hex">#3b434a</span><span class="use">Escudo, bordes fuertes, botones secundarios</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#16f57a"></div><div class="meta"><span class="name">Verde neón</span><span class="hex">#16f57a</span><span class="use">Acción principal, marca, énfasis</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#0fbf5e"></div><div class="meta"><span class="name">Verde oscuro</span><span class="hex">#0fbf5e</span><span class="use">Hover, degradados, fondos claros</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#22d36f"></div><div class="meta"><span class="name">Profit</span><span class="hex">#22d36f</span><span class="use">P&amp;L positivo</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#ff4d5e"></div><div class="meta"><span class="name">Pérdida</span><span class="hex">#ff4d5e</span><span class="use">P&amp;L negativo, bloqueo</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#f5b400"></div><div class="meta"><span class="name">Aviso</span><span class="hex">#f5b400</span><span class="use">Riesgo al 80 %, pendientes</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">02 · Tipografía</div>
+    <h2>Angular para la marca, limpia para leer</h2>
+    <div class="grid cols-3" style="margin-top:20px">
+      <div class="type-sample"><span class="label">Display · Chakra Petch 700 itálica</span><span class="display-demo">Protege<br>tu cuenta</span><span class="muted" style="font-size:.85rem">Títulos, cifras grandes y wordmark. Siempre mayúsculas y con tracking.</span></div>
+      <div class="type-sample"><span class="label">Texto · Manrope 400/600</span><span class="body-demo">Fija tu pérdida máxima diaria y la app te bloquea antes que la prop firm. Registra cada operación con fotos, patrones y notas.</span><span class="muted" style="font-size:.85rem">Párrafos, formularios, ayudas. Nunca en itálica.</span></div>
+      <div class="type-sample"><span class="label">Datos · JetBrains Mono</span><span class="mono-demo up">+1.453,76 US$</span><span class="mono-demo down">-591,27 US$</span><span class="muted" style="font-size:.85rem">Tablas, P&amp;L, horas y símbolos. Números tabulares.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">03 · Logo</div>
+    <h2>Escudo + wordmark</h2>
+    <p class="muted">El escudo funciona solo como icono (favicon, avatar, app móvil). Con texto, «GLOBAL» arriba en recto, «TRADERS» en itálica y «FX» siempre en verde. Sobre fondos claros, el FX usa el verde oscuro.</p>
+    <div class="logo-row" style="margin-top:20px">
+      <div class="logo-box"><svg width="40" height="40" viewBox="0 0 64 64" fill="none"><path d="M32 3 L56 11 V31 C56 45 46 55 32 61 C18 55 8 45 8 31 V11 Z" fill="url(#steel)" stroke="#16f57a" stroke-width="2" stroke-linejoin="round"/><path d="M17 45 L27 36 L34 41 L46 26" stroke="#16f57a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M40 25 H47 V32" stroke="#16f57a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><span class="wordmark"><span class="g">Global</span><span class="t">Traders</span> <span class="fx">FX</span></span></div>
+      <div class="logo-box light"><svg width="40" height="40" viewBox="0 0 64 64" fill="none"><path d="M32 3 L56 11 V31 C56 45 46 55 32 61 C18 55 8 45 8 31 V11 Z" fill="url(#steel)" stroke="#0fbf5e" stroke-width="2" stroke-linejoin="round"/><path d="M17 45 L27 36 L34 41 L46 26" stroke="#0fbf5e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M40 25 H47 V32" stroke="#0fbf5e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><span class="wordmark"><span class="g">Global</span><span class="t">Traders</span> <span class="fx">FX</span></span></div>
+      <div class="logo-box"><svg width="40" height="40" viewBox="0 0 64 64" fill="none"><path d="M32 3 L56 11 V31 C56 45 46 55 32 61 C18 55 8 45 8 31 V11 Z" fill="url(#steel)" stroke="#16f57a" stroke-width="2" stroke-linejoin="round"/><path d="M17 45 L27 36 L34 41 L46 26" stroke="#16f57a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><span class="muted" style="font-size:.85rem">Solo escudo</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">04 · Componentes</div>
+    <h2>Así se ve en la plataforma</h2>
+    <div class="ui" style="margin-top:20px">
+      <div style="display:grid;gap:12px">
+        <div class="banner"><span class="tag">Cuenta bloqueada</span><span style="font-size:.9rem">Lucid Trading 50K · pérdida diaria alcanzada · se desbloquea a las 17:00 ET</span></div>
+        <div class="grid cols-3">
+          <div class="card stat"><span class="k">Hoy</span><span class="v up">+29,46</span><span class="muted" style="font-size:.8rem">1 op. · 100 % acierto</span></div>
+          <div class="card stat"><span class="k">Semana</span><span class="v down">-83,49</span><span class="muted" style="font-size:.8rem">2 op. · 50 % acierto</span></div>
+          <div class="card stat"><span class="k">Mes</span><span class="v down">-591,27</span><span class="muted" style="font-size:.8rem">9 op. · 44 % acierto</span></div>
+        </div>
+        <div class="card" style="display:grid;gap:8px"><div style="display:flex;justify-content:space-between;font-size:.85rem"><span class="muted">Riesgo diario usado</span><span style="font-family:var(--mono)">72 %</span></div><div class="bar"><i></i></div><span class="muted" style="font-size:.78rem">Perdido 720 US$ de 1.000 US$ · quedan 280 US$</span></div>
+      </div>
+      <div class="card" style="display:grid;gap:14px">
+        <h3>Botones</h3>
+        <div class="btns"><span class="btn primary">Guardar operación</span><span class="btn secondary">Cancelar</span><span class="btn danger">Bloquear ahora</span></div>
+        <p class="muted" style="font-size:.85rem;margin:0">El primario es el único elemento verde sólido de la pantalla. El texto va en negro sobre neón para mantener el contraste (AA). El rojo se reserva para pérdidas y bloqueo.</p>
+        <h3>Reglas rápidas</h3>
+        <div class="rules" style="grid-template-columns:1fr">
+          <div class="rule"><b>Sí</b> · Un solo acento verde por vista; fondos negros; bordes acero finos.</div>
+          <div class="rule"><b>Sí</b> · Cifras siempre en mono con signo y color.</div>
+          <div class="rule no"><b>No</b> · Azules, morados o degradados multicolor.</div>
+          <div class="rule no"><b>No</b> · Verde neón como fondo de tarjetas o texto largo.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">05 · Voz</div>
+    <h2>Cómo habla la marca</h2>
+    <div class="grid cols-2" style="margin-top:20px">
+      <div class="card"><h3>Directa y protectora</h3><p class="muted" style="margin:8px 0 0">«Llegaste a tu límite. Hoy paras.» Frases cortas, en segundo persona, sin adornos. La app es el compañero que te frena cuando tú no puedes.</p></div>
+      <div class="card"><h3>Precisa con los números</h3><p class="muted" style="margin:8px 0 0">Siempre la cifra exacta, con moneda y signo: «-591,27 US$», nunca «unas 600». Un trader decide con datos, no con adjetivos.</p></div>
+    </div>
+  </section>
+
+  <footer>Global Traders FX · Guía de marca v1 · septiembre 2026 · paleta y componentes aplicados en client/tailwind.config.js</footer>
+</div>
