@@ -1,4 +1,4 @@
-// Acceso privado al Radar: solo los emails de RADAR_OWNER_EMAILS (separados por coma). Lista vacía = nadie.
+// Acceso privado al Radar: solo los emails de RADAR_OWNER_EMAILS (separados por coma). Lista vacía = nadie; "*" = todos los usuarios.
 function owners() {
   return (process.env.RADAR_OWNER_EMAILS || '')
     .split(',')
@@ -9,7 +9,9 @@ function owners() {
 /** true si el usuario (por email) puede ver el Radar. */
 export function hasRadarAccess(user) {
   if (!user || typeof user.email !== 'string') return false;
-  return owners().includes(user.email.trim().toLowerCase());
+  const list = owners();
+  if (list.includes("*")) return true;
+  return list.includes(user.email.trim().toLowerCase());
 }
 
 /** Middleware: 403 en español si el usuario no está en la lista. Debe ir después de requireAuth. */
