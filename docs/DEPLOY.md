@@ -88,3 +88,13 @@ git push
 - **Límite de usuarios**: `MAX_USERS=4` cierra el registro cuando ya hay 4 cuentas (el inicio de sesión sigue). Junto con `INVITE_CODE`, solo entra quien tiene el código y mientras haya sitio.
 - **DNS en Hostinger**: Railway pide dos registros, el CNAME `journal` y un TXT `_railway-verify.journal`; con ambos verifica el dominio en pocos minutos y emite el certificado.
 - Railway detecta el monorepo y crea dos servicios (`client` y `server`); hay que borrar `client` y poner el `server` con constructor Dockerfile y ruta `/Dockerfile`. Su comando de inicio `npm run start --workspace=server` funciona igual.
+
+## Panel de administración (variables opcionales)
+
+| Variable | Para qué |
+|---|---|
+| `OWNER_EMAILS` | Correo del dueño de la plataforma (todos los permisos). Sin ella, el dueño es el primer usuario registrado. |
+| `ADMIN_EMAILS` | Correos de administradores con permisos limitados (también se nombran desde el panel). |
+| `RESEND_API_KEY` y `MAIL_FROM` | Envío real de emails con Resend. Sin ellas los avisos se simulan y quedan en el registro. |
+
+Más en [ADMIN.md](ADMIN.md).

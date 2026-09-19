@@ -11,11 +11,13 @@ import {
   Wallet,
   X,
   PiggyBank,
+  ShieldCheck,
+  CreditCard,
 } from 'lucide-react';
 import { api, logoutEverywhere } from '../lib/api';
 import BrandLogo from './BrandLogo';
 import { cn } from '../lib/cn';
-import { useRadarEnabled, useSession, type Account, type User } from '../store/session';
+import { useAdminEnabled, useRadarEnabled, useSession, type Account, type User } from '../store/session';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import LockBanner from './LockBanner';
@@ -27,6 +29,7 @@ const NAV = [
   { to: '/finanzas', label: 'Finanzas', icon: PiggyBank },
   { to: '/diario', label: 'Diario', icon: BookOpen },
   { to: '/importar', label: 'Importar', icon: Upload },
+  { to: '/suscripcion', label: 'Mi suscripción', icon: CreditCard },
 ];
 
 const TITLES: Array<[RegExp, string]> = [
@@ -36,6 +39,8 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/operaciones/, 'Operaciones'],
   [/^\/cuentas/, 'Cuentas'],
   [/^\/finanzas/, 'Finanzas'],
+  [/^\/admin/, 'Administración'],
+  [/^\/suscripcion/, 'Mi suscripción'],
   [/^\/diario/, 'Diario'],
   [/^\/importar/, 'Importar operaciones'],
   [/^\/radar\/[A-Z0-9]{4,6}/, 'Radar · activo'],
@@ -50,6 +55,7 @@ function pageTitle(pathname: string): string {
 export default function Layout() {
   const { user, accountId, accounts, setAccountId, setAccounts, setFeatures } = useSession();
   const radarEnabled = useRadarEnabled();
+  const adminEnabled = useAdminEnabled();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -73,7 +79,11 @@ export default function Layout() {
     };
   }, [setAccounts, setFeatures]);
 
-  const nav = radarEnabled ? [...NAV, { to: '/radar', label: 'Radar', icon: RadarIcon, end: false }] : NAV;
+  const nav = [
+    ...NAV,
+    ...(radarEnabled ? [{ to: '/radar', label: 'Radar', icon: RadarIcon, end: false }] : []),
+    ...(adminEnabled ? [{ to: '/admin', label: 'Administración', icon: ShieldCheck, end: false }] : []),
+  ];
 
   useEffect(() => {
     setMobileOpen(false);

@@ -207,6 +207,79 @@ CREATE TABLE IF NOT EXISTS radar_favorites (
   created_at TEXT,
   PRIMARY KEY(user_id, symbol)
 );
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL DEFAULT 'prueba',
+  status TEXT NOT NULL DEFAULT 'prueba',
+  price REAL DEFAULT 0,
+  currency TEXT DEFAULT 'USD',
+  started_at TEXT,
+  current_period_start TEXT,
+  current_period_end TEXT,
+  auto_renew INTEGER DEFAULT 0,
+  provider TEXT DEFAULT 'manual',
+  provider_customer_id TEXT,
+  provider_subscription_id TEXT,
+  notes TEXT DEFAULT '',
+  canceled_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS subscription_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subscription_id INTEGER,
+  amount REAL NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  paid_at TEXT NOT NULL,
+  method TEXT DEFAULT 'manual',
+  reference TEXT DEFAULT '',
+  plan TEXT,
+  period_start TEXT,
+  period_end TEXT,
+  note TEXT DEFAULT '',
+  created_by INTEGER,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sub_payments_user ON subscription_payments(user_id, paid_at);
+CREATE TABLE IF NOT EXISTS subscription_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  actor_id INTEGER,
+  kind TEXT NOT NULL,
+  detail TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sub_events_user ON subscription_events(user_id, id);
+CREATE TABLE IF NOT EXISTS email_templates (
+  key TEXT PRIMARY KEY,
+  name TEXT,
+  subject TEXT,
+  body TEXT,
+  days_before INTEGER,
+  enabled INTEGER DEFAULT 1,
+  updated_at TEXT
+);
+CREATE TABLE IF NOT EXISTS email_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  to_email TEXT,
+  template_key TEXT,
+  subject TEXT,
+  body TEXT,
+  status TEXT,
+  error TEXT,
+  period_end TEXT,
+  created_by INTEGER,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_email_log_user ON email_log(user_id, template_key, period_end);
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TEXT
+);
 CREATE TABLE IF NOT EXISTS account_transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -249,6 +322,9 @@ CREATE INDEX IF NOT EXISTS idx_radar_calendar_at ON radar_calendar(at_utc);
  * Los nombres de tabla/columna son constantes del código (nunca entrada del usuario).
  */
 const COLUMN_MIGRATIONS = [
+  { table: 'users', column: 'role', ddl: "TEXT DEFAULT 'user'" },
+  { table: 'users', column: 'is_disabled', ddl: 'INTEGER DEFAULT 0' },
+  { table: 'users', column: 'last_login_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'outcome', ddl: "TEXT DEFAULT 'activa'" },
   { table: 'accounts', column: 'purchased_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'funded_at', ddl: 'TEXT' },

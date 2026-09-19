@@ -432,6 +432,115 @@ try {
     await api('DELETE', `/accounts/${created.data.id}`);
   });
 
+  let user2Id = null;
+  await test('admin: el primer usuario es administrador y el segundo no', async () => {
+    const me1 = await api('GET', '/auth/me');
+    assert(me1.data.features && me1.data.features.admin === true, `features ${JSON.stringify(me1.data.features)}`);
+    const me2 = await api('GET', '/auth/me', undefined, { token: user2Token });
+    assert(me2.data.features.admin === false, 'user2 no debería ser admin');
+    const forbidden = await api('GET', '/admin/overview', undefined, { token: user2Token });
+    assert(forbidden.status === 403, `esperaba 403, llegó ${forbidden.status}`);
+    const ov = await api('GET', '/admin/overview');
+    assert(ov.status === 200 && ov.data.totals.users >= 2 && ov.data.totals.prueba >= 2, `overview ${JSON.stringify(ov.data.totals)}`);
+  });
+
+  await test('admin: listado, suscripción, pago manual con email y extensión', async () => {
+    const list = await api('GET', '/admin/users');
+    assert(list.status === 200 && list.data.length >= 2, 'listado');
+    const u2 = list.data.find((u) => u.email === email2);
+    assert(u2 && u2.effective_status === 'prueba' && u2.days_left === 14, `user2 ${JSON.stringify(u2 && { s: u2.effective_status, d: u2.days_left })}`);
+    user2Id = u2.id;
+    const bad = await api('PUT', `/admin/users/${user2Id}/subscription`, { plan: 'platino' });
+    assert(bad.status === 400, 'plan inválido → 400');
+    const pay = await api('POST', `/admin/users/${user2Id}/payments`, { amount: 29, plan: 'mensual', method: 'paypal', reference: 'TX-1', send_email: true });
+    assert(pay.status === 201, `pago ${pay.status} ${JSON.stringify(pay.data)}`);
+    assert(pay.data.subscription.status === 'activa' && pay.data.subscription.plan === 'mensual' && pay.data.payments.length === 1, 'suscripción activa tras el pago');
+    assert(pay.data.email && pay.data.email.status === 'simulado', `email simulado ${JSON.stringify(pay.data.email)}`);
+    const ext = await api('POST', `/admin/users/${user2Id}/subscription/extend`, { days: 5 });
+    assert(ext.status === 200 && ext.data.days_left >= 33, `extensión ${ext.data.days_left}`);
+    const ov = await api('GET', '/admin/overview');
+    assert(ov.data.totals.activas === 1 && ov.data.totals.mrr === 29 && ov.data.totals.ingresos_mes === 29, `kpis ${JSON.stringify(ov.data.totals)}`);
+  });
+
+  await test('admin: recordatorios una sola vez por periodo y marcado de vencidas', async () => {
+    const ymd = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+    const up = await api('PUT', `/admin/users/${user2Id}/subscription`, { current_period_end: ymd(3) });
+    assert(up.status === 200 && up.data.days_left === 3, `vence en 3: ${up.data.days_left}`);
+    const run1 = await api('POST', '/admin/jobs/run');
+    assert(run1.status === 200 && run1.data.reminders >= 1, `run1 ${JSON.stringify(run1.data)}`);
+    const run2 = await api('POST', '/admin/jobs/run');
+    assert(run2.data.details.filter((d) => d.startsWith(email2)).length === 0, `run2 no debería repetir: ${JSON.stringify(run2.data)}`);
+    const emails = await api('GET', '/admin/emails');
+    assert(emails.data.some((e) => e.to_email === email2 && e.template_key === 'aviso_3d'), 'aviso_3d registrado');
+    await api('PUT', `/admin/users/${user2Id}/subscription`, { current_period_start: ymd(-40), current_period_end: ymd(-10) });
+    const run3 = await api('POST', '/admin/jobs/run');
+    assert(run3.data.expired >= 1, `run3 ${JSON.stringify(run3.data)}`);
+    const det = await api('GET', `/admin/users/${user2Id}`);
+    assert(det.data.subscription.status === 'vencida' && det.data.events.length >= 4, `estado ${det.data.subscription.status}`);
+  });
+
+  await test('admin: plantillas, ajustes, bloqueo por suscripción vencida y cuenta desactivada', async () => {
+    const tpls = await api('GET', '/admin/email-templates');
+    assert(tpls.status === 200 && tpls.data.templates.length >= 5 && tpls.data.mailer.driver === 'simulado', 'plantillas');
+    const upd = await api('PUT', '/admin/email-templates/aviso_3d', { subject: 'Hola {{nombre}}, quedan {{dias}} días' });
+    assert(upd.status === 200 && upd.data.subject.startsWith('Hola'), 'editar plantilla');
+    const prev = await api('POST', '/admin/email-templates/aviso_3d/preview', {});
+    assert(prev.status === 200 && !prev.data.subject.includes('{{'), `preview ${prev.data.subject}`);
+    const custom = await api('POST', `/admin/users/${user2Id}/email`, { subject: 'Aviso', body: 'Hola {{nombre}}' });
+    assert(custom.status === 201 && custom.data.body.includes('Smoke Dos'), `email libre ${JSON.stringify(custom.data)}`);
+    const st = await api('PUT', '/admin/settings', { enforce: true, grace_days: 0, payment_link: 'https://pagos.example.com/journal' });
+    assert(st.status === 200 && st.data.settings.enforce === true, 'ajustes');
+    const blocked = await api('GET', '/trades', undefined, { token: user2Token });
+    assert(blocked.status === 402 && blocked.data.code === 'subscription_required', `esperaba 402, llegó ${blocked.status}`);
+    const mine = await api('GET', '/subscription/me', undefined, { token: user2Token });
+    assert(mine.status === 200 && mine.data.effective_status === 'vencida' && mine.data.payment_link, 'mi suscripción');
+    const adminOk = await api('GET', '/trades');
+    assert(adminOk.status === 200, 'el admin no se bloquea');
+    await api('POST', `/admin/users/${user2Id}/subscription/reactivate`);
+    const unblocked = await api('GET', '/trades', undefined, { token: user2Token });
+    assert(unblocked.status === 200, `tras reactivar ${unblocked.status}`);
+    await api('PUT', '/admin/settings', { enforce: false });
+    const off = await api('PUT', `/admin/users/${user2Id}/access`, { is_disabled: true });
+    assert(off.status === 200 && off.data.user.is_disabled === true, 'desactivar');
+    const login = await api('POST', '/auth/login', { email: email2, password: 'Prueba1234' }, { token: null });
+    assert(login.status === 403, `login desactivado debería dar 403, dio ${login.status}`);
+    const stale = await api('GET', '/trades', undefined, { token: user2Token });
+    assert(stale.status === 403, `sesión de cuenta desactivada debería dar 403, dio ${stale.status}`);
+    const self = await api('PUT', `/admin/users/${(await api('GET', '/auth/me')).data.user.id}/access`, { is_disabled: true });
+    assert(self.status === 400, 'no puedes desactivarte a ti mismo');
+    await api('PUT', `/admin/users/${user2Id}/access`, { is_disabled: false });
+  });
+
+  await test('admin: dueño con todos los permisos y administrador limitado', async () => {
+    const me1 = await api('GET', '/auth/me');
+    assert(me1.data.features.owner === true, `el primer usuario debería ser dueño: ${JSON.stringify(me1.data.features)}`);
+    const ownerId = me1.data.user.id;
+    const promo = await api('PUT', `/admin/users/${user2Id}/access`, { role: 'admin' });
+    assert(promo.status === 200 && promo.data.user.admin_level === 'admin', `promover a admin: ${JSON.stringify(promo.data.user)}`);
+    const as2 = { token: user2Token };
+    const me2 = await api('GET', '/auth/me', undefined, as2);
+    assert(me2.data.features.admin === true && me2.data.features.owner === false, `features admin limitado ${JSON.stringify(me2.data.features)}`);
+    const ov = await api('GET', '/admin/overview', undefined, as2);
+    assert(ov.status === 200 && ov.data.level === 'admin' && !ov.data.permissions.includes('ajustes'), 'el admin limitado ve el resumen sin permiso de ajustes');
+    const pay = await api('POST', `/admin/users/${user2Id}/payments`, { amount: 10, plan: 'mensual' }, as2);
+    assert(pay.status === 201 || pay.status === 200, `el admin limitado registra pagos (${pay.status})`);
+    for (const [method, url, body] of [
+      ['PUT', '/admin/settings', { enforce: true }],
+      ['PUT', '/admin/email-templates/aviso_3d', { subject: 'x' }],
+      ['PUT', `/admin/users/${user2Id}/access`, { role: 'owner' }],
+      ['DELETE', `/admin/payments/${pay.data.payment ? pay.data.payment.id : 1}`, undefined],
+      ['PUT', `/admin/users/${ownerId}/subscription`, { status: 'cancelada' }],
+      ['POST', `/admin/users/${ownerId}/subscription/cancel`, {}],
+    ]) {
+      const r = await api(method, url, body, as2);
+      assert(r.status === 403, `${method} ${url} debería dar 403 al admin limitado, dio ${r.status}`);
+    }
+    const selfDemote = await api('PUT', `/admin/users/${ownerId}/access`, { role: 'admin' });
+    assert(selfDemote.status === 400, 'el dueño no puede quitarse su propio rol');
+    const demote = await api('PUT', `/admin/users/${user2Id}/access`, { role: 'user' });
+    assert(demote.status === 200 && demote.data.user.admin_level === null, 'volver a usuario normal');
+  });
+
   await test('borrar operación y cuenta (cascada)', async () => {
     const d = await api('DELETE', `/trades/${tradeIds[0]}`);
     if (isStub(d)) return SKIP;

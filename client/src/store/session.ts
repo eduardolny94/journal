@@ -70,14 +70,18 @@ export interface Account {
 /** Funciones privadas activadas para el usuario (las devuelve /api/auth/me, login y registro). */
 export interface Features {
   radar: boolean;
+  /** Panel de administración de la plataforma. */
+  admin: boolean;
+  /** Dueño de la plataforma: administrador con todos los permisos. */
+  owner: boolean;
 }
 
-export const DEFAULT_FEATURES: Features = { radar: false };
+export const DEFAULT_FEATURES: Features = { radar: false, admin: false, owner: false };
 
 /** Normaliza el objeto `features` que llega del servidor (puede faltar en versiones antiguas). */
 export function normalizeFeatures(raw: unknown): Features {
   const f = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof Features, unknown>>;
-  return { radar: f.radar === true };
+  return { radar: f.radar === true, admin: f.admin === true, owner: f.owner === true };
 }
 
 export interface SessionState {
@@ -121,6 +125,11 @@ export const useSession = create<SessionState>()(
     },
   ),
 );
+
+/** true si el usuario es administrador de la plataforma (ve el panel /admin). */
+export function useAdminEnabled(): boolean {
+  return useSession((s) => s.features.admin);
+}
 
 /** true si el usuario tiene activado el Radar de divisas (función privada). */
 export function useRadarEnabled(): boolean {

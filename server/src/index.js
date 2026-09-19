@@ -21,6 +21,14 @@ import statsRoutes from './routes/stats.js';
 import importRoutes from './routes/import.js';
 import radarRoutes from './routes/radar.js';
 import finanzasRoutes from './routes/finanzas.js';
+import adminRoutes from './routes/admin.js';
+import subscriptionRoutes from './routes/subscription.js';
+import { requireAdmin } from './services/admin.js';
+import { requireSubscription } from './services/subscriptions.js';
+import { startSubscriptionJobs } from './services/subscriptionJobs.js';
+import { ensureTemplates } from './services/mailer.js';
+import { backfillTrials } from './services/subscriptions.js';
+import { migrateFoundingAdmins } from './services/admin.js';
 import { requireRadarAccess } from './radar/access.js';
 import { startEngine } from './radar/engine.js';
 
@@ -113,18 +121,32 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'trading-journa
 app.use('/api/auth', authRoutes);
 
 // Rutas protegidas
-app.use('/api/accounts', requireAuth, accountsRoutes);
-app.use('/api/trades', requireAuth, tradesRoutes);
-app.use('/api/tags', requireAuth, tagsRoutes);
-app.use('/api/notes', requireAuth, notesRoutes);
-app.use('/api/stats', requireAuth, statsRoutes);
-app.use('/api/import', requireAuth, importRoutes);
-app.use('/api/finanzas', requireAuth, finanzasRoutes);
-app.use('/api/radar', requireAuth, requireRadarAccess, radarRoutes);
+// Puerta de suscripción: cuentas desactivadas fuera siempre; con `enforce`, también las suscripciones vencidas.
+const subscriptionGate = requireSubscription(getDb);
+app.use('/api/subscription', requireAuth, subscriptionRoutes);
+app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
+app.use('/api/accounts', requireAuth, subscriptionGate, accountsRoutes);
+app.use('/api/trades', requireAuth, subscriptionGate, tradesRoutes);
+app.use('/api/tags', requireAuth, subscriptionGate, tagsRoutes);
+app.use('/api/notes', requireAuth, subscriptionGate, notesRoutes);
+app.use('/api/stats', requireAuth, subscriptionGate, statsRoutes);
+app.use('/api/import', requireAuth, subscriptionGate, importRoutes);
+app.use('/api/finanzas', requireAuth, subscriptionGate, finanzasRoutes);
+app.use('/api/radar', requireAuth, subscriptionGate, requireRadarAccess, radarRoutes);
 
 // Radar de divisas: descargas y cálculo en segundo plano (no bloquea el arranque).
 try {
   startEngine();
+  try {
+    ensureTemplates(getDb());
+    const promoted = migrateFoundingAdmins(getDb());
+    if (promoted) console.log(`[admin] ${promoted} usuario(s) ya registrados pasan a ser administradores`);
+    const n = backfillTrials(getDb());
+    if (n) console.log(`[suscripciones] prueba gratuita creada para ${n} usuario(s) sin suscripción`);
+  } catch (e) {
+    console.warn('[suscripciones] plantillas:', e.message);
+  }
+  startSubscriptionJobs();
 } catch (err) {
   console.warn('[radar] no se pudo iniciar el motor:', err.message);
 }

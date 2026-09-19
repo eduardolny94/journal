@@ -9,14 +9,22 @@ import TradeForm from './pages/TradeForm';
 import TradeDetail from './pages/TradeDetail';
 import Accounts from './pages/Accounts';
 import Finanzas from './pages/Finanzas';
+import Admin from './pages/Admin';
+import Subscription from './pages/Subscription';
 import Notes from './pages/Notes';
 import Import from './pages/Import';
 import Connect from './pages/Connect';
 import Radar from './pages/Radar';
 import RadarPair from './pages/RadarPair';
-import { useRadarEnabled } from './store/session';
+import { useAdminEnabled, useRadarEnabled } from './store/session';
 
 /** Solo deja pasar al Radar (función privada) si el usuario lo tiene activado. */
+function RequireAdmin() {
+  const enabled = useAdminEnabled();
+  if (!enabled) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 function RequireRadar() {
   const enabled = useRadarEnabled();
   if (!enabled) return <Navigate to="/" replace />;
@@ -54,6 +62,10 @@ export default function App() {
             <Route path="/operaciones/:id" element={<TradeDetail />} />
             <Route path="/cuentas" element={<Accounts />} />
             <Route path="/finanzas" element={<Finanzas />} />
+            <Route path="/suscripcion" element={<Subscription />} />
+            <Route element={<RequireAdmin />}>
+              <Route path="/admin" element={<Admin />} />
+            </Route>
             <Route path="/cuentas/:id/conectar" element={<Connect />} />
             <Route path="/diario" element={<Notes />} />
             <Route path="/importar" element={<Import />} />

@@ -86,6 +86,13 @@ No por API: Lucid no tiene API pública, Tradovate excluye las cuentas prop de s
 - Imágenes privadas: solo su dueño puede verlas.
 - Todas las consultas filtran por usuario; entrada validada; errores sin detalles internos.
 
+## Administración y suscripciones
+
+Panel `/admin` para el personal de la plataforma: quién está suscrito, cuándo vence cada plan, pagos manuales, emails
+automáticos de vencimiento (7, 3 y 1 día antes, y al vencer), plantillas editables y reglas de acceso. Dos niveles:
+**dueño** (todos los permisos) y **administrador** (permisos limitados). La pasarela de pago queda pendiente a propósito.
+Detalle en [docs/ADMIN.md](docs/ADMIN.md). Variables: `OWNER_EMAILS`, `ADMIN_EMAILS`, `RESEND_API_KEY`, `MAIL_FROM`.
+
 ## Finanzas (dinero real)
 
 Sección para el trader de prop firms: registra lo que pagas por cuentas (evaluaciones, resets, activaciones, datos, plataforma) y lo que cobras (retiros con bruto, reparto y comisión; reembolsos), y calcula invertido, cobrado, resultado real, ROI, % recuperado, tasa de aprobación, coste por cuenta financiada, valor esperado por evaluación, gastos fijos, flujo de caja mensual y desglose por firma y por cuenta. Tarjeta "Dinero real" en el dashboard y campos económicos en cada cuenta. Detalles en `docs/FINANZAS.md`.

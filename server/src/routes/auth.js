@@ -5,6 +5,14 @@ import { rateLimit } from 'express-rate-limit';
 import { getDb } from '../db.js';
 import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from '../auth.js';
 import { featuresFor } from '../radar/access.js';
+import { adminLevel } from '../services/admin.js';
+import { createTrial } from '../services/subscriptions.js';
+
+/** Funciones visibles para el usuario: radar privado y panel de administración. */
+function allFeatures(user) {
+  const level = adminLevel(getDb(), user);
+  return { ...featuresFor(user), admin: level !== null, owner: level === 'owner' };
+}
 
 const router = Router();
 
@@ -45,7 +53,7 @@ export function validatePassword(password) {
 function respondWithSession(res, user, status = 200) {
   const token = signToken(user);
   setAuthCookie(res, token);
-  return res.status(status).json({ token, user: publicUser(user), features: featuresFor(user) });
+  return res.status(status).json({ token, user: publicUser(user), features: allFeatures(user) });
 }
 
 // POST /api/auth/register {email, password, name} -> {token, user} (+ cookie de sesión)
@@ -110,6 +118,7 @@ router.post('/register', authLimiter, async (req, res, next) => {
       .prepare('INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)')
       .run(cleanEmail, hash, cleanName);
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(Number(info.lastInsertRowid));
+    createTrial(db, user.id);
     return respondWithSession(res, user, 201);
   } catch (err) {
     next(err);
@@ -128,6 +137,8 @@ router.post('/login', authLimiter, async (req, res, next) => {
     // Comparación siempre (aunque no exista el usuario) para no revelar emails por tiempo de respuesta.
     const ok = await bcrypt.compare(password, user ? user.password_hash : '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva');
     if (!user || !ok) return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+    if (user.is_disabled) return res.status(403).json({ error: 'Tu cuenta está desactivada. Contacta con el administrador.' });
+    db.prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(user.id);
     return respondWithSession(res, user);
   } catch (err) {
     next(err);
@@ -148,7 +159,11 @@ router.get('/me', requireAuth, (req, res) => {
     clearAuthCookie(res);
     return res.status(401).json({ error: 'El usuario ya no existe.' });
   }
-  return res.json({ user: publicUser(user), features: featuresFor(user) });
+  if (user.is_disabled) {
+    clearAuthCookie(res);
+    return res.status(403).json({ error: 'Tu cuenta está desactivada. Contacta con el administrador.' });
+  }
+  return res.json({ user: publicUser(user), features: allFeatures(user) });
 });
 
 export default router;

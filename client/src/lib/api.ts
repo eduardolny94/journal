@@ -74,6 +74,10 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     throw new ApiError('Sesión caducada. Vuelve a iniciar sesión.', 401, data);
   }
 
+  if (res.status === 402 && window.location.pathname !== '/suscripcion') {
+    window.location.assign('/suscripcion');
+  }
+
   if (!res.ok) {
     const msg =
       data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string'
