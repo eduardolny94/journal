@@ -25,7 +25,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 11. **Fuentes de bonos incompletas.** Nueva Zelanda sin histórico, Suiza parada en julio de 2025 en el cubo del BNS, Reino Unido a 5 años. Afecta poco, conviene cerrar.
 12. **Journal como medida final.** Con 50–100 operaciones registradas, el dashboard separa resultado a favor y en contra del sesgo. Añadir la etiqueta "método" a la operación (retroceso al 50 % sí/no) para comparar con el backtest.
 13. **Datos gratuitos que faltan.** Sentimiento minorista como contrario (Myfxbook), cobre y mineral de hierro para AUD, tipos reales EE. UU. frente a Japón para JPY. Cada uno se añade como pilar y se mide antes de dejarlo.
-14. **Despliegue en la nube** (Railway/Render) para que el radar viva 24/7, y el guardián de riesgo para futuros y forex.
+14. **Despliegue en la nube.** Hecho: el journal vive 24/7 en Railway (journal.cesarzorrilla.com). Queda el guardián de riesgo para futuros y forex.
+15. **Fuente de precios mejor que Yahoo.** Investigado (ver [FUENTES-PRECIOS.md](FUENTES-PRECIOS.md)): Yahoo corta la vela diaria a las 00:00 de Londres en vez de a las 17:00 de Nueva York, lo que mueve el "máximo/mínimo de ayer" y la vela del método. Plan: capa `prices.js` con OANDA v20 (practice) como principal, Yahoo de respaldo y para VIX/DXY, Dukascopy para cruzar. Después, repetir el backtest del método con la vela diaria correcta. Ojo con la licencia de OANDA si la plataforma se vende.
 
 ## Lo que se descarta (medido, sin ventaja)
 
