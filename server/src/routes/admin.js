@@ -2,7 +2,7 @@
 // ajustes y tareas automáticas. Solo administradores. La pasarela de pago queda reservada (provider = 'manual').
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { adminLevel, permissionsFor, requireOwner } from '../services/admin.js';
+import { adminLevel, ownerLocked, permissionsFor, requireOwner } from '../services/admin.js';
 import {
   PLANS, STATUSES, PAYMENT_METHODS, DEFAULT_SETTINGS, isYmd, todayYmd, getSettings, saveSettings, getSubscription, upsertSubscription, registerPayment,
   cancelSubscription, reactivateSubscription, extendSubscription, listUsers, userDetail, listPayments, overview, logEvent,
@@ -50,7 +50,7 @@ function optMoney(v, label) {
 router.get('/overview', (req, res, next) => {
   try {
     const db = getDb();
-    res.json({ ...overview(db), mailer: mailerInfo(), last_job: lastJobRun(db), settings: getSettings(db), level: req.adminLevel, permissions: permissionsFor(req.adminLevel) });
+    res.json({ ...overview(db), mailer: mailerInfo(), last_job: lastJobRun(db), settings: getSettings(db), level: req.adminLevel, permissions: permissionsFor(req.adminLevel), owner_locked: ownerLocked() });
   } catch (err) {
     next(err);
   }
@@ -191,6 +191,7 @@ router.put('/users/:id/access', requireOwner, (req, res, next) => {
     const b = req.body && typeof req.body === 'object' ? req.body : {};
     if (b.role !== undefined) {
       if (!['user', 'admin', 'owner'].includes(b.role)) throw new HttpError(400, 'Rol inválido.');
+      if (b.role === 'owner' && ownerLocked() && user.id !== req.user.id) throw new HttpError(400, 'El dueño está fijado en la configuración del servidor (OWNER_EMAILS): no se pueden nombrar más dueños.');
       if (user.id === req.user.id && b.role !== 'owner') throw new HttpError(400, 'No puedes quitarte a ti mismo el rol de dueño. Nombra antes a otro dueño y que él lo cambie.');
       // Si el dueño actual lo es solo por ser el primero (o por OWNER_EMAILS), se fija su rol antes de repartir otros.
       db.prepare("UPDATE users SET role = 'owner' WHERE id = ? AND role != 'owner'").run(req.user.id);

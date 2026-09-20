@@ -105,6 +105,8 @@ export interface Overview {
   /** Nivel de quien mira el panel y lo que puede hacer. */
   level: 'owner' | 'admin';
   permissions: string[];
+  /** El dueño está fijado por configuración del servidor: no se pueden nombrar más dueños. */
+  owner_locked: boolean;
   settings: AdminSettings;
 }
 export interface EmailTemplate { key: string; name: string; subject: string; body: string; days_before: number | null; enabled: boolean; updated_at: string | null }

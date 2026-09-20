@@ -134,7 +134,7 @@ export default function Admin() {
       {tab === 'emails' && <EmailsTab reloadKey={reloadKey} onTemplates={setTemplates} canEdit={isOwner} />}
       {tab === 'ajustes' && ov && <SettingsTab initial={ov.settings} mailer={ov.mailer} lastJob={ov.last_job} onSaved={reload} canEdit={isOwner} />}
 
-      <UserDetailModal userId={managing?.id ?? null} initialTab={managing?.tab} onClose={() => setManaging(null)} onChanged={reload} settings={ov?.settings ?? null} templates={templates} isOwner={isOwner} />
+      <UserDetailModal userId={managing?.id ?? null} initialTab={managing?.tab} onClose={() => setManaging(null)} onChanged={reload} settings={ov?.settings ?? null} templates={templates} isOwner={isOwner} ownerLocked={ov?.owner_locked ?? false} />
     </div>
   );
 }

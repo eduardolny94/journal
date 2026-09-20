@@ -1,6 +1,6 @@
 // Personal de la plataforma, en dos niveles:
-//   - dueño (owner): todos los permisos. Rol 'owner' en la base de datos, o email en OWNER_EMAILS, o —si no hay
-//     ningún dueño configurado— el usuario más antiguo (quien crea la plataforma es su primer dueño).
+//   - dueño (owner): todos los permisos. Si existe OWNER_EMAILS, SOLO esos correos (exclusivo). Si no existe: rol
+//     'owner' en la base de datos o —si no hay ninguno— el usuario más antiguo (quien crea la plataforma).
 //   - administrador (admin): permisos limitados (ver todo, registrar pagos, alargar/cancelar/reactivar, enviar emails).
 //     Rol 'admin' en la base de datos o email en ADMIN_EMAILS.
 // Solo el dueño cambia ajustes, plantillas, roles, accesos y borra pagos.
@@ -26,7 +26,13 @@ export function adminLevel(db, user) {
   if (!row) return null;
   const email = String(row.email).toLowerCase();
   const owners = ownerEmails();
-  if (row.role === 'owner' || owners.includes(email)) return 'owner';
+  // Con OWNER_EMAILS definido, el dueño queda fijado por configuración: nadie más puede serlo, aunque tenga el rol
+  // 'owner' en la base de datos (se le trata como administrador).
+  if (owners.length) {
+    if (owners.includes(email)) return 'owner';
+    return row.role === 'owner' || row.role === 'admin' || adminEmails().includes(email) ? 'admin' : null;
+  }
+  if (row.role === 'owner') return 'owner';
   // Sin dueño configurado en ningún sitio: lo es el usuario más antiguo.
   if (!owners.length && !db.prepare("SELECT 1 AS x FROM users WHERE role = 'owner' LIMIT 1").get()) {
     const first = db.prepare('SELECT id FROM users ORDER BY id ASC LIMIT 1').get();
@@ -35,6 +41,9 @@ export function adminLevel(db, user) {
   if (row.role === 'admin' || adminEmails().includes(email)) return 'admin';
   return null;
 }
+
+/** true si el dueño está fijado por OWNER_EMAILS (no se pueden nombrar más dueños desde el panel). */
+export const ownerLocked = () => ownerEmails().length > 0;
 
 export const isAdmin = (db, user) => adminLevel(db, user) !== null;
 export const isOwner = (db, user) => adminLevel(db, user) === 'owner';

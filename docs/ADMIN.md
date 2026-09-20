@@ -12,14 +12,15 @@ Hay dos niveles de personal:
 
 | Nivel | Quién es | Qué puede hacer |
 |---|---|---|
-| **Dueño** (`owner`) | Rol `owner` en la base de datos, o email en `OWNER_EMAILS`. Si no hay ningún dueño configurado, **el usuario más antiguo** (el primero que se registró). | **Todo**: lo del administrador y además cambiar ajustes (precios, prueba, gracia, exigir suscripción), editar plantillas de email, dar o quitar roles, desactivar accesos y borrar pagos. |
+| **Dueño** (`owner`) | Si existe la variable `OWNER_EMAILS`, **solo** los correos que figuran en ella (exclusivo: nadie más puede ser dueño, ni desde el panel). Si no existe: rol `owner` en la base de datos o, si no hay ninguno, el usuario más antiguo. En producción: `eduardolny94@gmail.com`. | **Todo**: lo del administrador y además cambiar ajustes (precios, prueba, gracia, exigir suscripción), editar plantillas de email, dar o quitar roles, desactivar accesos y borrar pagos. |
 | **Administrador** (`admin`) | Rol `admin` en la base de datos, o email en `ADMIN_EMAILS`. | Ver todo el panel, registrar pagos, editar/alargar/cancelar/reactivar suscripciones, enviar emails, enviarse pruebas de plantillas y lanzar la revisión de vencimientos. **No** puede cambiar ajustes, plantillas, roles ni accesos, ni borrar pagos, ni tocar la ficha de un dueño. |
 
 - **Equipo fundador:** la primera vez que arranca el panel, todos los usuarios que ya estaban registrados pasan a ser
   administradores (se hace una sola vez; queda marcado en `app_settings.founding_admins_migrated`). Los que se
   registren después son usuarios normales hasta que el dueño los promueva.
 - El rol se cambia desde la ficha del usuario (selector **Rol**: Usuario / Administrador / Dueño). Solo lo ve el dueño.
-- Puede haber varios dueños. Un dueño no puede quitarse el rol ni desactivarse a sí mismo.
+- Con `OWNER_EMAILS` definido, el selector de rol no ofrece "Dueño" y el servidor rechaza nombrar más dueños. Sin esa
+  variable puede haber varios. Un dueño no puede quitarse el rol ni desactivarse a sí mismo.
 - El personal (dueño y administradores) nunca queda bloqueado por la suscripción.
 - Los permisos se aplican **en el servidor** (`requireOwner`): la interfaz solo oculta lo que no toca; aunque alguien
   llame a la API a mano, recibe `403 owner_required`.

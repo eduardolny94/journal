@@ -29,9 +29,11 @@ export interface UserDetailModalProps {
   initialTab?: Tab;
   /** Quien mira es el dueño: puede cambiar roles, accesos y borrar pagos. */
   isOwner: boolean;
+  /** El dueño está fijado en el servidor: el selector de rol no ofrece «Dueño». */
+  ownerLocked?: boolean;
 }
 
-export default function UserDetailModal({ userId, onClose, onChanged, settings, templates, initialTab = 'suscripcion', isOwner }: UserDetailModalProps) {
+export default function UserDetailModal({ userId, onClose, onChanged, settings, templates, initialTab = 'suscripcion', isOwner, ownerLocked = false }: UserDetailModalProps) {
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +158,8 @@ export default function UserDetailModal({ userId, onClose, onChanged, settings, 
                       Rol
                       <select
                         value={u.admin_level ?? 'user'}
-                        disabled={busy}
+                        disabled={busy || u.admin_level === 'owner'}
+                        title={u.admin_level === 'owner' ? 'El rol del dueño no se cambia desde el panel' : undefined}
                         onChange={(e) => {
                           const role = e.target.value as 'user' | 'admin' | 'owner';
                           if (role === 'owner' && !window.confirm(`¿Dar a ${u.name} todos los permisos de dueño? Podrá cambiar ajustes, roles y accesos.`)) return;
@@ -166,7 +169,7 @@ export default function UserDetailModal({ userId, onClose, onChanged, settings, 
                       >
                         <option value="user">Usuario</option>
                         <option value="admin">Administrador (limitado)</option>
-                        <option value="owner">Dueño (todos los permisos)</option>
+                        {(!ownerLocked || u.admin_level === 'owner') && <option value="owner">Dueño (todos los permisos)</option>}
                       </select>
                     </label>
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => setAccess(u.id, { is_disabled: !u.is_disabled }), u.is_disabled ? 'Acceso activado.' : 'Acceso desactivado: no podrá iniciar sesión.')} leftIcon={u.is_disabled ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5 text-loss" />}>{u.is_disabled ? 'Activar acceso' : 'Desactivar acceso'}</Button>
