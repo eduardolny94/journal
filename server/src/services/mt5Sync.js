@@ -131,6 +131,13 @@ export function applySync(db, account, body) {
   if (account.sync_login && account.sync_login !== login) {
     throw new SyncError(409, `Este token pertenece a la cuenta de MT5 ${account.sync_login}, pero el terminal está conectado a la ${login}. No se ha guardado nada.`, 'login_mismatch');
   }
+  // Primer envío de este token: una misma cuenta de MT5 no puede alimentar dos cuentas del journal del mismo usuario
+  // (pasa si alguien con varias cuentas de fondeo añade el servicio con el token equivocado).
+  if (!account.sync_login) {
+    const server = String(info.server ?? '').slice(0, 64);
+    const other = db.prepare("SELECT name FROM accounts WHERE user_id = ? AND id != ? AND sync_token_hash IS NOT NULL AND sync_login = ? AND COALESCE(sync_server, '') = ?").get(account.user_id, account.id, login, server);
+    if (other) throw new SyncError(409, `La cuenta de MT5 ${login} ya está sincronizada con «${other.name}». Este token es de otra cuenta del journal: conéctate en MetaTrader con la cuenta que le corresponde.`, 'login_in_use');
+  }
   const offsetNow = num(info.server_time) !== null && num(info.gmt_time) !== null ? num(info.server_time) - num(info.gmt_time) : 0;
   const list = Array.isArray(body?.positions) ? body.positions.slice(0, MAX_POSITIONS_PER_SYNC) : [];
 

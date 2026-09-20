@@ -63,3 +63,19 @@ Mensajes del servicio: pestaña "Expertos" del terminal (token inválido, WebReq
 
 Recompilar tras cambiar el `.mq5`:
 `MetaEditor64.exe /compile:"…\GTFX_JournalSync.mq5" /log` y copiar el `.ex5` a `client/public/descargas/`.
+
+## Para un suscriptor (autoservicio)
+
+Cada suscriptor lo activa solo, desde su cuenta y su PC; el equipo no interviene ni ve sus credenciales:
+
+1. Se registra, crea su cuenta de fondeo en **Cuentas** (plataforma MetaTrader 5) y pone sus límites.
+2. **Conectar → 3. Sincronización automática → Activar y generar token.** El token es suyo y solo escribe en esa cuenta.
+3. Descarga `GTFX_JournalSync.ex5` desde la misma tarjeta y sigue los 4 pasos que aparecen en pantalla.
+
+- Varias cuentas de fondeo: un token por cuenta del journal. El servicio se añade una vez por token (MT5 admite varias
+  instancias del mismo servicio). Cada token queda ligado a su cuenta de MT5 y una misma cuenta de MT5 no puede
+  alimentar dos cuentas del journal (409 `login_in_use`), así que un token mal pegado no mezcla datos.
+- Si la suscripción vence y está activado "exigir suscripción", la sincronización responde 402 y se reanuda sola al
+  renovar: al volver envía todo lo pendiente.
+- Quien opere solo desde el móvil, o en MT4/cTrader/futuros, usa la importación por CSV (esas plataformas no tienen aún
+  servicio automático).

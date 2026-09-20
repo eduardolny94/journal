@@ -572,6 +572,14 @@ try {
     assert(det.data.sync.login === '5012345' && det.data.sync.balance === 100250.5 && det.data.sync.trades_total === 2 && det.data.sync.last_at, `estado de sync ${JSON.stringify(det.data.sync)}`);
     const other = await api('POST', '/sync/mt5', { account: { ...account, login: '7777777' }, positions: [] }, as);
     assert(other.status === 409 && other.data.code === 'login_mismatch', `otra cuenta de MT5 debería dar 409, dio ${other.status}`);
+    // Segunda cuenta del journal con su propio token: la misma cuenta de MT5 no puede alimentar las dos.
+    const acc2 = await api('POST', '/accounts', { name: 'The5ers 20K', firm: 'The5ers', platform: 'mt5', account_type: 'evaluacion', size: 20000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17 });
+    const tk2 = await api('POST', `/accounts/${acc2.data.id}/sync-token`);
+    const clash = await api('POST', '/sync/mt5', { account, positions }, { token: tk2.data.token });
+    assert(clash.status === 409 && clash.data.code === 'login_in_use', `misma cuenta de MT5 en dos cuentas del journal debería dar 409, dio ${clash.status}`);
+    const okOther = await api('POST', '/sync/mt5', { account: { ...account, login: '5099999' }, positions: [] }, { token: tk2.data.token });
+    assert(okOther.status === 200, `otra cuenta de MT5 con su token sí entra (${okOther.status})`);
+    await api('DELETE', `/accounts/${acc2.data.id}`);
     const foreign = await api('POST', `/accounts/${id}/sync-token`, undefined, { token: user2Token });
     assert(foreign.status === 404, `otro usuario no puede generar token (dio ${foreign.status})`);
     const rev = await api('DELETE', `/accounts/${id}/sync-token`);
