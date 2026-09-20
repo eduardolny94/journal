@@ -18,9 +18,13 @@ function sqlList(names) {
   return names.map((n) => `'${n.replace(/'/g, "''")}'`).join(',');
 }
 
-async function fetchDataset(api, markets, since) {
+// Solo las columnas que se guardan: cada fila completa trae más de 80 y la respuesta pesa 20 veces más.
+const TFF_FIELDS = ['market_and_exchange_names', 'report_date_as_yyyy_mm_dd', 'open_interest_all', 'lev_money_positions_long', 'lev_money_positions_short', 'asset_mgr_positions_long', 'asset_mgr_positions_short'];
+const DISAGG_FIELDS = ['market_and_exchange_names', 'report_date_as_yyyy_mm_dd', 'open_interest_all', 'm_money_positions_long_all', 'm_money_positions_short_all'];
+
+async function fetchDataset(api, markets, since, fields) {
   const where = `market_and_exchange_names in (${sqlList(Object.keys(markets))}) AND report_date_as_yyyy_mm_dd >= '${since}'`;
-  const url = `${api}?$where=${encodeURIComponent(where)}&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=3000`;
+  const url = `${api}?$select=${fields.join(',')}&$where=${encodeURIComponent(where)}&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=3000`;
   const rows = await fetchJson(url, { label: 'COT' });
   if (!Array.isArray(rows)) throw new Error('COT: formato inesperado');
   return rows;
@@ -28,7 +32,7 @@ async function fetchDataset(api, markets, since) {
 
 export async function refreshCot(db, { now = new Date() } = {}) {
   const since = new Date(now.getTime() - 3 * 366 * 86400000).toISOString().slice(0, 10);
-  const [tff, disagg] = await Promise.all([fetchDataset(API_TFF, TFF_MARKETS, since), fetchDataset(API_DISAGG, DISAGG_MARKETS, since).catch((e) => { console.warn('[radar] COT materias primas:', e.message); return []; })]);
+  const [tff, disagg] = await Promise.all([fetchDataset(API_TFF, TFF_MARKETS, since, TFF_FIELDS), fetchDataset(API_DISAGG, DISAGG_MARKETS, since, DISAGG_FIELDS).catch((e) => { console.warn('[radar] COT materias primas:', e.message); return []; })]);
   const up = db.prepare(
     `INSERT OR REPLACE INTO radar_cot (report_date, currency, open_interest, lev_long, lev_short, asset_long, asset_short) VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );

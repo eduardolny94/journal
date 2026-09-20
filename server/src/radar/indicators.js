@@ -1,7 +1,23 @@
 // Indicadores y agregaciones del radar. Velas: { time (epoch s UTC), open, high, low, close, volume }.
-import { tradingDayFor, isoWeekKey } from '../services/tradingDay.js';
+import { tradingDayFor, isoWeekKey, localParts } from '../services/tradingDay.js';
 
 export const NY = { timezone: 'America/New_York', day_reset_hour: 17 };
+
+// Día de trading y hora de Nueva York de cada vela. Formatear con Intl es lo más caro del cálculo, y crear un
+// Intl.DateTimeFormat por vela reserva memoria nativa que Node tarda en liberar (llegó a tumbar el servidor por falta
+// de memoria). Las mismas marcas de tiempo se repiten en todos los símbolos y en cada pasada: se memorizan.
+const nyCache = new Map();
+const NY_CACHE_MAX = 60_000;
+function nyInfo(timeSec) {
+  let v = nyCache.get(timeSec);
+  if (!v) {
+    const d = new Date(timeSec * 1000);
+    v = { key: tradingDayFor(d, NY), hour: localParts(d, NY.timezone).hour };
+    if (nyCache.size >= NY_CACHE_MAX) nyCache.clear();
+    nyCache.set(timeSec, v);
+  }
+  return v;
+}
 
 export function ema(values, period) {
   if (!values.length) return [];
@@ -37,7 +53,7 @@ export function aggregateNyDays(h1) {
   const days = [];
   let cur = null;
   for (const b of h1) {
-    const key = tradingDayFor(new Date(b.time * 1000), NY);
+    const { key } = nyInfo(b.time);
     if (!cur || cur.key !== key) {
       if (cur) days.push(cur);
       cur = { key, time: b.time, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0, bars: 1 };
@@ -58,10 +74,8 @@ export function aggregateH4(h1) {
   const out = [];
   let cur = null;
   for (const b of h1) {
-    const key = tradingDayFor(new Date(b.time * 1000), NY);
     // horas desde el inicio del día de trading (17:00 ET = 21:00 o 22:00 UTC según horario de verano): usar hora NY
-    const ny = new Date(b.time * 1000);
-    const hourNy = Number(new Intl.DateTimeFormat('en-US', { timeZone: NY.timezone, hour: 'numeric', hour12: false }).format(ny)) % 24;
+    const { key, hour: hourNy } = nyInfo(b.time);
     const sinceReset = (hourNy - NY.day_reset_hour + 24) % 24;
     const block = `${key}-${Math.floor(sinceReset / 4)}`;
     if (!cur || cur.key !== block) {

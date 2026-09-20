@@ -220,4 +220,18 @@ app.listen(PORT, () => {
   console.log(`[server] API escuchando en http://localhost:${PORT}${isProd ? '' : ' (modo desarrollo)'}`);
 });
 
+// Consumo de memoria en los registros (cada 30 min, y al pasar de 400 MB): si el contenedor vuelve a quedarse corto,
+// se ve cuándo empezó a subir sin tener que adivinar.
+if (!isTest) {
+  const mb = (n) => Math.round(n / 1048576);
+  let lastLog = 0;
+  setInterval(() => {
+    const m = process.memoryUsage();
+    const high = m.rss > 400 * 1048576;
+    if (!high && Date.now() - lastLog < 30 * 60_000) return;
+    lastLog = Date.now();
+    console[high ? 'warn' : 'log'](`[mem] rss ${mb(m.rss)} MB · heap ${mb(m.heapUsed)}/${mb(m.heapTotal)} MB · externa ${mb(m.external)} MB${high ? ' · ALTO' : ''}`);
+  }, 60_000).unref();
+}
+
 export default app;

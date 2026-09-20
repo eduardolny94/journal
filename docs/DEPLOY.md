@@ -98,3 +98,19 @@ git push
 | `RESEND_API_KEY` y `MAIL_FROM` | Envío real de emails con Resend. Sin ellas los avisos se simulan y quedan en el registro. |
 
 Más en [ADMIN.md](ADMIN.md).
+
+## Incidente del 20-09-2026: "Application failed to respond" por falta de memoria
+
+- **Síntoma:** Railway marcó el servicio como *Crashed* ("el despliegue se quedó sin memoria") y el dominio devolvía 502.
+  La gráfica de memoria mostraba una base de 150–250 MB con picos por encima de 500 MB (el plan de prueba corta en 512 MB).
+- **Causa:** `aggregateH4` (radar) creaba un `Intl.DateTimeFormat` nuevo **por cada vela H1**: unas 50.000 veces por pasada,
+  cada 5 minutos. Cada formateador reserva memoria nativa (ICU) que Node no cuenta como propia y tarda en liberar. En local
+  una sola pasada dejaba el proceso en 937 MB aunque los datos reales ocuparan poco.
+- **Arreglo:** un único formateador reutilizado y la hora/día de Nueva York memorizados por marca de tiempo (las mismas
+  velas se repiten en todos los símbolos). Resultado medido: 937 MB → 124 MB, y el cálculo tarda 3,9 s en vez de 9,8 s.
+  Además: el COT pide solo las 7 columnas que se guardan, `NODE_OPTIONS=--max-old-space-size=320` en la imagen, y una línea
+  `[mem]` en los registros cada 30 minutos (o al pasar de 400 MB).
+- **Cómo se diagnosticó (y cómo repetirlo):** `node --expose-gc server/scripts/medir-memoria.mjs` mide el pico de cada tarea
+  del radar; `node server/scripts/perfil-memoria.mjs` dice qué funciones reservan más. Con
+  `node --max-old-space-size=256 …` se simula un contenedor pequeño: todo, backtest incluido, cabe en ~270 MB.
+- **Regla:** nunca construir objetos `Intl.*` dentro de bucles; crearlos una vez a nivel de módulo o memorizarlos.
