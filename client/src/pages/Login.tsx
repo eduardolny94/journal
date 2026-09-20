@@ -132,9 +132,12 @@ export default function Login() {
               </Link>
             </p>
           </form>
-          <p className="mt-4 text-center text-xs text-gray-500">
-            Demo: <span className="text-gray-400">demo@journal.com</span> / <span className="text-gray-400">demo1234</span>
-          </p>
+          {/* La cuenta demo solo existe en la instalación local (scripts/seed.js), no en el servidor público. */}
+          {['localhost', '127.0.0.1'].includes(window.location.hostname) && (
+            <p className="mt-4 text-center text-xs text-gray-500">
+              Demo: <span className="text-gray-400">demo@journal.com</span> / <span className="text-gray-400">demo1234</span>
+            </p>
+          )}
         </div>
       </section>
     </div>
