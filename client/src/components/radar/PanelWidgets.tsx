@@ -98,24 +98,31 @@ function NewsTag({ tag }: { tag: string }) {
 export function MarketEvents({ news, className }: { news: NewsItem[]; className?: string }) {
   const now = useNow(30_000);
   const [filter, setFilter] = useState<'urgent' | 'all'>('urgent');
-  const list = filter === 'urgent' ? news.filter((n) => n.urgency >= 7) : news;
+  // Plegado: solo los 2 titulares más relevantes. Los titulares son contexto y aviso de riesgo, no señal de entrada.
+  const [expanded, setExpanded] = useState(false);
+  const urgent = news.filter((n) => n.urgency >= 7);
+  const full = filter === 'urgent' ? urgent : news;
+  const list = expanded ? full : (urgent.length ? urgent : news).slice(0, 2);
   return (
     <Card
       className={className}
       title={<span className="flex items-center gap-2">Eventos de mercado <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-profit"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-profit" />En vivo</span></span>}
       actions={
         <div className="flex gap-1 text-[11px]">
-          {(['urgent', 'all'] as const).map((f) => (
+          {expanded && (['urgent', 'all'] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={cn('rounded-md px-2 py-1', filter === f ? 'bg-accent/15 text-accent-soft' : 'text-gray-400 hover:text-gray-200')}>
               {f === 'urgent' ? 'Urgentes' : 'Todos'}
             </button>
           ))}
+          <button onClick={() => setExpanded((v) => !v)} className="rounded-md px-2 py-1 text-accent hover:underline">
+            {expanded ? 'Ver menos' : `Ver todos (${news.length})`}
+          </button>
         </div>
       }
       flush
     >
-      <ul className="max-h-[420px] divide-y divide-border overflow-y-auto">
-        {list.length === 0 && <li className="p-4 text-sm text-gray-500">Sin titulares {filter === 'urgent' ? 'urgentes' : ''} en las últimas horas.</li>}
+      <ul className={cn('divide-y divide-border', expanded && 'max-h-[420px] overflow-y-auto')}>
+        {list.length === 0 && <li className="p-4 text-sm text-gray-500">Sin titulares {expanded && filter === 'all' ? '' : 'urgentes '}en las últimas horas.</li>}
         {list.map((n) => (
           <li key={n.id} className={cn('p-3', n.urgency >= 8 && 'bg-loss/5')}>
             <div className="flex items-start justify-between gap-2">
@@ -145,15 +152,17 @@ export function MarketEvents({ news, className }: { news: NewsItem[]; className?
 
 export function MacroCalendarMini({ upcoming, published, className }: { upcoming: NextEvent[]; published: LastEvent[]; className?: string }) {
   const now = useNow(1000);
-  const items = upcoming.slice(0, 6);
+  // Solo impacto alto: es lo que mueve el precio y por lo que conviene no entrar justo antes.
+  const items = upcoming.filter((e) => e.impact === 'High').slice(0, 6);
+  const publishedHigh = published.filter((e) => e.impact === 'High');
   return (
     <Card
       className={className}
-      title={<span className="flex items-center gap-2">Calendario macro <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-profit"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-profit" />En vivo</span></span>}
+      title={<span className="flex items-center gap-2">Noticias fuertes <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-profit"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-profit" />En vivo</span></span>}
       flush
     >
       <ul className="divide-y divide-border">
-        {published.slice(0, 2).map((e) => (
+        {publishedHigh.slice(0, 2).map((e) => (
           <li key={`${e.currency}|${e.title}|${e.at_utc}`} className="bg-bg/40 p-3">
             <div className="flex items-center gap-2 text-[11px] text-gray-500">
               <span>{fmtLocalTime(e.at_utc)}</span>
@@ -185,7 +194,7 @@ export function MacroCalendarMini({ upcoming, published, className }: { upcoming
             </li>
           );
         })}
-        {items.length === 0 && <li className="p-4 text-sm text-gray-500">Sin eventos de impacto en los próximos días.</li>}
+        {items.length === 0 && <li className="p-4 text-sm text-gray-500">Sin noticias de impacto alto en los próximos 7 días.</li>}
       </ul>
     </Card>
   );

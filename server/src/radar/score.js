@@ -473,7 +473,7 @@ function finishRadar(db, input, ctx) {
     };
   });
 
-  const upcoming = eventsBetween(db, nowIso, in7d).filter((e) => (e.impact === 'High' || e.impact === 'Medium') && CURRENCIES.includes(e.country)).slice(0, 15)
+  const upcoming = eventsBetween(db, nowIso, in7d).filter((e) => (e.impact === 'High' || e.impact === 'Medium') && CURRENCIES.includes(e.country)).slice(0, 40)
     .map((e) => ({ title: e.title, currency: e.country, at_utc: e.at_utc, impact: e.impact, minutes: Math.round((new Date(e.at_utc).getTime() - now) / 60000), forecast: e.forecast, previous: e.previous }));
 
   return { currencies, pairs, upcoming, risk, pairData };

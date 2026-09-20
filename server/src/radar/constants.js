@@ -5,7 +5,12 @@ export const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD
 
 /** Pares: mayores (base de la fuerza) + cruces (solo se muestran). */
 export const MAJOR_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD'];
-export const CROSS_PAIRS = ['EURGBP', 'EURJPY', 'GBPJPY'];
+// Cruces líquidos (spread bajo en brokers y prop firms) con una lógica macro distinta cada uno: riesgo (AUDJPY),
+// petróleo contra refugio (CADJPY), Europa contra materias primas (EURAUD, EURCAD).
+export const CROSS_PAIRS = ['EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'EURAUD', 'EURCAD'];
+
+/** Favoritos por usuario: pocos a propósito, para centrar el día en lo que de verdad se opera. */
+export const MAX_FAVORITES = 3;
 export const PAIRS = [...MAJOR_PAIRS, ...CROSS_PAIRS];
 
 /** Pares "principales" del usuario (arriba en la UI). */

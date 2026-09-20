@@ -67,7 +67,10 @@ export const CB_WATCH_LINKS: Partial<Record<CurrencyCode, { label: string; url: 
 };
 
 /** Los 10 pares que calcula el radar (los 7 mayores + 3 cruces solo mostrados). */
-export const RADAR_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY'];
+export const RADAR_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'EURAUD', 'EURCAD'];
+
+/** Favoritos por usuario (igual que en el servidor): pocos a propósito. */
+export const MAX_FAVORITES = 3;
 
 /** Pares "principales" del usuario (arriba en la UI). */
 export const MAIN_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];

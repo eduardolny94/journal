@@ -1,7 +1,7 @@
 // Rutas del Radar de divisas (privadas: requireAuth + requireRadarAccess se aplican en index.js).
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { CURRENCIES, PAIRS, INSTRUMENT_SYMBOLS, normalizeAnySymbol } from '../radar/constants.js';
+import { CURRENCIES, PAIRS, INSTRUMENT_SYMBOLS, normalizeAnySymbol, MAX_FAVORITES } from '../radar/constants.js';
 import { getSnapshot, forceRefresh } from '../radar/engine.js';
 import { queryCalendar, IMPACTS } from '../radar/sources/calendar.js';
 import { listNews } from '../radar/sources/news.js';
@@ -184,12 +184,12 @@ router.get('/news', (req, res) => {
 });
 
 // GET /api/radar/favorites · PUT /api/radar/favorites { symbols: [] }  (lo que el usuario quiere ver cada día)
-router.get('/favorites', (req, res) => res.json(listFavorites(getDb(), req.user.id)));
+router.get('/favorites', (req, res) => res.json(listFavorites(getDb(), req.user.id).slice(0, MAX_FAVORITES)));
 router.put('/favorites', (req, res) => {
   const raw = Array.isArray(req.body?.symbols) ? req.body.symbols : null;
   if (!raw) return res.status(400).json({ error: 'Envía { symbols: [...] }.' });
   const valid = [...PAIRS, ...INSTRUMENT_SYMBOLS];
-  const symbols = [...new Set(raw.map((s) => normalizeAnySymbol(String(s))).filter((s) => s && valid.includes(s)))].slice(0, 20);
+  const symbols = [...new Set(raw.map((s) => normalizeAnySymbol(String(s))).filter((s) => s && valid.includes(s)))].slice(0, MAX_FAVORITES);
   res.json(setFavorites(getDb(), req.user.id, symbols));
 });
 

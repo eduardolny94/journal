@@ -35,7 +35,7 @@ export default function CalendarTerminal() {
   const now = useNow(1000);
   const [range, setRange] = useState<Range>('semana');
   const [countries, setCountries] = useState<CurrencyCode[]>([]);
-  const [impacts, setImpacts] = useState<string[]>(['High', 'Medium']);
+  const [impacts, setImpacts] = useState<string[]>(['High']);
   const [categories, setCategories] = useState<string[]>([]);
   const [days, setDays] = useState<CalendarDay[]>([]);
   const [loading, setLoading] = useState(true);

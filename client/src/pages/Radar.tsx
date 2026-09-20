@@ -1,4 +1,5 @@
 // Radar de divisas, índices y metales (privado): panel global tipo terminal con pestañas y favoritos.
+import FavoritesPicker from '../components/radar/FavoritesPicker';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart3, CalendarDays, Coins, Globe2, RefreshCw, Settings2, Star, Table2, Users } from 'lucide-react';
@@ -15,7 +16,7 @@ import { BacktestCard, LongBiasCard, MethodCard } from '../components/radar/Back
 import { ExpectationsTable, SundayNotes, WeekPlanView } from '../components/radar/WeekTab';
 import {
   collectPublishedEvents, fetchFavorites, fetchNews, fmtSince, getRadarSnapshot, refreshRadar, saveFavorites, setRadarSnapshotCache, sortByAbsDiff,
-  type CurrencyCode, type NewsItem, type RadarPair, type RadarSnapshot,
+  MAX_FAVORITES, type CurrencyCode, type NewsItem, type RadarPair, type RadarSnapshot,
 } from '../lib/radar';
 
 const TABS = [
@@ -37,6 +38,8 @@ export default function Radar() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<CurrencyCode | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [favNotice, setFavNotice] = useState<string | null>(null);
   const now = useNow(10_000);
 
   const load = useCallback(async (force = false) => {
@@ -69,6 +72,11 @@ export default function Radar() {
   }
 
   async function toggleFavorite(symbol: string) {
+    if (!favorites.includes(symbol) && favorites.length >= MAX_FAVORITES) {
+      setFavNotice(`Ya tienes ${MAX_FAVORITES} favoritos. Quita uno o usa «Elegir favoritos» para cambiarlos.`);
+      window.setTimeout(() => setFavNotice(null), 5000);
+      return;
+    }
     const next = favorites.includes(symbol) ? favorites.filter((s) => s !== symbol) : [...favorites, symbol];
     setFavorites(next);
     try {
@@ -83,7 +91,8 @@ export default function Radar() {
 
   const allAssets: RadarPair[] = [...snap.pairs, ...snap.instruments];
   const favAssets = favorites.map((s) => allAssets.find((p) => p.symbol === s)).filter((p): p is RadarPair => !!p);
-  const mainPairs = snap.pairs.filter((p) => p.main);
+  // Sin favoritos elegidos: los 3 pares con el sesgo más claro hoy.
+  const topPairs = sortByAbsDiff(snap.pairs).slice(0, MAX_FAVORITES);
   const published = collectPublishedEvents(snap.pairs);
   const cardProps = (p: RadarPair) => ({ favorite: favorites.includes(p.symbol), onToggleFavorite: toggleFavorite, pair: p, key: p.symbol });
 
@@ -123,20 +132,31 @@ export default function Radar() {
           <div>
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <h2 className="flex items-center gap-2 text-base font-semibold text-white">
-                <Star className="h-4 w-4 text-warn" fill="currentColor" /> {favAssets.length ? 'Mis favoritos' : 'Tus pares principales'}
+                <Star className="h-4 w-4 text-warn" fill="currentColor" /> {favAssets.length ? 'Mis favoritos' : 'Los 3 con el sesgo más claro hoy'}
               </h2>
-              <span className="text-[11px] text-gray-500">
-                {favAssets.length ? 'Marca o quita la estrella para cambiar lo que ves cada día.' : 'Marca ★ en cualquier activo (pares, índices o metales) para que aparezca aquí cada día.'}
+              <span className="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+                {favAssets.length ? `${favAssets.length} de ${MAX_FAVORITES} elegidos.` : `Todavía no has elegido favoritos: elige hasta ${MAX_FAVORITES} activos para verlos aquí cada día.`}
+                <Button size="sm" variant="secondary" onClick={() => setPicking(true)} leftIcon={<Star className="h-3.5 w-3.5" />}>{favAssets.length ? 'Cambiar favoritos' : 'Elegir favoritos'}</Button>
               </span>
             </div>
+            {favNotice && <p className="mb-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">{favNotice}</p>}
             <div className="grid gap-4 2xl:grid-cols-2">
-              {(favAssets.length ? sortByAbsDiff(favAssets) : mainPairs).map((p) => (
+              {(favAssets.length ? sortByAbsDiff(favAssets) : topPairs).map((p) => (
                 <PairCard {...cardProps(p)} compact />
               ))}
             </div>
           </div>
         </div>
       )}
+
+      <FavoritesPicker
+        open={picking}
+        onClose={() => setPicking(false)}
+        pairs={snap.pairs}
+        instruments={snap.instruments}
+        favorites={favorites}
+        onSave={async (symbols) => setFavorites(await saveFavorites(symbols))}
+      />
 
       {tab === 'activos' && (
         <div className="space-y-4">

@@ -12,7 +12,7 @@ import { BiasHistoryChart, TradingViewChart } from '../components/radar/Charts';
 import { CurrencyStrength } from '../components/radar/PanelWidgets';
 import { PrivateBadge } from '../components/radar/common';
 import { cn } from '../lib/cn';
-import { INSTRUMENT_PILLAR_LABELS, assetLabel, fetchFavorites, fetchRadarPair, fmtScore, normalizeAnySymbol, saveFavorites, tvSymbolOf, type CurrencyCode, type RadarPairDetail } from '../lib/radar';
+import { INSTRUMENT_PILLAR_LABELS, assetLabel, fetchFavorites, fetchRadarPair, fmtScore, normalizeAnySymbol, MAX_FAVORITES, saveFavorites, tvSymbolOf, type CurrencyCode, type RadarPairDetail } from '../lib/radar';
 
 export default function RadarPair() {
   const { symbol } = useParams();
@@ -21,6 +21,7 @@ export default function RadarPair() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<CurrencyCode | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [favNotice, setFavNotice] = useState<string | null>(null);
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
@@ -34,6 +35,11 @@ export default function RadarPair() {
     };
   }, [key]);
   async function toggleFavorite(sym: string) {
+    if (!favorites.includes(sym) && favorites.length >= MAX_FAVORITES) {
+      setFavNotice(`Ya tienes ${MAX_FAVORITES} favoritos (${favorites.join(', ')}). Quita uno desde el panel del Radar para añadir este.`);
+      window.setTimeout(() => setFavNotice(null), 6000);
+      return;
+    }
     const next = favorites.includes(sym) ? favorites.filter((s) => s !== sym) : [...favorites, sym];
     setFavorites(next);
     try {
@@ -56,6 +62,7 @@ export default function RadarPair() {
         </div>
       </div>
       <TradingViewChart symbol={tvSymbolOf(pair)} title={assetLabel(pair)} />
+      {favNotice && <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">{favNotice}</p>}
       <PairCard pair={pair} favorite={favorites.includes(pair.symbol)} onToggleFavorite={toggleFavorite} />
       <div className="grid gap-4 xl:grid-cols-2">
         {isInstrument ? (
