@@ -65,6 +65,22 @@ export interface Account {
   ended_at?: string | null;
   profit_split?: number | null;
   status?: AccountStatus;
+  /** Sincronización automática desde MetaTrader 5 (el token nunca llega al cliente salvo al generarlo). */
+  sync?: AccountSync;
+}
+
+export interface AccountSync {
+  enabled: boolean;
+  token_hint: string | null;
+  created_at: string | null;
+  last_at: string | null;
+  login: string | null;
+  server: string | null;
+  balance: number | null;
+  equity: number | null;
+  floating: number | null;
+  open_positions: number | null;
+  trades_total: number;
 }
 
 /** Funciones privadas activadas para el usuario (las devuelve /api/auth/me, login y registro). */

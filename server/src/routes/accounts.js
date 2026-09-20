@@ -1,6 +1,7 @@
 // Cuentas de prop firm: CRUD, reglas de riesgo, bloqueo/desbloqueo manual, estado y eventos.
 import { Router } from 'express';
 import { getDb } from '../db.js';
+import { createSyncToken, revokeSyncToken, stripSyncSecrets } from '../services/mt5Sync.js';
 import { evaluateAccountRisk, listLockEvents, LOCK_REASON_LABELS } from '../services/risk.js';
 import { currentTradingDay, nextResetIso } from '../services/tradingDay.js';
 import { OUTCOMES } from '../services/finanzas.js';
@@ -135,7 +136,7 @@ function getOwnedAccount(db, userId, rawId) {
 function accountWithStatus(db, accountId) {
   const status = evaluateAccountRisk(db, accountId);
   const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(accountId);
-  return { ...account, status };
+  return { ...stripSyncSecrets(account), status };
 }
 
 // ---------- Rutas ----------
@@ -343,6 +344,30 @@ router.post('/:id/unlock', (req, res, next) => {
       'INSERT INTO lock_events (account_id, kind, trading_day, pnl_at_lock, lock_until, message) VALUES (?, ?, ?, ?, NULL, ?)',
     ).run(account.id, 'unlock', tradingDay, Number(today.pnl) || 0, message);
 
+    res.json(accountWithStatus(db, account.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/accounts/:id/sync-token -> { token, sync }  (crea o rota el token; el token en claro solo se ve aquí)
+router.post('/:id/sync-token', (req, res, next) => {
+  try {
+    const db = getDb();
+    const account = getOwnedAccount(db, req.user.id, req.params.id);
+    const token = createSyncToken(db, account.id);
+    res.status(201).json({ token, account: accountWithStatus(db, account.id) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/accounts/:id/sync-token  (revoca: el servicio de MT5 deja de poder enviar)
+router.delete('/:id/sync-token', (req, res, next) => {
+  try {
+    const db = getDb();
+    const account = getOwnedAccount(db, req.user.id, req.params.id);
+    revokeSyncToken(db, account.id);
     res.json(accountWithStatus(db, account.id));
   } catch (err) {
     next(err);

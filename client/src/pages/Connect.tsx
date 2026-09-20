@@ -1,6 +1,7 @@
 // Página «Conectar cuenta»: guía por plataforma para traer las operaciones al journal,
 // activar el bloqueo real en la propia plataforma y conocer el estado de la sincronización automática.
-import { useState } from 'react';
+import Mt5SyncCard from '../components/Mt5SyncCard';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -21,7 +22,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { fmtMoney } from '../lib/format';
-import { useSession, type Platform } from '../store/session';
+import { useSession, type Platform, type Account } from '../store/session';
 
 type SyncLevel = 'disponible' | 'proximamente' | 'no-disponible';
 
@@ -112,9 +113,9 @@ const GUIDES: Record<Platform, PlatformGuide> = {
   },
   mt5: {
     importSteps: [
-      'MetaTrader 5 → pestaña «Historial» → clic derecho → «Informe».',
-      'Guarda el informe (CSV o HTML) con la vista de «Deals».',
-      'Súbelo en Importar.',
+      'Lo cómodo es la sincronización automática (tarjeta 3). El CSV sirve para traer historial antiguo.',
+      'MetaTrader 5 → pestaña «Historial» → clic derecho → «Informe» → ábrelo en Excel y guárdalo como CSV.',
+      'Súbelo en Importar. Lo que ya llegó por sincronización no se duplica.',
     ],
     nativeTitle: 'Límite diario en prop firms de forex',
     nativeSteps: [
@@ -122,7 +123,7 @@ const GUIDES: Record<Platform, PlatformGuide> = {
       'Un EA de gestión de riesgo puede cerrar posiciones al tocar una pérdida (revisa las reglas de tu firma sobre EAs).',
     ],
     nativeNote: 'Ninguna app externa puede dejar una cuenta MT5 rechazando órdenes; solo el broker puede hacerlo.',
-    sync: { level: 'no-disponible', text: 'MetaTrader no tiene API para clientes. Importa el informe de Deals.' },
+    sync: { level: 'disponible', text: 'Sincronización automática con el servicio GTFX_JournalSync dentro de tu MetaTrader 5.' },
   },
   mt4: {
     importSteps: [
@@ -205,8 +206,10 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 export default function Connect() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { accounts, setAccountId } = useSession();
+  const { accounts, setAccountId, setAccounts } = useSession();
   const account = accounts.find((a) => a.id === Number(id));
+  // Los hooks van antes de cualquier return: las cuentas llegan después del primer render.
+  const replaceAccount = useCallback((saved: Account) => setAccounts(useSession.getState().accounts.map((a) => (a.id === saved.id ? saved : a))), [setAccounts]);
 
   if (!account) {
     return (
@@ -317,6 +320,9 @@ export default function Connect() {
           </div>
         </Card>
 
+        {account.platform === 'mt5' ? (
+          <Mt5SyncCard account={account} onChange={replaceAccount} />
+        ) : (
         <Card
           title="3. Sincronización"
           subtitle="Que las operaciones lleguen solas, sin CSV."
@@ -346,6 +352,7 @@ export default function Connect() {
             </p>
           </div>
         </Card>
+        )}
       </div>
     </div>
   );

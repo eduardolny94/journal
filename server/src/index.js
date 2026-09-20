@@ -23,6 +23,7 @@ import radarRoutes from './routes/radar.js';
 import finanzasRoutes from './routes/finanzas.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscription.js';
+import syncRoutes from './routes/sync.js';
 import { requireAdmin } from './services/admin.js';
 import { requireSubscription } from './services/subscriptions.js';
 import { startSubscriptionJobs } from './services/subscriptionJobs.js';
@@ -119,6 +120,8 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, name: 'trading-journa
 
 // Rutas públicas
 app.use('/api/auth', authRoutes);
+// Sincronización desde MetaTrader 5: sin sesión de navegador, con el token de la cuenta.
+app.use('/api/sync', syncRoutes);
 
 // Rutas protegidas
 // Puerta de suscripción: cuentas desactivadas fuera siempre; con `enforce`, también las suscripciones vencidas.

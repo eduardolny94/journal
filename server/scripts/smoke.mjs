@@ -541,6 +541,47 @@ try {
     assert(demote.status === 200 && demote.data.user.admin_level === null, 'volver a usuario normal');
   });
 
+  await test('sincronización MT5: token, envío de posiciones, duplicados, otra cuenta de MT5 y revocación', async () => {
+    const acc = await api('POST', '/accounts', { name: 'The5ers 100K', firm: 'The5ers', platform: 'mt5', account_type: 'evaluacion', size: 100000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17, daily_max_loss: 3000 });
+    assert(acc.status === 201 && acc.data.sync && acc.data.sync.enabled === false && !('sync_token_hash' in acc.data), `cuenta sin secretos: ${JSON.stringify(acc.data.sync)}`);
+    const id = acc.data.id;
+    const bad = await api('POST', '/sync/mt5', { account: { login: '111' }, positions: [] }, { token: 'gtfx_1_' + '0'.repeat(48) });
+    assert(bad.status === 401, `token falso debería dar 401, dio ${bad.status}`);
+    const tk = await api('POST', `/accounts/${id}/sync-token`);
+    assert(tk.status === 201 && /^gtfx_\d+_[a-f0-9]{48}$/.test(tk.data.token) && tk.data.account.sync.enabled === true, 'genera token');
+    const as = { token: tk.data.token };
+    // Servidor en NY+7 (verano: UTC+3). Abre 10:00 y cierra 11:30 hora del servidor del 15-07-2026 → 07:00 y 08:30 UTC.
+    const open = Date.UTC(2026, 6, 15, 10, 0, 0) / 1000;
+    const gmt = Math.floor(Date.now() / 1000);
+    const account = { login: '5012345', server: 'FivePercentOnline-Real', currency: 'USD', balance: 100250.5, equity: 100250.5, floating: 0, open_positions: 0, server_time: gmt + 10800, gmt_time: gmt };
+    const positions = [
+      { id: '900001', symbol: 'EURUSD', type: 'buy', volume: 1.0, open_price: 1.1, close_price: 1.1025, open_time: open, close_time: open + 5400, profit: 250, commission: -7, swap: -1.5, fee: 0 },
+      { id: '900002', symbol: 'xauusd', type: 'sell', volume: 0.5, open_price: 2400, close_price: 2410, open_time: open + 600, close_time: open + 6000, profit: -500, commission: -3.5, swap: 0, fee: 0 },
+      { id: 'no-valida', symbol: 'EURUSD', type: 'buy', volume: 1, open_time: open, close_time: open + 60, profit: 1 },
+    ];
+    const s1 = await api('POST', '/sync/mt5', { account, positions }, as);
+    assert(s1.status === 200 && s1.data.imported === 2 && s1.data.duplicates === 0 && s1.data.errors.length === 1, `primer envío ${JSON.stringify(s1.data)}`);
+    const s2 = await api('POST', '/sync/mt5', { account, positions }, as);
+    assert(s2.status === 200 && s2.data.imported === 0 && s2.data.duplicates === 2, `reenvío no duplica ${JSON.stringify(s2.data)}`);
+    const trades = await api('GET', `/trades?account_id=${id}`);
+    const rows = Array.isArray(trades.data) ? trades.data : trades.data.trades || trades.data.rows || trades.data.items || [];
+    const eur = rows.find((t) => t.external_id === 'mt5:pos:900001');
+    assert(eur && eur.side === 'long' && Math.abs(eur.pnl - 241.5) < 0.001 && eur.fees === 7 && eur.source === 'sync:mt5', `operación EURUSD ${JSON.stringify(eur)}`);
+    assert(eur.entry_time.startsWith('2026-07-15T07:00:00') && eur.exit_time.startsWith('2026-07-15T08:30:00'), `hora del servidor NY+7 → UTC: ${eur.entry_time} / ${eur.exit_time}`);
+    const det = await api('GET', `/accounts/${id}`);
+    assert(det.data.sync.login === '5012345' && det.data.sync.balance === 100250.5 && det.data.sync.trades_total === 2 && det.data.sync.last_at, `estado de sync ${JSON.stringify(det.data.sync)}`);
+    const other = await api('POST', '/sync/mt5', { account: { ...account, login: '7777777' }, positions: [] }, as);
+    assert(other.status === 409 && other.data.code === 'login_mismatch', `otra cuenta de MT5 debería dar 409, dio ${other.status}`);
+    const foreign = await api('POST', `/accounts/${id}/sync-token`, undefined, { token: user2Token });
+    assert(foreign.status === 404, `otro usuario no puede generar token (dio ${foreign.status})`);
+    const rev = await api('DELETE', `/accounts/${id}/sync-token`);
+    assert(rev.status === 200 && rev.data.sync.enabled === false, 'revocar');
+    const after = await api('POST', '/sync/mt5', { account, positions: [] }, as);
+    assert(after.status === 401, `token revocado debería dar 401, dio ${after.status}`);
+    const del = await api('DELETE', `/accounts/${id}`);
+    assert(del.status === 200 || del.status === 204, `borrar la cuenta sincronizada (${del.status})`);
+  });
+
   await test('borrar operación y cuenta (cascada)', async () => {
     const d = await api('DELETE', `/trades/${tradeIds[0]}`);
     if (isStub(d)) return SKIP;
