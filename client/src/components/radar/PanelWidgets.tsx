@@ -95,14 +95,14 @@ function NewsTag({ tag }: { tag: string }) {
   );
 }
 
-export function MarketEvents({ news, className }: { news: NewsItem[]; className?: string }) {
+export function MarketEvents({ news, className, collapsedCount = 2 }: { news: NewsItem[]; className?: string; collapsedCount?: number }) {
   const now = useNow(30_000);
   const [filter, setFilter] = useState<'urgent' | 'all'>('urgent');
   // Plegado: solo los 2 titulares más relevantes. Los titulares son contexto y aviso de riesgo, no señal de entrada.
   const [expanded, setExpanded] = useState(false);
   const urgent = news.filter((n) => n.urgency >= 7);
   const full = filter === 'urgent' ? urgent : news;
-  const list = expanded ? full : (urgent.length ? urgent : news).slice(0, 2);
+  const list = expanded ? full : (urgent.length ? urgent : news).slice(0, collapsedCount);
   return (
     <Card
       className={className}
@@ -150,11 +150,21 @@ export function MarketEvents({ news, className }: { news: NewsItem[]; className?
 
 // ---------- Calendario macro (mini) ----------
 
+const MACRO_MINI_ROWS = 4;
+
+/** Filas que pinta el calendario del panel: solo impacto alto, 1 publicada como mucho y el resto próximas. */
+export function macroMiniRows(upcoming: NextEvent[], published: LastEvent[]): { published: LastEvent[]; upcoming: NextEvent[]; total: number } {
+  const pub = published.filter((e) => e.impact === 'High').slice(0, 1);
+  const next = upcoming.filter((e) => e.impact === 'High').slice(0, MACRO_MINI_ROWS - pub.length);
+  return { published: pub, upcoming: next, total: pub.length + next.length };
+}
+
 export function MacroCalendarMini({ upcoming, published, className }: { upcoming: NextEvent[]; published: LastEvent[]; className?: string }) {
   const now = useNow(1000);
   // Solo impacto alto: es lo que mueve el precio y por lo que conviene no entrar justo antes.
-  const items = upcoming.filter((e) => e.impact === 'High').slice(0, 6);
-  const publishedHigh = published.filter((e) => e.impact === 'High');
+  const rows = macroMiniRows(upcoming, published);
+  const items = rows.upcoming;
+  const publishedHigh = rows.published;
   return (
     <Card
       className={className}
@@ -162,7 +172,7 @@ export function MacroCalendarMini({ upcoming, published, className }: { upcoming
       flush
     >
       <ul className="divide-y divide-border">
-        {publishedHigh.slice(0, 2).map((e) => (
+        {publishedHigh.map((e) => (
           <li key={`${e.currency}|${e.title}|${e.at_utc}`} className="bg-bg/40 p-3">
             <div className="flex items-center gap-2 text-[11px] text-gray-500">
               <span>{fmtLocalTime(e.at_utc)}</span>
@@ -207,13 +217,16 @@ export function VolatilityCard({ market }: { market: MarketContext | null }) {
   const v = market.vix;
   return (
     <Card title={<span className="flex items-center gap-2">Volatilidad <span className="text-[10px] font-semibold uppercase tracking-wider text-profit">● En vivo</span></span>} actions={<Badge variant={vixVariant(v.label)}>{vixLabelText(v.label)}</Badge>}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="shrink-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">VIX spot</p>
       <p className="mt-1 flex items-baseline gap-2">
         <span className="text-3xl font-bold tnum text-white">{fmtNum(v.value, 2)}</span>
         <span className={cn('text-sm tnum', (v.change_pct ?? 0) > 0 ? 'text-loss' : 'text-profit')}>{fmtSignedPct(v.change_pct)}</span>
       </p>
       <p className="mt-1 text-xs text-gray-400">{v.label === 'calma' ? 'Volatilidad baja. Mercado estable.' : v.label === 'tension' ? 'Volatilidad alta. Modo refugio.' : 'Volatilidad normal.'}</p>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+      </div>
+      <div className="grid flex-1 grid-cols-3 gap-2 text-xs sm:max-w-sm">
         {[
           ['S&P 500', market.sp500],
           ['WTI', market.oil],
@@ -229,6 +242,7 @@ export function VolatilityCard({ market }: { market: MarketContext | null }) {
           );
         })}
       </div>
+      </div>
     </Card>
   );
 }
@@ -237,6 +251,8 @@ export function SentimentCard({ sentiment }: { sentiment: Sentiment | null }) {
   if (!sentiment) return null;
   return (
     <Card title={<span className="flex items-center gap-2">Sentimiento <span className="text-[10px] font-semibold uppercase tracking-wider text-profit">● En vivo</span></span>} actions={<Badge variant={sentimentVariant(sentiment.label)}>{sentimentLabelText(sentiment.label)}</Badge>}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="shrink-0">
       <div className="flex items-center gap-2">
         {sentiment.signals.map((s) => (
           <span key={s.name} title={`${s.name}: ${s.text}`} className={cn('h-2.5 w-2.5 rounded-full', s.on ? 'bg-profit' : 'bg-gray-700')} />
@@ -245,7 +261,8 @@ export function SentimentCard({ sentiment }: { sentiment: Sentiment | null }) {
       </div>
       <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Posicionamiento</p>
       <p className="text-2xl font-bold uppercase tracking-wide text-white">{sentiment.positioning_label}</p>
-      <ul className="mt-2 space-y-1 text-xs text-gray-400">
+      </div>
+      <ul className="grid flex-1 grid-cols-1 gap-x-4 gap-y-1.5 text-xs text-gray-400 sm:max-w-sm sm:grid-cols-2">
         {sentiment.signals.map((s) => (
           <li key={s.name} className="flex items-center gap-2">
             <span className={cn('h-1.5 w-1.5 rounded-full', s.on ? 'bg-profit' : 'bg-gray-700')} />
@@ -253,6 +270,7 @@ export function SentimentCard({ sentiment }: { sentiment: Sentiment | null }) {
           </li>
         ))}
       </ul>
+      </div>
     </Card>
   );
 }

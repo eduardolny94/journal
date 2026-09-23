@@ -10,7 +10,7 @@ import CalendarTerminal from '../components/radar/CalendarTerminal';
 import PairCard from '../components/radar/PairCard';
 import WorldMap from '../components/radar/WorldMap';
 import { PrivateBadge, StatusChips, TabBar, useNow } from '../components/radar/common';
-import { ConvictionCards, CurrencyStrength, MacroCalendarMini, MarketEvents, SentimentCard, VolatilityCard } from '../components/radar/PanelWidgets';
+import { ConvictionCards, CurrencyStrength, MacroCalendarMini, MarketEvents, SentimentCard, VolatilityCard, macroMiniRows } from '../components/radar/PanelWidgets';
 import { AccuracyCard, ComparativeTable, CotTable, SettingsTab } from '../components/radar/Tables';
 import { BacktestCard, LongBiasCard, MethodCard } from '../components/radar/BacktestCard';
 import { ExpectationsTable, SundayNotes, WeekPlanView } from '../components/radar/WeekTab';
@@ -120,13 +120,14 @@ export default function Radar() {
         <div className="space-y-6">
           <WorldMap currencies={snap.currencies} onSelect={(c) => setSelected(c)} updatedLabel={`Actualizado ${fmtSince(snap.computed_at, now)}`} />
           <ConvictionCards pairs={snap.pairs} currencies={snap.currencies} />
-          <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr_0.9fr]">
-            <MarketEvents news={news.length ? news : snap.news_top} />
+          {/* Dos filas horizontales: noticias y calendario con alturas parejas; debajo, volatilidad y sentimiento. */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <MarketEvents news={news.length ? news : snap.news_top} collapsedCount={Math.min(4, Math.max(2, macroMiniRows(snap.upcoming, published).total))} />
             <MacroCalendarMini upcoming={snap.upcoming} published={published} />
-            <div className="space-y-4">
-              <VolatilityCard market={snap.market} />
-              <SentimentCard sentiment={snap.sentiment} />
-            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <VolatilityCard market={snap.market} />
+            <SentimentCard sentiment={snap.sentiment} />
           </div>
           <CurrencyStrength currencies={snap.currencies} selected={selected} onSelect={setSelected} />
           <div>
