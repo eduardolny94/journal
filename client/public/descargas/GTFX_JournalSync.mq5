@@ -6,6 +6,10 @@
 //|   - el balance, la equidad y el flotante de la cuenta             |
 //| No opera, no modifica ordenes y no usa ninguna contrasena: se     |
 //| identifica con el token que genera el journal para ESTA cuenta.   |
+//| Consumo minimo para el broker: cada 10 s solo lee valores que el  |
+//| terminal ya tiene en memoria (balance, equidad, posiciones); el   |
+//| historial se consulta unicamente cuando algo cambio, y el envio   |
+//| va a este journal por HTTPS, nunca al servidor del broker.        |
 //|                                                                  |
 //| Instalacion (una sola vez):                                       |
 //|  1. Herramientas -> Opciones -> Asesores Expertos -> marcar       |
@@ -21,7 +25,7 @@
 //+------------------------------------------------------------------+
 #property service
 #property strict
-#property version   "1.0"
+#property version   "1.1"
 #property description "Sincroniza las operaciones cerradas y el balance de esta cuenta con el journal de Global Traders FX."
 
 input string JournalUrl    = "https://journal.cesarzorrilla.com"; // Direccion del journal
@@ -211,17 +215,20 @@ void ProcesarRespuesta(int codigo, string respuesta)
 
 void Ciclo()
 {
+   // 1) Firma barata con datos que el terminal ya tiene en memoria (no genera peticiones al broker):
+   //    balance, numero de posiciones abiertas y tickets abiertos. Si no cambia y no toca latido, no se hace nada mas.
+   string firma = DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2) + "|" + (string)PositionsTotal();
+   for(int p = PositionsTotal() - 1; p >= 0; p--) firma += "|" + (string)PositionGetTicket(p);
+   int latido = PositionsTotal() > 0 ? 60 : MathMax(1, LatidoMinutos) * 60;
+   if(firma == g_firma && TimeLocal() - g_ultimoEnvio < latido) return;
+
+   // 2) Solo ahora se consulta el historial (una posicion se cerro, el balance cambio o toca el latido).
    datetime ahora = TimeTradeServer();
    datetime ultimoCierre = GlobalVariableCheck(g_gv) ? (datetime)(long)GlobalVariableGet(g_gv) : 0;
    datetime desde = ultimoCierre > 0 ? ultimoCierre - 3 * 86400 : ahora - (datetime)(MathMax(1, DiasHistorial) * 86400);
 
    ulong ids[];
    int n = PosicionesConCierre(desde, ids);
-
-   // Firma de lo que hay: si no cambia, solo se envia el latido (balance y equidad) de vez en cuando.
-   string firma = (string)n + "|" + (string)HistoryDealsTotal() + "|" + (string)PositionsTotal() + "|" + DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2);
-   int latido = PositionsTotal() > 0 ? 60 : MathMax(1, LatidoMinutos) * 60;
-   if(firma == g_firma && TimeLocal() - g_ultimoEnvio < latido) return;
 
    string lote = "";
    int enLote = 0;

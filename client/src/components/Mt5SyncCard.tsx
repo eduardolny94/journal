@@ -14,9 +14,17 @@ import type { Account } from '../store/session';
 
 const STEPS = [
   'En MetaTrader 5: Herramientas → Opciones → Asesores Expertos → marca «Permitir WebRequest para las URL listadas» y añade la dirección de este journal.',
-  'Archivo → Abrir carpeta de datos → MQL5 → Services: copia ahí el archivo GTFX_JournalSync.ex5 que descargas abajo.',
-  'En el Navegador de MT5: clic derecho en «Servicios» → Actualizar. Luego clic derecho → «Añadir servicio» → GTFX_JournalSync.',
+  'Descarga abajo el servicio (.ex5) y el instalador (.bat) en la misma carpeta (por ejemplo Descargas) y ejecuta el instalador: copia el servicio en la carpeta Services de cada MetaTrader 5 de tu usuario. Si prefieres hacerlo a mano: en MT5, Archivo → Abrir carpeta de datos → MQL5 → Services, y pega ahí el .ex5.',
+  'En el Navegador de MT5 (Ctrl+N): clic derecho en «Servicios» → Actualizar. Luego clic derecho → «Añadir servicio» → GTFX_JournalSync.',
   'En la ventana que se abre, pega el token en el campo «Token» y pulsa Aceptar. Listo: arranca solo cada vez que abras MetaTrader.',
+];
+
+const TROUBLE: Array<[string, string]> = [
+  ['Chrome no lo descarga o lo marca como «poco habitual».', 'Es un aviso genérico de Chrome para archivos que casi nadie descarga. En la barra de descargas abre el menú del archivo y pulsa «Conservar». Después comprueba que en Descargas esté GTFX_JournalSync.ex5 (no .crdownload).'],
+  ['Al pegarlo en Services dice «acceso denegado» o pide permisos.', 'Estás en la carpeta de instalación (Archivos de programa), que Windows protege. La carpeta correcta es la de datos: en MT5, Archivo → Abrir carpeta de datos → MQL5 → Services. El instalador (.bat) la encuentra solo.'],
+  ['Lo copié y no aparece en el Navegador.', 'MetaTrader no relee la carpeta hasta que pulsas clic derecho en «Servicios» → Actualizar, o reinicias MT5. Si aún no aparece, revisa que la extensión sea .ex5 y no .ex5.txt.'],
+  ['No existe la carpeta Services.', 'Tu MetaTrader es anterior a 2018 (los servicios llegaron en la versión 1930). Actualízalo desde Ayuda → Buscar actualizaciones, o descarga la versión actual de tu bróker.'],
+  ['Windows pregunta al ejecutar el instalador.', 'Es el aviso estándar para archivos descargados. Pulsa «Ejecutar». El instalador solo copia un archivo a la carpeta de MetaTrader; puedes abrirlo con el Bloc de notas y leerlo entero.'],
 ];
 
 export default function Mt5SyncCard({ account, onChange }: { account: Account; onChange: (a: Account) => void }) {
@@ -142,7 +150,25 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
             </div>
             <div className="flex flex-wrap gap-2">
               <a href="/descargas/GTFX_JournalSync.ex5" download className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-black hover:bg-accent/90"><Download className="h-3.5 w-3.5" /> Descargar servicio (.ex5)</a>
+              <a href="/descargas/Instalar-GTFX-JournalSync.bat" download className="inline-flex items-center gap-2 rounded-md border border-accent/50 px-3 py-2 text-xs font-semibold text-accent-soft hover:bg-accent/10"><Download className="h-3.5 w-3.5" /> Instalador (.bat)</a>
               <a href="/descargas/GTFX_JournalSync.mq5" download className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"><Download className="h-3.5 w-3.5" /> Código fuente (.mq5)</a>
+            </div>
+            <details className="rounded-lg border border-border bg-bg/40 p-3 text-xs">
+              <summary className="cursor-pointer font-semibold text-gray-200">¿No se descarga, no se copia o no aparece? Soluciones</summary>
+              <ul className="mt-2 space-y-2 text-gray-400">
+                {TROUBLE.map(([q, a]) => (
+                  <li key={q}><span className="text-gray-200">{q}</span> {a}</li>
+                ))}
+              </ul>
+            </details>
+            <div className="rounded-lg border border-border bg-bg/40 p-3 text-xs text-gray-400">
+              <p className="font-semibold text-gray-200">Lo que hace y lo que no (para tu prop firm)</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                <li>No es un EA: no abre, modifica ni cierra órdenes. Cada 10 s lee valores que tu terminal ya tiene en memoria; solo consulta el historial cuando cierras una posición.</li>
+                <li>No inicia sesión en tu cuenta desde ningún otro sitio ni usa tu contraseña. El único envío sale de tu PC hacia este journal por HTTPS; tu bróker no recibe nada.</li>
+                <li>Tienes el código fuente completo (.mq5) y puedes compilarlo tú mismo en MetaEditor (F7). No copia operaciones de nadie ni comparte las tuyas con otros traders.</li>
+                <li>Si tu firma exige avisar del uso de herramientas, dile que es un servicio local de solo lectura que exporta el historial a un diario de trading, sin credenciales ni operaciones.</li>
+              </ul>
             </div>
             {origin !== 'https://journal.cesarzorrilla.com' && <p className="text-xs text-warn">Estás en {origin}: al añadir el servicio, cambia también el campo «JournalUrl» por esta dirección.</p>}
             <div className="flex flex-wrap gap-2 border-t border-border pt-3">

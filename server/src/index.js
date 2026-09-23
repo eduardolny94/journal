@@ -169,6 +169,17 @@ app.get('/uploads/:userId/:file', requireAuth, (req, res) => {
 
 // Cliente compilado (opcional, para producción): client/dist
 const clientDist = path.resolve(__dirname, '..', '..', 'client', 'dist');
+// Descargas (servicio de MT5, instalador): siempre como archivo adjunto, para que el navegador lo guarde con su nombre
+// en vez de abrirlo o bloquearlo por tipo desconocido.
+app.use('/descargas', (req, res, next) => {
+  const name = path.basename(req.path);
+  if (/^[\w.-]+\.(ex5|mq5|bat)$/i.test(name)) {
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+  }
+  next();
+});
 app.use(express.static(clientDist, { index: 'index.html' }));
 
 // 404 JSON para /api y /uploads; para el resto, index.html del cliente si existe (SPA)
