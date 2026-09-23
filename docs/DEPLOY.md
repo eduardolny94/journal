@@ -114,3 +114,14 @@ Más en [ADMIN.md](ADMIN.md).
   del radar; `node server/scripts/perfil-memoria.mjs` dice qué funciones reservan más. Con
   `node --max-old-space-size=256 …` se simula un contenedor pequeño: todo, backtest incluido, cabe en ~270 MB.
 - **Regla:** nunca construir objetos `Intl.*` dentro de bucles; crearlos una vez a nivel de módulo o memorizarlos.
+
+## Railway no despliega un cambio ("No changes to watched files")
+
+El servicio tiene **Watch Paths** (Settings → Build → Watch Paths): solo los commits que tocan esas rutas disparan un
+despliegue; el resto aparece como *SKIPPED* en el historial. Estaba en `/server/**` y un cambio solo del cliente
+no se publicaba. Desde el 23-09-2026 vigila: `/server/**`, `/client/**`, `/Dockerfile`, `/package.json`,
+`/package-lock.json` (los commits solo de `docs/` siguen sin desplegar, a propósito). Al cambiar los patrones
+Railway pide "Deploy changes" y redespliega el último commit.
+
+Comprobar que un despliegue llegó de verdad: el nombre del paquete `index-XXXX.js` de la portada cambia, y
+`curl https://journal.cesarzorrilla.com/assets/index-XXXX.js | grep <texto nuevo>` debe encontrarlo.
