@@ -27,6 +27,7 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 13. **Datos gratuitos que faltan.** Sentimiento minorista como contrario (Myfxbook), cobre y mineral de hierro para AUD, tipos reales EE. UU. frente a Japón para JPY. Cada uno se añade como pilar y se mide antes de dejarlo.
 14. **Despliegue en la nube.** Hecho: el journal vive 24/7 en Railway (journal.cesarzorrilla.com). Queda el guardián de riesgo para futuros y forex.
 15. **Fuente de precios mejor que Yahoo.** Investigado (ver [FUENTES-PRECIOS.md](FUENTES-PRECIOS.md)): Yahoo corta la vela diaria a las 00:00 de Londres en vez de a las 17:00 de Nueva York, lo que mueve el "máximo/mínimo de ayer" y la vela del método. Plan: capa `prices.js` con OANDA v20 (practice) como principal, Yahoo de respaldo y para VIX/DXY, Dukascopy para cruzar. Después, repetir el backtest del método con la vela diaria correcta. Ojo con la licencia de OANDA si la plataforma se vende.
+16. **Sentimiento por evento (hecho, 23-09-2026).** Tarjeta "Impacto esperado" (ver [IMPACTO-EVENTOS.md](IMPACTO-EVENTOS.md)): β pips/σ y acierto por indicador y par (estudio de eventos), FedWatch propio con futuros ZQ + EFFR, nowcast de inflación de la Fed de Cleveland y pista ADP. Pendiente: recalibrar cuando haya velas de los cruces nuevos y medir en el journal si evitar entrar contra el nowcast mejora el resultado.
 
 ## Lo que se descarta (medido, sin ventaja)
 

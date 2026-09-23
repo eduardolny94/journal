@@ -1,5 +1,6 @@
 // Radar de divisas, índices y metales (privado): panel global tipo terminal con pestañas y favoritos.
 import FavoritesPicker from '../components/radar/FavoritesPicker';
+import ImpactCard from '../components/radar/ImpactCard';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart3, CalendarDays, Coins, Globe2, RefreshCw, Settings2, Star, Table2, Users } from 'lucide-react';
@@ -175,6 +176,7 @@ export default function Radar() {
 
       {tab === 'semana' && (
         <div className="space-y-4">
+          <ImpactCard favorites={favorites} />
           <LongBiasCard pairs={snap.pairs} />
           <ExpectationsTable expectations={snap.expectations} onSaved={() => void load()} />
           <WeekPlanView week={snap.week} />
@@ -182,7 +184,12 @@ export default function Radar() {
         </div>
       )}
 
-      {tab === 'calendario' && <CalendarTerminal />}
+      {tab === 'calendario' && (
+        <div className="space-y-4">
+          <ImpactCard favorites={favorites} compact />
+          <CalendarTerminal />
+        </div>
+      )}
       {tab === 'comparativa' && (
         <div className="space-y-4">
           <ComparativeTable pairs={allAssets} />

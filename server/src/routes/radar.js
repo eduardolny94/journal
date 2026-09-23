@@ -1,4 +1,5 @@
 // Rutas del Radar de divisas (privadas: requireAuth + requireRadarAccess se aplican en index.js).
+import { upcomingImpacts } from '../radar/eventImpact.js';
 import { Router } from 'express';
 import { getDb } from '../db.js';
 import { CURRENCIES, PAIRS, INSTRUMENT_SYMBOLS, normalizeAnySymbol, MAX_FAVORITES } from '../radar/constants.js';
@@ -59,6 +60,16 @@ router.post('/refresh', async (_req, res, next) => {
 router.get('/history', (req, res) => {
   const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
   res.json(snapshotHistory(getDb(), days));
+});
+
+// GET /api/radar/impacto -> impacto esperado de los próximos datos de alto impacto (β por sorpresa, FedWatch propio,
+// nowcast de inflación, pista ADP). Caché de 10 min en el servicio.
+router.get('/impacto', async (_req, res, next) => {
+  try {
+    res.json(await upcomingImpacts(getDb()));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/radar/metodo -> backtest del método (sesgo + vela + retroceso), escrito por scripts/backtest-metodo.mjs

@@ -1,0 +1,6060 @@
+{
+ "generated_at": "2026-09-23T21:31:57.596Z",
+ "method": "movimiento (pips, signo de la divisa) = β × z; z = (dato − consenso)/RMS(36 sorpresas previas); decisiones de tipos: z = sorpresa/25 pb",
+ "horizons": {
+  "h1": "cierre de la vela H1 del dato",
+  "h4": "4 velas después",
+  "h24": "24 velas después"
+ },
+ "pairs_with_bars": [
+  "EURUSD",
+  "GBPUSD",
+  "USDJPY",
+  "USDCHF",
+  "USDCAD",
+  "AUDUSD",
+  "NZDUSD",
+  "EURGBP",
+  "EURJPY",
+  "GBPJPY"
+ ],
+ "events": {
+  "CAD|Inflation Rate YoY": {
+   "country": "CAD",
+   "title": "Inflation Rate YoY",
+   "n": 28,
+   "since": "2023-09-19",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1774,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 27,
+     "beta": 9.4,
+     "rho": 0.46,
+     "hit": 94,
+     "judged": 18,
+     "avg_abs": 14.6,
+     "med_abs_1sigma": 13.1
+    },
+    "h4": {
+     "n": 27,
+     "beta": 3.2,
+     "rho": 0.09,
+     "hit": 56,
+     "judged": 18,
+     "avg_abs": 24.6,
+     "med_abs_1sigma": 19.1
+    },
+    "h24": {
+     "n": 27,
+     "beta": 1.1,
+     "rho": 0.03,
+     "hit": 50,
+     "judged": 18,
+     "avg_abs": 28.9,
+     "med_abs_1sigma": 22
+    }
+   },
+   "pairs": {
+    "USDCAD": {
+     "h1": {
+      "n": 27,
+      "beta": 9.4,
+      "rho": 0.46,
+      "hit": 94,
+      "judged": 18,
+      "avg_abs": 14.6,
+      "med_abs_1sigma": 13.1
+     },
+     "h4": {
+      "n": 27,
+      "beta": 3.2,
+      "rho": 0.09,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 24.6,
+      "med_abs_1sigma": 19.1
+     },
+     "h24": {
+      "n": 27,
+      "beta": 1.1,
+      "rho": 0.03,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 28.9,
+      "med_abs_1sigma": 22
+     }
+    }
+   }
+  },
+  "USD|Building Permits Prel": {
+   "country": "USD",
+   "title": "Building Permits Prel",
+   "n": 28,
+   "since": "2023-09-19",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 0.0436,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 189,
+     "beta": -1.2,
+     "rho": -0.1,
+     "hit": 45,
+     "judged": 133,
+     "avg_abs": 7.6,
+     "med_abs_1sigma": 4.3
+    },
+    "h4": {
+     "n": 189,
+     "beta": 0.6,
+     "rho": 0.02,
+     "hit": 50,
+     "judged": 133,
+     "avg_abs": 17.6,
+     "med_abs_1sigma": 11.3
+    },
+    "h24": {
+     "n": 189,
+     "beta": 2.3,
+     "rho": 0.03,
+     "hit": 44,
+     "judged": 133,
+     "avg_abs": 36.6,
+     "med_abs_1sigma": 27.6
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 0.1,
+      "rho": 0.01,
+      "hit": 53,
+      "judged": 19,
+      "avg_abs": 4.5,
+      "med_abs_1sigma": 3.5
+     },
+     "h4": {
+      "n": 27,
+      "beta": 1.3,
+      "rho": 0.07,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 13.1,
+      "med_abs_1sigma": 8.6
+     },
+     "h24": {
+      "n": 27,
+      "beta": -1,
+      "rho": -0.03,
+      "hit": 37,
+      "judged": 19,
+      "avg_abs": 27.5,
+      "med_abs_1sigma": 26.2
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 27,
+      "beta": -0.9,
+      "rho": -0.11,
+      "hit": 42,
+      "judged": 19,
+      "avg_abs": 6.8,
+      "med_abs_1sigma": 7.7
+     },
+     "h4": {
+      "n": 27,
+      "beta": 0.8,
+      "rho": 0.03,
+      "hit": 53,
+      "judged": 19,
+      "avg_abs": 19.7,
+      "med_abs_1sigma": 14.2
+     },
+     "h24": {
+      "n": 27,
+      "beta": -1,
+      "rho": -0.02,
+      "hit": 37,
+      "judged": 19,
+      "avg_abs": 36.1,
+      "med_abs_1sigma": 37.7
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 27,
+      "beta": -1.4,
+      "rho": -0.07,
+      "hit": 42,
+      "judged": 19,
+      "avg_abs": 14.3,
+      "med_abs_1sigma": 4.1
+     },
+     "h4": {
+      "n": 27,
+      "beta": 2.7,
+      "rho": 0.08,
+      "hit": 47,
+      "judged": 19,
+      "avg_abs": 25.2,
+      "med_abs_1sigma": 10.3
+     },
+     "h24": {
+      "n": 27,
+      "beta": 24,
+      "rho": 0.18,
+      "hit": 47,
+      "judged": 19,
+      "avg_abs": 85.7,
+      "med_abs_1sigma": 55.7
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 27,
+      "beta": -0.1,
+      "rho": -0.01,
+      "hit": 47,
+      "judged": 19,
+      "avg_abs": 6.6,
+      "med_abs_1sigma": 5.5
+     },
+     "h4": {
+      "n": 27,
+      "beta": 0.1,
+      "rho": 0,
+      "hit": 37,
+      "judged": 19,
+      "avg_abs": 12.4,
+      "med_abs_1sigma": 7
+     },
+     "h24": {
+      "n": 27,
+      "beta": -1,
+      "rho": -0.04,
+      "hit": 42,
+      "judged": 19,
+      "avg_abs": 24.2,
+      "med_abs_1sigma": 21.5
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 27,
+      "beta": -1.6,
+      "rho": -0.11,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 9.2,
+      "med_abs_1sigma": 4
+     },
+     "h4": {
+      "n": 27,
+      "beta": 0.7,
+      "rho": 0.02,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 23.2,
+      "med_abs_1sigma": 19.7
+     },
+     "h24": {
+      "n": 27,
+      "beta": -1.6,
+      "rho": -0.05,
+      "hit": 37,
+      "judged": 19,
+      "avg_abs": 29.7,
+      "med_abs_1sigma": 30.5
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 27,
+      "beta": -2.6,
+      "rho": -0.27,
+      "hit": 32,
+      "judged": 19,
+      "avg_abs": 6.3,
+      "med_abs_1sigma": 4.5
+     },
+     "h4": {
+      "n": 27,
+      "beta": -1.1,
+      "rho": -0.07,
+      "hit": 47,
+      "judged": 19,
+      "avg_abs": 16.3,
+      "med_abs_1sigma": 10.9
+     },
+     "h24": {
+      "n": 27,
+      "beta": -0.2,
+      "rho": -0.01,
+      "hit": 47,
+      "judged": 19,
+      "avg_abs": 25.5,
+      "med_abs_1sigma": 23.6
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 27,
+      "beta": -1.7,
+      "rho": -0.21,
+      "hit": 42,
+      "judged": 19,
+      "avg_abs": 5.5,
+      "med_abs_1sigma": 4.3
+     },
+     "h4": {
+      "n": 27,
+      "beta": 0,
+      "rho": -0.01,
+      "hit": 47,
+      "judged": 19,
+      "avg_abs": 13.5,
+      "med_abs_1sigma": 8.4
+     },
+     "h24": {
+      "n": 27,
+      "beta": -3.2,
+      "rho": -0.1,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 27.5,
+      "med_abs_1sigma": 28.3
+     }
+    }
+   }
+  },
+  "JPY|Balance of Trade": {
+   "country": "JPY",
+   "title": "Balance of Trade",
+   "n": 30,
+   "since": "2023-09-19",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 353.7309,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 87,
+     "beta": 3.4,
+     "rho": 0.28,
+     "hit": 51,
+     "judged": 63,
+     "avg_abs": 10.8,
+     "med_abs_1sigma": 15.7
+    },
+    "h4": {
+     "n": 87,
+     "beta": 0.3,
+     "rho": 0.04,
+     "hit": 38,
+     "judged": 63,
+     "avg_abs": 20.7,
+     "med_abs_1sigma": 21.4
+    },
+    "h24": {
+     "n": 87,
+     "beta": -17.9,
+     "rho": -0.27,
+     "hit": 43,
+     "judged": 63,
+     "avg_abs": 58.1,
+     "med_abs_1sigma": 53.8
+    }
+   },
+   "pairs": {
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 3,
+      "rho": 0.28,
+      "hit": 52,
+      "judged": 21,
+      "avg_abs": 9.8,
+      "med_abs_1sigma": 12.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": -0.7,
+      "rho": -0.01,
+      "hit": 33,
+      "judged": 21,
+      "avg_abs": 21.6,
+      "med_abs_1sigma": 25.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": -35.4,
+      "rho": -0.6,
+      "hit": 24,
+      "judged": 21,
+      "avg_abs": 54.3,
+      "med_abs_1sigma": 89.5
+     }
+    },
+    "EURJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 3.4,
+      "rho": 0.29,
+      "hit": 48,
+      "judged": 21,
+      "avg_abs": 9.6,
+      "med_abs_1sigma": 18.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 0.7,
+      "rho": 0.06,
+      "hit": 43,
+      "judged": 21,
+      "avg_abs": 17.3,
+      "med_abs_1sigma": 16.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": -6.9,
+      "rho": -0.15,
+      "hit": 62,
+      "judged": 21,
+      "avg_abs": 49.3,
+      "med_abs_1sigma": 44.3
+     }
+    },
+    "GBPJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 3.9,
+      "rho": 0.28,
+      "hit": 52,
+      "judged": 21,
+      "avg_abs": 13.1,
+      "med_abs_1sigma": 20.6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 0.9,
+      "rho": 0.06,
+      "hit": 38,
+      "judged": 21,
+      "avg_abs": 23.2,
+      "med_abs_1sigma": 24.8
+     },
+     "h24": {
+      "n": 29,
+      "beta": -11.3,
+      "rho": -0.14,
+      "hit": 43,
+      "judged": 21,
+      "avg_abs": 70.9,
+      "med_abs_1sigma": 54.7
+     }
+    }
+   }
+  },
+  "GBP|Inflation Rate YoY": {
+   "country": "GBP",
+   "title": "Inflation Rate YoY",
+   "n": 31,
+   "since": "2023-09-20",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1636,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 89,
+     "beta": 25.7,
+     "rho": 0.59,
+     "hit": 84,
+     "judged": 45,
+     "avg_abs": 20.9,
+     "med_abs_1sigma": 10.5
+    },
+    "h4": {
+     "n": 89,
+     "beta": 16.9,
+     "rho": 0.34,
+     "hit": 71,
+     "judged": 45,
+     "avg_abs": 25.6,
+     "med_abs_1sigma": 21.8
+    },
+    "h24": {
+     "n": 89,
+     "beta": 2,
+     "rho": 0.01,
+     "hit": 49,
+     "judged": 45,
+     "avg_abs": 45.7,
+     "med_abs_1sigma": 24.5
+    }
+   },
+   "pairs": {
+    "GBPUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 24.1,
+      "rho": 0.63,
+      "hit": 93,
+      "judged": 15,
+      "avg_abs": 20,
+      "med_abs_1sigma": 11.1
+     },
+     "h4": {
+      "n": 30,
+      "beta": 15.4,
+      "rho": 0.34,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 24.9,
+      "med_abs_1sigma": 22.4
+     },
+     "h24": {
+      "n": 30,
+      "beta": 15,
+      "rho": 0.17,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 42,
+      "med_abs_1sigma": 24.5
+     }
+    },
+    "EURGBP": {
+     "h1": {
+      "n": 29,
+      "beta": 14.8,
+      "rho": 0.64,
+      "hit": 93,
+      "judged": 15,
+      "avg_abs": 12.1,
+      "med_abs_1sigma": 4.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 11.8,
+      "rho": 0.48,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 13.4,
+      "med_abs_1sigma": 5.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": 8.9,
+      "rho": 0.35,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 14.8,
+      "med_abs_1sigma": 6.9
+     }
+    },
+    "GBPJPY": {
+     "h1": {
+      "n": 30,
+      "beta": 38.3,
+      "rho": 0.63,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 30.3,
+      "med_abs_1sigma": 32.4
+     },
+     "h4": {
+      "n": 30,
+      "beta": 23.5,
+      "rho": 0.34,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 38.2,
+      "med_abs_1sigma": 23
+     },
+     "h24": {
+      "n": 30,
+      "beta": -18,
+      "rho": -0.12,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 79.3,
+      "med_abs_1sigma": 56.5
+     }
+    }
+   }
+  },
+  "USD|Fed Interest Rate Decision": {
+   "country": "USD",
+   "title": "Fed Interest Rate Decision",
+   "n": 25,
+   "since": "2023-09-20",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 1,
+   "currency": null,
+   "pairs": {
+    "EURUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 29.7,
+      "h4": 37,
+      "h24": 71.3
+     }
+    },
+    "GBPUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 34.2,
+      "h4": 41.4,
+      "h24": 89
+     }
+    },
+    "USDJPY": {
+     "n": 24,
+     "typical": {
+      "h1": 39.9,
+      "h4": 59.9,
+      "h24": 160.1
+     }
+    },
+    "USDCHF": {
+     "n": 24,
+     "typical": {
+      "h1": 21.5,
+      "h4": 26.9,
+      "h24": 61.2
+     }
+    },
+    "USDCAD": {
+     "n": 24,
+     "typical": {
+      "h1": 23.8,
+      "h4": 30.5,
+      "h24": 62.1
+     }
+    },
+    "AUDUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 22.8,
+      "h4": 29,
+      "h24": 50.3
+     }
+    },
+    "NZDUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 21,
+      "h4": 25.1,
+      "h24": 49
+     }
+    }
+   }
+  },
+  "GBP|BoE Interest Rate Decision": {
+   "country": "GBP",
+   "title": "BoE Interest Rate Decision",
+   "n": 25,
+   "since": "2023-09-21",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 1,
+   "currency": null,
+   "pairs": {
+    "GBPUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 26.3,
+      "h4": 40.8,
+      "h24": 61.1
+     }
+    },
+    "EURGBP": {
+     "n": 24,
+     "typical": {
+      "h1": 13.9,
+      "h4": 16.4,
+      "h24": 23.2
+     }
+    },
+    "GBPJPY": {
+     "n": 24,
+     "typical": {
+      "h1": 42.8,
+      "h4": 58.5,
+      "h24": 110.3
+     }
+    }
+   }
+  },
+  "JPY|BoJ Interest Rate Decision": {
+   "country": "JPY",
+   "title": "BoJ Interest Rate Decision",
+   "n": 25,
+   "since": "2023-09-22",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 1,
+   "currency": null,
+   "pairs": {
+    "USDJPY": {
+     "n": 24,
+     "typical": {
+      "h1": 26.6,
+      "h4": 53.9,
+      "h24": 145.8
+     }
+    },
+    "EURJPY": {
+     "n": 24,
+     "typical": {
+      "h1": 25.9,
+      "h4": 64.9,
+      "h24": 146.3
+     }
+    },
+    "GBPJPY": {
+     "n": 24,
+     "typical": {
+      "h1": 28.2,
+      "h4": 71.2,
+      "h24": 178.6
+     }
+    }
+   }
+  },
+  "GBP|Retail Sales MoM": {
+   "country": "GBP",
+   "title": "Retail Sales MoM",
+   "n": 31,
+   "since": "2023-09-22",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 1.028,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 89,
+     "beta": 10.5,
+     "rho": 0.33,
+     "hit": 69,
+     "judged": 45,
+     "avg_abs": 16,
+     "med_abs_1sigma": 9.1
+    },
+    "h4": {
+     "n": 89,
+     "beta": 8.3,
+     "rho": 0.15,
+     "hit": 69,
+     "judged": 45,
+     "avg_abs": 25.5,
+     "med_abs_1sigma": 13.4
+    },
+    "h24": {
+     "n": 89,
+     "beta": 0,
+     "rho": -0.01,
+     "hit": 56,
+     "judged": 45,
+     "avg_abs": 49.6,
+     "med_abs_1sigma": 31
+    }
+   },
+   "pairs": {
+    "GBPUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 7.3,
+      "rho": 0.36,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 12.6,
+      "med_abs_1sigma": 9.1
+     },
+     "h4": {
+      "n": 30,
+      "beta": 6.4,
+      "rho": 0.2,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 20.8,
+      "med_abs_1sigma": 18.9
+     },
+     "h24": {
+      "n": 30,
+      "beta": 22.2,
+      "rho": 0.27,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 43.8,
+      "med_abs_1sigma": 44.1
+     }
+    },
+    "EURGBP": {
+     "h1": {
+      "n": 29,
+      "beta": 4.4,
+      "rho": 0.44,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 6.5,
+      "med_abs_1sigma": 3.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 4.1,
+      "rho": 0.31,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 8.2,
+      "med_abs_1sigma": 2.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 1.2,
+      "rho": 0.1,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 15.7,
+      "med_abs_1sigma": 12.8
+     }
+    },
+    "GBPJPY": {
+     "h1": {
+      "n": 30,
+      "beta": 19.8,
+      "rho": 0.38,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 28.6,
+      "med_abs_1sigma": 17.9
+     },
+     "h4": {
+      "n": 30,
+      "beta": 14.5,
+      "rho": 0.15,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 47,
+      "med_abs_1sigma": 24.6
+     },
+     "h24": {
+      "n": 30,
+      "beta": -23.4,
+      "rho": -0.15,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 88.3,
+      "med_abs_1sigma": 73.9
+     }
+    }
+   }
+  },
+  "USD|Durable Goods Orders MoM": {
+   "country": "USD",
+   "title": "Durable Goods Orders MoM",
+   "n": 30,
+   "since": "2023-09-27",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 2.8134,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 210,
+     "beta": -1.6,
+     "rho": -0.15,
+     "hit": 33,
+     "judged": 91,
+     "avg_abs": 11.2,
+     "med_abs_1sigma": 10.6
+    },
+    "h4": {
+     "n": 210,
+     "beta": -2.4,
+     "rho": -0.12,
+     "hit": 42,
+     "judged": 91,
+     "avg_abs": 21.8,
+     "med_abs_1sigma": 21.7
+    },
+    "h24": {
+     "n": 210,
+     "beta": -0.9,
+     "rho": -0.01,
+     "hit": 34,
+     "judged": 91,
+     "avg_abs": 36.6,
+     "med_abs_1sigma": 26.1
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 0.3,
+      "rho": 0.01,
+      "hit": 46,
+      "judged": 13,
+      "avg_abs": 13,
+      "med_abs_1sigma": 4.8
+     },
+     "h4": {
+      "n": 30,
+      "beta": 0.5,
+      "rho": 0.01,
+      "hit": 46,
+      "judged": 13,
+      "avg_abs": 20.9,
+      "med_abs_1sigma": 14.1
+     },
+     "h24": {
+      "n": 30,
+      "beta": 4.5,
+      "rho": 0.1,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 32.6,
+      "med_abs_1sigma": 19.4
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 0.8,
+      "rho": 0.06,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 11.7,
+      "med_abs_1sigma": 10.6
+     },
+     "h4": {
+      "n": 30,
+      "beta": -2.4,
+      "rho": -0.09,
+      "hit": 46,
+      "judged": 13,
+      "avg_abs": 25.1,
+      "med_abs_1sigma": 8.9
+     },
+     "h24": {
+      "n": 30,
+      "beta": -0.6,
+      "rho": 0.04,
+      "hit": 23,
+      "judged": 13,
+      "avg_abs": 44,
+      "med_abs_1sigma": 22.5
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 30,
+      "beta": -7.8,
+      "rho": -0.51,
+      "hit": 31,
+      "judged": 13,
+      "avg_abs": 16.2,
+      "med_abs_1sigma": 19.6
+     },
+     "h4": {
+      "n": 30,
+      "beta": -5.4,
+      "rho": -0.31,
+      "hit": 46,
+      "judged": 13,
+      "avg_abs": 30,
+      "med_abs_1sigma": 37.9
+     },
+     "h24": {
+      "n": 30,
+      "beta": -4.4,
+      "rho": -0.08,
+      "hit": 46,
+      "judged": 13,
+      "avg_abs": 62.9,
+      "med_abs_1sigma": 40.1
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 30,
+      "beta": -3.7,
+      "rho": -0.35,
+      "hit": 31,
+      "judged": 13,
+      "avg_abs": 10.7,
+      "med_abs_1sigma": 16.7
+     },
+     "h4": {
+      "n": 30,
+      "beta": -4.7,
+      "rho": -0.26,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 16.6,
+      "med_abs_1sigma": 21.7
+     },
+     "h24": {
+      "n": 30,
+      "beta": -7,
+      "rho": -0.2,
+      "hit": 23,
+      "judged": 13,
+      "avg_abs": 29.7,
+      "med_abs_1sigma": 37.1
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 30,
+      "beta": -0.2,
+      "rho": -0.02,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 11,
+      "med_abs_1sigma": 12.5
+     },
+     "h4": {
+      "n": 30,
+      "beta": -0.9,
+      "rho": 0,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 26.4,
+      "med_abs_1sigma": 30.5
+     },
+     "h24": {
+      "n": 30,
+      "beta": 1.1,
+      "rho": 0.05,
+      "hit": 54,
+      "judged": 13,
+      "avg_abs": 33.9,
+      "med_abs_1sigma": 28.3
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 30,
+      "beta": -0.1,
+      "rho": -0.01,
+      "hit": 23,
+      "judged": 13,
+      "avg_abs": 8.3,
+      "med_abs_1sigma": 8.9
+     },
+     "h4": {
+      "n": 30,
+      "beta": -1.5,
+      "rho": -0.09,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 17.6,
+      "med_abs_1sigma": 21.3
+     },
+     "h24": {
+      "n": 30,
+      "beta": 2,
+      "rho": 0.09,
+      "hit": 31,
+      "judged": 13,
+      "avg_abs": 25.9,
+      "med_abs_1sigma": 18
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 30,
+      "beta": -0.9,
+      "rho": -0.12,
+      "hit": 23,
+      "judged": 13,
+      "avg_abs": 7.3,
+      "med_abs_1sigma": 5.1
+     },
+     "h4": {
+      "n": 30,
+      "beta": -2.3,
+      "rho": -0.17,
+      "hit": 38,
+      "judged": 13,
+      "avg_abs": 15.8,
+      "med_abs_1sigma": 9.6
+     },
+     "h24": {
+      "n": 30,
+      "beta": -1.9,
+      "rho": -0.03,
+      "hit": 23,
+      "judged": 13,
+      "avg_abs": 27,
+      "med_abs_1sigma": 18.3
+     }
+    }
+   }
+  },
+  "EUR|Inflation Rate YoY Flash": {
+   "country": "EUR",
+   "title": "Inflation Rate YoY Flash",
+   "n": 30,
+   "since": "2023-09-29",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1155,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 89,
+     "beta": 2.3,
+     "rho": 0.07,
+     "hit": 65,
+     "judged": 51,
+     "avg_abs": 9.3,
+     "med_abs_1sigma": 3.8
+    },
+    "h4": {
+     "n": 89,
+     "beta": 3.4,
+     "rho": 0.05,
+     "hit": 59,
+     "judged": 51,
+     "avg_abs": 26.4,
+     "med_abs_1sigma": 14.7
+    },
+    "h24": {
+     "n": 89,
+     "beta": -8.2,
+     "rho": -0.08,
+     "hit": 55,
+     "judged": 51,
+     "avg_abs": 50.3,
+     "med_abs_1sigma": 48.9
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 2.8,
+      "rho": 0.2,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 7.2,
+      "med_abs_1sigma": 8.5
+     },
+     "h4": {
+      "n": 30,
+      "beta": 15.3,
+      "rho": 0.32,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 23.2,
+      "med_abs_1sigma": 18.8
+     },
+     "h24": {
+      "n": 30,
+      "beta": 6,
+      "rho": 0.05,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 42.3,
+      "med_abs_1sigma": 37.8
+     }
+    },
+    "EURGBP": {
+     "h1": {
+      "n": 29,
+      "beta": 2,
+      "rho": 0.31,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 3.6,
+      "med_abs_1sigma": 3.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 4.3,
+      "rho": 0.17,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 13.2,
+      "med_abs_1sigma": 12.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": 2.5,
+      "rho": 0.07,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 22.6,
+      "med_abs_1sigma": 38.6
+     }
+    },
+    "EURJPY": {
+     "h1": {
+      "n": 30,
+      "beta": 2.2,
+      "rho": 0.01,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 16.9,
+      "med_abs_1sigma": 6
+     },
+     "h4": {
+      "n": 30,
+      "beta": -9.3,
+      "rho": -0.09,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 42.4,
+      "med_abs_1sigma": 33.5
+     },
+     "h24": {
+      "n": 30,
+      "beta": -33.2,
+      "rho": -0.21,
+      "hit": 35,
+      "judged": 17,
+      "avg_abs": 85,
+      "med_abs_1sigma": 148.8
+     }
+    }
+   }
+  },
+  "USD|Personal Income MoM": {
+   "country": "USD",
+   "title": "Personal Income MoM",
+   "n": 29,
+   "since": "2023-09-29",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.2646,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": 0.8,
+     "rho": 0.1,
+     "hit": 54,
+     "judged": 98,
+     "avg_abs": 11.7,
+     "med_abs_1sigma": 8.6
+    },
+    "h4": {
+     "n": 203,
+     "beta": 0.5,
+     "rho": 0.05,
+     "hit": 55,
+     "judged": 98,
+     "avg_abs": 24.9,
+     "med_abs_1sigma": 18
+    },
+    "h24": {
+     "n": 203,
+     "beta": -3.3,
+     "rho": -0.06,
+     "hit": 51,
+     "judged": 98,
+     "avg_abs": 35.6,
+     "med_abs_1sigma": 28.9
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 2.6,
+      "rho": 0.25,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 11.5,
+      "med_abs_1sigma": 15.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": -0.2,
+      "rho": 0.02,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 20.7,
+      "med_abs_1sigma": 12.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": -9.2,
+      "rho": -0.23,
+      "hit": 57,
+      "judged": 14,
+      "avg_abs": 32.8,
+      "med_abs_1sigma": 35.1
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": -0.8,
+      "rho": -0.01,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 17.7,
+      "med_abs_1sigma": 12.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": -0.1,
+      "rho": 0.02,
+      "hit": 64,
+      "judged": 14,
+      "avg_abs": 32.6,
+      "med_abs_1sigma": 13.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": -14.2,
+      "rho": -0.3,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 42.2,
+      "med_abs_1sigma": 31.7
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 2.5,
+      "rho": 0.16,
+      "hit": 57,
+      "judged": 14,
+      "avg_abs": 17,
+      "med_abs_1sigma": 12.3
+     },
+     "h4": {
+      "n": 29,
+      "beta": 5.9,
+      "rho": 0.12,
+      "hit": 64,
+      "judged": 14,
+      "avg_abs": 42.4,
+      "med_abs_1sigma": 28.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": 6.7,
+      "rho": 0.11,
+      "hit": 64,
+      "judged": 14,
+      "avg_abs": 62.8,
+      "med_abs_1sigma": 28.4
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": 2.4,
+      "rho": 0.31,
+      "hit": 57,
+      "judged": 14,
+      "avg_abs": 9,
+      "med_abs_1sigma": 10.3
+     },
+     "h4": {
+      "n": 29,
+      "beta": 1,
+      "rho": 0.11,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 16.6,
+      "med_abs_1sigma": 10.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": -0.4,
+      "rho": 0,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 23.8,
+      "med_abs_1sigma": 16.3
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": -3.1,
+      "rho": -0.3,
+      "hit": 50,
+      "judged": 14,
+      "avg_abs": 8.8,
+      "med_abs_1sigma": 6
+     },
+     "h4": {
+      "n": 29,
+      "beta": -7.2,
+      "rho": -0.26,
+      "hit": 36,
+      "judged": 14,
+      "avg_abs": 24.4,
+      "med_abs_1sigma": 27.5
+     },
+     "h24": {
+      "n": 29,
+      "beta": -10,
+      "rho": -0.21,
+      "hit": 36,
+      "judged": 14,
+      "avg_abs": 36.9,
+      "med_abs_1sigma": 43.3
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 1,
+      "rho": 0.13,
+      "hit": 71,
+      "judged": 14,
+      "avg_abs": 9.5,
+      "med_abs_1sigma": 4.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": 2.3,
+      "rho": 0.16,
+      "hit": 57,
+      "judged": 14,
+      "avg_abs": 21.2,
+      "med_abs_1sigma": 11.6
+     },
+     "h24": {
+      "n": 29,
+      "beta": 0.7,
+      "rho": 0.07,
+      "hit": 43,
+      "judged": 14,
+      "avg_abs": 25.8,
+      "med_abs_1sigma": 26
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 1.1,
+      "rho": 0.14,
+      "hit": 43,
+      "judged": 14,
+      "avg_abs": 8.5,
+      "med_abs_1sigma": 2.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 2.1,
+      "rho": 0.18,
+      "hit": 64,
+      "judged": 14,
+      "avg_abs": 16.4,
+      "med_abs_1sigma": 13
+     },
+     "h24": {
+      "n": 29,
+      "beta": 3.2,
+      "rho": 0.14,
+      "hit": 57,
+      "judged": 14,
+      "avg_abs": 25.1,
+      "med_abs_1sigma": 22.2
+     }
+    }
+   }
+  },
+  "USD|Personal Spending MoM": {
+   "country": "USD",
+   "title": "Personal Spending MoM",
+   "n": 29,
+   "since": "2023-09-29",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1309,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": 1.5,
+     "rho": 0.12,
+     "hit": 56,
+     "judged": 126,
+     "avg_abs": 11.7,
+     "med_abs_1sigma": 3.6
+    },
+    "h4": {
+     "n": 203,
+     "beta": 1.4,
+     "rho": 0.06,
+     "hit": 52,
+     "judged": 126,
+     "avg_abs": 24.9,
+     "med_abs_1sigma": 12.3
+    },
+    "h24": {
+     "n": 203,
+     "beta": 5.2,
+     "rho": 0.11,
+     "hit": 51,
+     "judged": 126,
+     "avg_abs": 35.6,
+     "med_abs_1sigma": 21.6
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 4.6,
+      "rho": 0.31,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 11.5,
+      "med_abs_1sigma": 0.6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 4.7,
+      "rho": 0.2,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 20.7,
+      "med_abs_1sigma": 17.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": 19.4,
+      "rho": 0.41,
+      "hit": 72,
+      "judged": 18,
+      "avg_abs": 32.8,
+      "med_abs_1sigma": 50.3
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 0.6,
+      "rho": 0.06,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 17.7,
+      "med_abs_1sigma": 6.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": 1.1,
+      "rho": 0.05,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 32.6,
+      "med_abs_1sigma": 19.6
+     },
+     "h24": {
+      "n": 29,
+      "beta": 7.7,
+      "rho": 0.16,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 42.2,
+      "med_abs_1sigma": 31.7
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 2.7,
+      "rho": 0.13,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 17,
+      "med_abs_1sigma": 2.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": 5.8,
+      "rho": 0.09,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 42.4,
+      "med_abs_1sigma": 17.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": -0.9,
+      "rho": 0.01,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 62.8,
+      "med_abs_1sigma": 57.8
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": 2.7,
+      "rho": 0.27,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 9,
+      "med_abs_1sigma": 6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 3.1,
+      "rho": 0.19,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 16.6,
+      "med_abs_1sigma": 10.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": 7.1,
+      "rho": 0.21,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 23.8,
+      "med_abs_1sigma": 14.6
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": 0,
+      "rho": 0.03,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 8.8,
+      "med_abs_1sigma": 6.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": -3.4,
+      "rho": -0.05,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 24.4,
+      "med_abs_1sigma": 20.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 2,
+      "rho": 0.04,
+      "hit": 39,
+      "judged": 18,
+      "avg_abs": 36.9,
+      "med_abs_1sigma": 21.6
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": -0.9,
+      "rho": -0.02,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 9.5,
+      "med_abs_1sigma": 7
+     },
+     "h4": {
+      "n": 29,
+      "beta": -1.9,
+      "rho": -0.03,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 21.2,
+      "med_abs_1sigma": 8.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": -1,
+      "rho": 0.02,
+      "hit": 39,
+      "judged": 18,
+      "avg_abs": 25.8,
+      "med_abs_1sigma": 26.4
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 1,
+      "rho": 0.1,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 8.5,
+      "med_abs_1sigma": 4.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 0.4,
+      "rho": 0.06,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 16.4,
+      "med_abs_1sigma": 12.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": 2.3,
+      "rho": 0.09,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 25.1,
+      "med_abs_1sigma": 15.3
+     }
+    }
+   }
+  },
+  "USD|Core PCE Price Index MoM": {
+   "country": "USD",
+   "title": "Core PCE Price Index MoM",
+   "n": 29,
+   "since": "2023-09-29",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.0586,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": 3.8,
+     "rho": 0.22,
+     "hit": 56,
+     "judged": 70,
+     "avg_abs": 11.7,
+     "med_abs_1sigma": 10.9
+    },
+    "h4": {
+     "n": 203,
+     "beta": 9,
+     "rho": 0.22,
+     "hit": 67,
+     "judged": 70,
+     "avg_abs": 24.9,
+     "med_abs_1sigma": 20.4
+    },
+    "h24": {
+     "n": 203,
+     "beta": 6.7,
+     "rho": 0.12,
+     "hit": 71,
+     "judged": 70,
+     "avg_abs": 35.6,
+     "med_abs_1sigma": 23.7
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 2.6,
+      "rho": 0.15,
+      "hit": 50,
+      "judged": 10,
+      "avg_abs": 11.5,
+      "med_abs_1sigma": 19.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": 1.6,
+      "rho": 0.04,
+      "hit": 40,
+      "judged": 10,
+      "avg_abs": 20.7,
+      "med_abs_1sigma": 23.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 1.7,
+      "rho": 0.02,
+      "hit": 50,
+      "judged": 10,
+      "avg_abs": 32.8,
+      "med_abs_1sigma": 16.1
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 7.3,
+      "rho": 0.33,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 17.7,
+      "med_abs_1sigma": 16.6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 13,
+      "rho": 0.3,
+      "hit": 90,
+      "judged": 10,
+      "avg_abs": 32.6,
+      "med_abs_1sigma": 20.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": 10.1,
+      "rho": 0.18,
+      "hit": 90,
+      "judged": 10,
+      "avg_abs": 42.2,
+      "med_abs_1sigma": 16.9
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 4.1,
+      "rho": 0.17,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 17,
+      "med_abs_1sigma": 20.6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 17.9,
+      "rho": 0.23,
+      "hit": 50,
+      "judged": 10,
+      "avg_abs": 42.4,
+      "med_abs_1sigma": 50.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": -4.1,
+      "rho": -0.07,
+      "hit": 40,
+      "judged": 10,
+      "avg_abs": 62.8,
+      "med_abs_1sigma": 54.9
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": 3.2,
+      "rho": 0.25,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 9,
+      "med_abs_1sigma": 7.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": 8.1,
+      "rho": 0.36,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 16.6,
+      "med_abs_1sigma": 16.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": 3.8,
+      "rho": 0.12,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 23.8,
+      "med_abs_1sigma": 27.7
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": 0.7,
+      "rho": 0.03,
+      "hit": 50,
+      "judged": 10,
+      "avg_abs": 8.8,
+      "med_abs_1sigma": 6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 7.8,
+      "rho": 0.25,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 24.4,
+      "med_abs_1sigma": 27.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": 8.5,
+      "rho": 0.16,
+      "hit": 80,
+      "judged": 10,
+      "avg_abs": 36.9,
+      "med_abs_1sigma": 30.4
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 3.9,
+      "rho": 0.29,
+      "hit": 50,
+      "judged": 10,
+      "avg_abs": 9.5,
+      "med_abs_1sigma": 9.1
+     },
+     "h4": {
+      "n": 29,
+      "beta": 7.4,
+      "rho": 0.28,
+      "hit": 80,
+      "judged": 10,
+      "avg_abs": 21.2,
+      "med_abs_1sigma": 31.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 12.8,
+      "rho": 0.4,
+      "hit": 90,
+      "judged": 10,
+      "avg_abs": 25.8,
+      "med_abs_1sigma": 26.4
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 4.8,
+      "rho": 0.37,
+      "hit": 60,
+      "judged": 10,
+      "avg_abs": 8.5,
+      "med_abs_1sigma": 8.4
+     },
+     "h4": {
+      "n": 29,
+      "beta": 7.4,
+      "rho": 0.38,
+      "hit": 90,
+      "judged": 10,
+      "avg_abs": 16.4,
+      "med_abs_1sigma": 21.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": 14.3,
+      "rho": 0.45,
+      "hit": 90,
+      "judged": 10,
+      "avg_abs": 25.1,
+      "med_abs_1sigma": 22.2
+     }
+    }
+   }
+  },
+  "USD|ISM Manufacturing PMI": {
+   "country": "USD",
+   "title": "ISM Manufacturing PMI",
+   "n": 30,
+   "since": "2023-10-02",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 1.2406,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 210,
+     "beta": 6.1,
+     "rho": 0.24,
+     "hit": 62,
+     "judged": 105,
+     "avg_abs": 16.2,
+     "med_abs_1sigma": 14.6
+    },
+    "h4": {
+     "n": 210,
+     "beta": 2.6,
+     "rho": 0.08,
+     "hit": 51,
+     "judged": 105,
+     "avg_abs": 21.7,
+     "med_abs_1sigma": 23.8
+    },
+    "h24": {
+     "n": 210,
+     "beta": 6.5,
+     "rho": 0.08,
+     "hit": 47,
+     "judged": 105,
+     "avg_abs": 46.4,
+     "med_abs_1sigma": 19.8
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 6.3,
+      "rho": 0.26,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 15.6,
+      "med_abs_1sigma": 13
+     },
+     "h4": {
+      "n": 30,
+      "beta": 4.8,
+      "rho": 0.19,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 20.6,
+      "med_abs_1sigma": 31.1
+     },
+     "h24": {
+      "n": 30,
+      "beta": 7.1,
+      "rho": 0.12,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 39.4,
+      "med_abs_1sigma": 16.2
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 8,
+      "rho": 0.27,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 21.6,
+      "med_abs_1sigma": 27.1
+     },
+     "h4": {
+      "n": 30,
+      "beta": -2.6,
+      "rho": -0.06,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 31.1,
+      "med_abs_1sigma": 41.4
+     },
+     "h24": {
+      "n": 30,
+      "beta": 1.8,
+      "rho": 0.02,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 47.7,
+      "med_abs_1sigma": 11.3
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 30,
+      "beta": 15.2,
+      "rho": 0.48,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 21,
+      "med_abs_1sigma": 14.4
+     },
+     "h4": {
+      "n": 30,
+      "beta": 16.8,
+      "rho": 0.38,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 30.4,
+      "med_abs_1sigma": 35.1
+     },
+     "h24": {
+      "n": 30,
+      "beta": 59.5,
+      "rho": 0.42,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 95.6,
+      "med_abs_1sigma": 96.5
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 30,
+      "beta": 7.4,
+      "rho": 0.34,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 15.2,
+      "med_abs_1sigma": 17.9
+     },
+     "h4": {
+      "n": 30,
+      "beta": 4.6,
+      "rho": 0.2,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 17.5,
+      "med_abs_1sigma": 20.8
+     },
+     "h24": {
+      "n": 30,
+      "beta": 4.7,
+      "rho": 0.08,
+      "hit": 33,
+      "judged": 15,
+      "avg_abs": 42.1,
+      "med_abs_1sigma": 29.7
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 30,
+      "beta": 2,
+      "rho": 0.06,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 19.7,
+      "med_abs_1sigma": 21.3
+     },
+     "h4": {
+      "n": 30,
+      "beta": -2.5,
+      "rho": -0.07,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 27.1,
+      "med_abs_1sigma": 27.3
+     },
+     "h24": {
+      "n": 30,
+      "beta": -10.5,
+      "rho": -0.13,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 41.1,
+      "med_abs_1sigma": 22.6
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 1.4,
+      "rho": 0.08,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 10.5,
+      "med_abs_1sigma": 14.6
+     },
+     "h4": {
+      "n": 30,
+      "beta": -2.4,
+      "rho": -0.13,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 13.3,
+      "med_abs_1sigma": 21.7
+     },
+     "h24": {
+      "n": 30,
+      "beta": -10.8,
+      "rho": -0.24,
+      "hit": 27,
+      "judged": 15,
+      "avg_abs": 32.3,
+      "med_abs_1sigma": 16.4
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 2.6,
+      "rho": 0.17,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 9.7,
+      "med_abs_1sigma": 13.5
+     },
+     "h4": {
+      "n": 30,
+      "beta": -0.4,
+      "rho": -0.02,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 12.1,
+      "med_abs_1sigma": 13.8
+     },
+     "h24": {
+      "n": 30,
+      "beta": -6.5,
+      "rho": -0.16,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 26.7,
+      "med_abs_1sigma": 17.5
+     }
+    }
+   }
+  },
+  "AUD|RBA Interest Rate Decision": {
+   "country": "AUD",
+   "title": "RBA Interest Rate Decision",
+   "n": 24,
+   "since": "2023-10-03",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 1,
+   "currency": null,
+   "pairs": {
+    "AUDUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 13.8,
+      "h4": 17.7,
+      "h24": 30.8
+     }
+    }
+   }
+  },
+  "USD|JOLTs Job Openings": {
+   "country": "USD",
+   "title": "JOLTs Job Openings",
+   "n": 29,
+   "since": "2023-10-03",
+   "policy": false,
+   "inverted": false,
+   "unit": "M",
+   "sigma": 0.354,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 196,
+     "beta": 2.4,
+     "rho": 0.12,
+     "hit": 60,
+     "judged": 126,
+     "avg_abs": 14.3,
+     "med_abs_1sigma": 11.5
+    },
+    "h4": {
+     "n": 196,
+     "beta": 4.4,
+     "rho": 0.18,
+     "hit": 61,
+     "judged": 126,
+     "avg_abs": 16,
+     "med_abs_1sigma": 14.2
+    },
+    "h24": {
+     "n": 196,
+     "beta": 16,
+     "rho": 0.23,
+     "hit": 61,
+     "judged": 126,
+     "avg_abs": 43,
+     "med_abs_1sigma": 37.6
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 2.8,
+      "rho": 0.18,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 11.9,
+      "med_abs_1sigma": 9.3
+     },
+     "h4": {
+      "n": 28,
+      "beta": 6.4,
+      "rho": 0.41,
+      "hit": 67,
+      "judged": 18,
+      "avg_abs": 12.3,
+      "med_abs_1sigma": 13.6
+     },
+     "h24": {
+      "n": 28,
+      "beta": 16.5,
+      "rho": 0.39,
+      "hit": 67,
+      "judged": 18,
+      "avg_abs": 32.5,
+      "med_abs_1sigma": 41.9
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 2.5,
+      "rho": 0.1,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 18.1,
+      "med_abs_1sigma": 20
+     },
+     "h4": {
+      "n": 28,
+      "beta": 3.2,
+      "rho": 0.13,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 18.8,
+      "med_abs_1sigma": 14.2
+     },
+     "h24": {
+      "n": 28,
+      "beta": 21.3,
+      "rho": 0.32,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 46.7,
+      "med_abs_1sigma": 60.7
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 28,
+      "beta": 11.5,
+      "rho": 0.45,
+      "hit": 72,
+      "judged": 18,
+      "avg_abs": 19,
+      "med_abs_1sigma": 25.4
+     },
+     "h4": {
+      "n": 28,
+      "beta": 15.3,
+      "rho": 0.38,
+      "hit": 72,
+      "judged": 18,
+      "avg_abs": 28,
+      "med_abs_1sigma": 29.8
+     },
+     "h24": {
+      "n": 28,
+      "beta": 32.5,
+      "rho": 0.22,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 96.5,
+      "med_abs_1sigma": 61.2
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 28,
+      "beta": 1.6,
+      "rho": 0.1,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 12.6,
+      "med_abs_1sigma": 11.3
+     },
+     "h4": {
+      "n": 28,
+      "beta": 5.3,
+      "rho": 0.31,
+      "hit": 72,
+      "judged": 18,
+      "avg_abs": 14.3,
+      "med_abs_1sigma": 18.2
+     },
+     "h24": {
+      "n": 28,
+      "beta": 11.5,
+      "rho": 0.3,
+      "hit": 67,
+      "judged": 18,
+      "avg_abs": 28.2,
+      "med_abs_1sigma": 36.9
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 28,
+      "beta": -0.3,
+      "rho": -0.01,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 18.5,
+      "med_abs_1sigma": 14
+     },
+     "h4": {
+      "n": 28,
+      "beta": -1.3,
+      "rho": -0.04,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 18.3,
+      "med_abs_1sigma": 22.3
+     },
+     "h24": {
+      "n": 28,
+      "beta": 7.3,
+      "rho": 0.17,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 33.7,
+      "med_abs_1sigma": 35.2
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": -2.3,
+      "rho": -0.15,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 11,
+      "med_abs_1sigma": 9.7
+     },
+     "h4": {
+      "n": 28,
+      "beta": -0.6,
+      "rho": -0.04,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 11.1,
+      "med_abs_1sigma": 10.2
+     },
+     "h24": {
+      "n": 28,
+      "beta": 10.2,
+      "rho": 0.27,
+      "hit": 67,
+      "judged": 18,
+      "avg_abs": 30.2,
+      "med_abs_1sigma": 34
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 0.7,
+      "rho": 0.06,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 9.1,
+      "med_abs_1sigma": 6.1
+     },
+     "h4": {
+      "n": 28,
+      "beta": 2.9,
+      "rho": 0.23,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 9.4,
+      "med_abs_1sigma": 8.4
+     },
+     "h24": {
+      "n": 28,
+      "beta": 12.8,
+      "rho": 0.32,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 33.2,
+      "med_abs_1sigma": 37.9
+     }
+    }
+   }
+  },
+  "USD|ISM Services PMI": {
+   "country": "USD",
+   "title": "ISM Services PMI",
+   "n": 30,
+   "since": "2023-10-04",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 1.6913,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 210,
+     "beta": 8.4,
+     "rho": 0.45,
+     "hit": 74,
+     "judged": 133,
+     "avg_abs": 15.5,
+     "med_abs_1sigma": 19.1
+    },
+    "h4": {
+     "n": 210,
+     "beta": 4.1,
+     "rho": 0.18,
+     "hit": 60,
+     "judged": 133,
+     "avg_abs": 18.4,
+     "med_abs_1sigma": 19.9
+    },
+    "h24": {
+     "n": 210,
+     "beta": 12,
+     "rho": 0.19,
+     "hit": 64,
+     "judged": 133,
+     "avg_abs": 45.9,
+     "med_abs_1sigma": 42.7
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 9.9,
+      "rho": 0.56,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 15.2,
+      "med_abs_1sigma": 19.1
+     },
+     "h4": {
+      "n": 30,
+      "beta": 4,
+      "rho": 0.18,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 17.4,
+      "med_abs_1sigma": 21.3
+     },
+     "h24": {
+      "n": 30,
+      "beta": 19,
+      "rho": 0.32,
+      "hit": 68,
+      "judged": 19,
+      "avg_abs": 46.4,
+      "med_abs_1sigma": 62.8
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 9.6,
+      "rho": 0.5,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 16.7,
+      "med_abs_1sigma": 22.3
+     },
+     "h4": {
+      "n": 30,
+      "beta": 3,
+      "rho": 0.12,
+      "hit": 53,
+      "judged": 19,
+      "avg_abs": 21.9,
+      "med_abs_1sigma": 20.6
+     },
+     "h24": {
+      "n": 30,
+      "beta": 12.6,
+      "rho": 0.17,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 58.7,
+      "med_abs_1sigma": 64.3
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 30,
+      "beta": 14.8,
+      "rho": 0.5,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 26,
+      "med_abs_1sigma": 25.4
+     },
+     "h4": {
+      "n": 30,
+      "beta": 8.9,
+      "rho": 0.24,
+      "hit": 68,
+      "judged": 19,
+      "avg_abs": 30,
+      "med_abs_1sigma": 27.1
+     },
+     "h24": {
+      "n": 30,
+      "beta": 13.8,
+      "rho": 0.14,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 77.8,
+      "med_abs_1sigma": 50.5
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 30,
+      "beta": 11,
+      "rho": 0.7,
+      "hit": 89,
+      "judged": 19,
+      "avg_abs": 13.9,
+      "med_abs_1sigma": 15.7
+     },
+     "h4": {
+      "n": 30,
+      "beta": 8.2,
+      "rho": 0.42,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 16.5,
+      "med_abs_1sigma": 20.8
+     },
+     "h24": {
+      "n": 30,
+      "beta": 16.4,
+      "rho": 0.42,
+      "hit": 68,
+      "judged": 19,
+      "avg_abs": 29.9,
+      "med_abs_1sigma": 37.2
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 30,
+      "beta": 2.9,
+      "rho": 0.18,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 12.9,
+      "med_abs_1sigma": 16.2
+     },
+     "h4": {
+      "n": 30,
+      "beta": -0.4,
+      "rho": -0.02,
+      "hit": 42,
+      "judged": 19,
+      "avg_abs": 15.9,
+      "med_abs_1sigma": 14
+     },
+     "h24": {
+      "n": 30,
+      "beta": 7.2,
+      "rho": 0.15,
+      "hit": 53,
+      "judged": 19,
+      "avg_abs": 35.9,
+      "med_abs_1sigma": 42.7
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 5.1,
+      "rho": 0.38,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 11.9,
+      "med_abs_1sigma": 18.5
+     },
+     "h4": {
+      "n": 30,
+      "beta": 2.4,
+      "rho": 0.15,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 13.3,
+      "med_abs_1sigma": 13.3
+     },
+     "h24": {
+      "n": 30,
+      "beta": 7.3,
+      "rho": 0.12,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 37.1,
+      "med_abs_1sigma": 37.6
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 30,
+      "beta": 5.8,
+      "rho": 0.44,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 11.5,
+      "med_abs_1sigma": 15
+     },
+     "h4": {
+      "n": 30,
+      "beta": 3,
+      "rho": 0.19,
+      "hit": 68,
+      "judged": 19,
+      "avg_abs": 14,
+      "med_abs_1sigma": 11.7
+     },
+     "h24": {
+      "n": 30,
+      "beta": 7.9,
+      "rho": 0.16,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 35.5,
+      "med_abs_1sigma": 37.9
+     }
+    }
+   }
+  },
+  "CAD|Ivey PMI s.a": {
+   "country": "CAD",
+   "title": "Ivey PMI s.a",
+   "n": 28,
+   "since": "2023-10-05",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 4.8643,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 28,
+     "beta": 5.5,
+     "rho": 0.28,
+     "hit": 65,
+     "judged": 17,
+     "avg_abs": 16.1,
+     "med_abs_1sigma": 20.3
+    },
+    "h4": {
+     "n": 28,
+     "beta": 0.5,
+     "rho": 0.02,
+     "hit": 35,
+     "judged": 17,
+     "avg_abs": 21.5,
+     "med_abs_1sigma": 16.4
+    },
+    "h24": {
+     "n": 28,
+     "beta": -0.7,
+     "rho": -0.02,
+     "hit": 41,
+     "judged": 17,
+     "avg_abs": 35.2,
+     "med_abs_1sigma": 56.8
+    }
+   },
+   "pairs": {
+    "USDCAD": {
+     "h1": {
+      "n": 28,
+      "beta": 5.5,
+      "rho": 0.28,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 16.1,
+      "med_abs_1sigma": 20.3
+     },
+     "h4": {
+      "n": 28,
+      "beta": 0.5,
+      "rho": 0.02,
+      "hit": 35,
+      "judged": 17,
+      "avg_abs": 21.5,
+      "med_abs_1sigma": 16.4
+     },
+     "h24": {
+      "n": 28,
+      "beta": -0.7,
+      "rho": -0.02,
+      "hit": 41,
+      "judged": 17,
+      "avg_abs": 35.2,
+      "med_abs_1sigma": 56.8
+     }
+    }
+   }
+  },
+  "CAD|Unemployment Rate": {
+   "country": "CAD",
+   "title": "Unemployment Rate",
+   "n": 30,
+   "since": "2023-10-06",
+   "policy": false,
+   "inverted": true,
+   "unit": "%",
+   "sigma": 0.1667,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 30,
+     "beta": 13.8,
+     "rho": 0.57,
+     "hit": 77,
+     "judged": 26,
+     "avg_abs": 24.8,
+     "med_abs_1sigma": 32.9
+    },
+    "h4": {
+     "n": 30,
+     "beta": 14.3,
+     "rho": 0.57,
+     "hit": 77,
+     "judged": 26,
+     "avg_abs": 31.5,
+     "med_abs_1sigma": 33.5
+    },
+    "h24": {
+     "n": 30,
+     "beta": 17,
+     "rho": 0.48,
+     "hit": 58,
+     "judged": 26,
+     "avg_abs": 40.4,
+     "med_abs_1sigma": 37
+    }
+   },
+   "pairs": {
+    "USDCAD": {
+     "h1": {
+      "n": 30,
+      "beta": 13.8,
+      "rho": 0.57,
+      "hit": 77,
+      "judged": 26,
+      "avg_abs": 24.8,
+      "med_abs_1sigma": 32.9
+     },
+     "h4": {
+      "n": 30,
+      "beta": 14.3,
+      "rho": 0.57,
+      "hit": 77,
+      "judged": 26,
+      "avg_abs": 31.5,
+      "med_abs_1sigma": 33.5
+     },
+     "h24": {
+      "n": 30,
+      "beta": 17,
+      "rho": 0.48,
+      "hit": 58,
+      "judged": 26,
+      "avg_abs": 40.4,
+      "med_abs_1sigma": 37
+     }
+    }
+   }
+  },
+  "USD|Unemployment Rate": {
+   "country": "USD",
+   "title": "Unemployment Rate",
+   "n": 28,
+   "since": "2023-10-06",
+   "policy": false,
+   "inverted": true,
+   "unit": "%",
+   "sigma": 0.1071,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 196,
+     "beta": 10.3,
+     "rho": 0.19,
+     "hit": 60,
+     "judged": 126,
+     "avg_abs": 32.3,
+     "med_abs_1sigma": 26.4
+    },
+    "h4": {
+     "n": 196,
+     "beta": 7.5,
+     "rho": 0.12,
+     "hit": 61,
+     "judged": 126,
+     "avg_abs": 39.5,
+     "med_abs_1sigma": 18.2
+    },
+    "h24": {
+     "n": 196,
+     "beta": 6.5,
+     "rho": 0.07,
+     "hit": 49,
+     "judged": 126,
+     "avg_abs": 47.4,
+     "med_abs_1sigma": 24.7
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 10.4,
+      "rho": 0.2,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 34,
+      "med_abs_1sigma": 46.5
+     },
+     "h4": {
+      "n": 28,
+      "beta": 14,
+      "rho": 0.22,
+      "hit": 72,
+      "judged": 18,
+      "avg_abs": 40.1,
+      "med_abs_1sigma": 28.1
+     },
+     "h24": {
+      "n": 28,
+      "beta": 4.3,
+      "rho": 0.06,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 45.2,
+      "med_abs_1sigma": 51.1
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 13.6,
+      "rho": 0.24,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 38.4,
+      "med_abs_1sigma": 42.4
+     },
+     "h4": {
+      "n": 28,
+      "beta": 9.3,
+      "rho": 0.15,
+      "hit": 67,
+      "judged": 18,
+      "avg_abs": 42.3,
+      "med_abs_1sigma": 10.5
+     },
+     "h24": {
+      "n": 28,
+      "beta": -1.8,
+      "rho": -0.02,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 56.2,
+      "med_abs_1sigma": 24.8
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 28,
+      "beta": 27.1,
+      "rho": 0.28,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 58,
+      "med_abs_1sigma": 114.1
+     },
+     "h4": {
+      "n": 28,
+      "beta": 22.3,
+      "rho": 0.2,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 70.8,
+      "med_abs_1sigma": 110.3
+     },
+     "h24": {
+      "n": 28,
+      "beta": 48.1,
+      "rho": 0.26,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 89.5,
+      "med_abs_1sigma": 87.6
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 28,
+      "beta": 11.5,
+      "rho": 0.25,
+      "hit": 67,
+      "judged": 18,
+      "avg_abs": 29.7,
+      "med_abs_1sigma": 41.1
+     },
+     "h4": {
+      "n": 28,
+      "beta": 14.7,
+      "rho": 0.28,
+      "hit": 72,
+      "judged": 18,
+      "avg_abs": 33.8,
+      "med_abs_1sigma": 18.2
+     },
+     "h24": {
+      "n": 28,
+      "beta": 17.2,
+      "rho": 0.25,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 37.3,
+      "med_abs_1sigma": 16.8
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 28,
+      "beta": -0.6,
+      "rho": -0.01,
+      "hit": 50,
+      "judged": 18,
+      "avg_abs": 25,
+      "med_abs_1sigma": 22.5
+     },
+     "h4": {
+      "n": 28,
+      "beta": -6.5,
+      "rho": -0.12,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 36.8,
+      "med_abs_1sigma": 29.8
+     },
+     "h24": {
+      "n": 28,
+      "beta": -8.7,
+      "rho": -0.16,
+      "hit": 39,
+      "judged": 18,
+      "avg_abs": 35.4,
+      "med_abs_1sigma": 24.7
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 4.1,
+      "rho": 0.12,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 20.8,
+      "med_abs_1sigma": 16.4
+     },
+     "h4": {
+      "n": 28,
+      "beta": -2.9,
+      "rho": -0.07,
+      "hit": 56,
+      "judged": 18,
+      "avg_abs": 27,
+      "med_abs_1sigma": 2
+     },
+     "h24": {
+      "n": 28,
+      "beta": -11,
+      "rho": -0.21,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 36.5,
+      "med_abs_1sigma": 22.9
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 5.7,
+      "rho": 0.18,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 20,
+      "med_abs_1sigma": 17.1
+     },
+     "h4": {
+      "n": 28,
+      "beta": 1.9,
+      "rho": 0.05,
+      "hit": 61,
+      "judged": 18,
+      "avg_abs": 25.4,
+      "med_abs_1sigma": 7.5
+     },
+     "h24": {
+      "n": 28,
+      "beta": -2.6,
+      "rho": -0.06,
+      "hit": 44,
+      "judged": 18,
+      "avg_abs": 31.4,
+      "med_abs_1sigma": 13.3
+     }
+    }
+   }
+  },
+  "USD|Non Farm Payrolls": {
+   "country": "USD",
+   "title": "Non Farm Payrolls",
+   "n": 29,
+   "since": "2023-10-06",
+   "policy": false,
+   "inverted": false,
+   "unit": "K",
+   "sigma": 80.0789,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": 26.6,
+     "rho": 0.53,
+     "hit": 80,
+     "judged": 133,
+     "avg_abs": 32.3,
+     "med_abs_1sigma": 24.1
+    },
+    "h4": {
+     "n": 203,
+     "beta": 30.2,
+     "rho": 0.5,
+     "hit": 77,
+     "judged": 133,
+     "avg_abs": 38.5,
+     "med_abs_1sigma": 36.2
+    },
+    "h24": {
+     "n": 203,
+     "beta": 29.5,
+     "rho": 0.34,
+     "hit": 74,
+     "judged": 133,
+     "avg_abs": 46.5,
+     "med_abs_1sigma": 28
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 28.5,
+      "rho": 0.58,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 33.7,
+      "med_abs_1sigma": 40.4
+     },
+     "h4": {
+      "n": 29,
+      "beta": 33.4,
+      "rho": 0.56,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 38.9,
+      "med_abs_1sigma": 46.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": 35.4,
+      "rho": 0.48,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 44.1,
+      "med_abs_1sigma": 19.3
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 34.9,
+      "rho": 0.66,
+      "hit": 89,
+      "judged": 19,
+      "avg_abs": 38.4,
+      "med_abs_1sigma": 28.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": 40.5,
+      "rho": 0.67,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 40.9,
+      "med_abs_1sigma": 63.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": 46,
+      "rho": 0.53,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 54.7,
+      "med_abs_1sigma": 51.5
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 42.3,
+      "rho": 0.5,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 57,
+      "med_abs_1sigma": 36.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 40.1,
+      "rho": 0.44,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 69.2,
+      "med_abs_1sigma": 41.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": 25.8,
+      "rho": 0.18,
+      "hit": 58,
+      "judged": 19,
+      "avg_abs": 88.3,
+      "med_abs_1sigma": 56.9
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": 24.9,
+      "rho": 0.58,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 29.3,
+      "med_abs_1sigma": 21.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 27.1,
+      "rho": 0.57,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 33.7,
+      "med_abs_1sigma": 38.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 28.9,
+      "rho": 0.49,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 37.1,
+      "med_abs_1sigma": 22.6
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": 24.6,
+      "rho": 0.63,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 26.5,
+      "med_abs_1sigma": 14.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 25.6,
+      "rho": 0.5,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 36.3,
+      "med_abs_1sigma": 33.5
+     },
+     "h24": {
+      "n": 29,
+      "beta": 32.3,
+      "rho": 0.6,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 35.4,
+      "med_abs_1sigma": 28
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 15,
+      "rho": 0.51,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 20.9,
+      "med_abs_1sigma": 16.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": 22.6,
+      "rho": 0.55,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 26.1,
+      "med_abs_1sigma": 22.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 17.6,
+      "rho": 0.37,
+      "hit": 63,
+      "judged": 19,
+      "avg_abs": 35.3,
+      "med_abs_1sigma": 22.7
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 15.9,
+      "rho": 0.55,
+      "hit": 79,
+      "judged": 19,
+      "avg_abs": 20.2,
+      "med_abs_1sigma": 10.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": 21.9,
+      "rho": 0.59,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 24.6,
+      "med_abs_1sigma": 31.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": 20.7,
+      "rho": 0.48,
+      "hit": 74,
+      "judged": 19,
+      "avg_abs": 30.4,
+      "med_abs_1sigma": 30.1
+     }
+    }
+   }
+  },
+  "USD|PPI MoM": {
+   "country": "USD",
+   "title": "PPI MoM",
+   "n": 29,
+   "since": "2023-10-11",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.3468,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": 6.5,
+     "rho": 0.54,
+     "hit": 76,
+     "judged": 119,
+     "avg_abs": 11.3,
+     "med_abs_1sigma": 8.7
+    },
+    "h4": {
+     "n": 203,
+     "beta": 3.4,
+     "rho": 0.15,
+     "hit": 61,
+     "judged": 119,
+     "avg_abs": 18.4,
+     "med_abs_1sigma": 12.7
+    },
+    "h24": {
+     "n": 203,
+     "beta": 4.4,
+     "rho": 0.11,
+     "hit": 61,
+     "judged": 119,
+     "avg_abs": 37.7,
+     "med_abs_1sigma": 21.7
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 8.8,
+      "rho": 0.66,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 11.8,
+      "med_abs_1sigma": 10.4
+     },
+     "h4": {
+      "n": 29,
+      "beta": 3.7,
+      "rho": 0.19,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 18.9,
+      "med_abs_1sigma": 10
+     },
+     "h24": {
+      "n": 29,
+      "beta": 4.2,
+      "rho": 0.09,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 44.4,
+      "med_abs_1sigma": 20.4
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 8.4,
+      "rho": 0.63,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 14.1,
+      "med_abs_1sigma": 14.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 2.7,
+      "rho": 0.09,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 24.6,
+      "med_abs_1sigma": 19.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": 6.7,
+      "rho": 0.15,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 45.3,
+      "med_abs_1sigma": 17.5
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 7.3,
+      "rho": 0.43,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 16.7,
+      "med_abs_1sigma": 7.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 6.9,
+      "rho": 0.18,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 31.2,
+      "med_abs_1sigma": 43.8
+     },
+     "h24": {
+      "n": 29,
+      "beta": -0.3,
+      "rho": -0.01,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 55,
+      "med_abs_1sigma": 45
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": 6.4,
+      "rho": 0.57,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 10.1,
+      "med_abs_1sigma": 11.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": 5.7,
+      "rho": 0.38,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 15.3,
+      "med_abs_1sigma": 12.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": 1.7,
+      "rho": 0.06,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 29.7,
+      "med_abs_1sigma": 23.3
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": 5,
+      "rho": 0.52,
+      "hit": 94,
+      "judged": 17,
+      "avg_abs": 9.6,
+      "med_abs_1sigma": 8.1
+     },
+     "h4": {
+      "n": 29,
+      "beta": 1,
+      "rho": 0.05,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 15.6,
+      "med_abs_1sigma": 13.3
+     },
+     "h24": {
+      "n": 29,
+      "beta": 4.6,
+      "rho": 0.15,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 31,
+      "med_abs_1sigma": 18.2
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 5.1,
+      "rho": 0.56,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 9.1,
+      "med_abs_1sigma": 8.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 1.8,
+      "rho": 0.13,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 12.2,
+      "med_abs_1sigma": 12
+     },
+     "h24": {
+      "n": 29,
+      "beta": 7.5,
+      "rho": 0.26,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 28.8,
+      "med_abs_1sigma": 25.6
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 4.2,
+      "rho": 0.52,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 7.7,
+      "med_abs_1sigma": 8.2
+     },
+     "h4": {
+      "n": 29,
+      "beta": 2,
+      "rho": 0.16,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 11.2,
+      "med_abs_1sigma": 7.4
+     },
+     "h24": {
+      "n": 29,
+      "beta": 6.3,
+      "rho": 0.21,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 29.6,
+      "med_abs_1sigma": 25.3
+     }
+    }
+   }
+  },
+  "GBP|GDP MoM": {
+   "country": "GBP",
+   "title": "GDP MoM",
+   "n": 30,
+   "since": "2023-10-12",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.2205,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 86,
+     "beta": 9.6,
+     "rho": 0.61,
+     "hit": 81,
+     "judged": 59,
+     "avg_abs": 14.5,
+     "med_abs_1sigma": 14.4
+    },
+    "h4": {
+     "n": 86,
+     "beta": 7.3,
+     "rho": 0.29,
+     "hit": 69,
+     "judged": 59,
+     "avg_abs": 21.6,
+     "med_abs_1sigma": 16.3
+    },
+    "h24": {
+     "n": 86,
+     "beta": 3.1,
+     "rho": 0.08,
+     "hit": 69,
+     "judged": 59,
+     "avg_abs": 50.4,
+     "med_abs_1sigma": 46.7
+    }
+   },
+   "pairs": {
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 8.1,
+      "rho": 0.59,
+      "hit": 80,
+      "judged": 20,
+      "avg_abs": 14.2,
+      "med_abs_1sigma": 14.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 8.5,
+      "rho": 0.35,
+      "hit": 70,
+      "judged": 20,
+      "avg_abs": 20.3,
+      "med_abs_1sigma": 16.3
+     },
+     "h24": {
+      "n": 29,
+      "beta": 6.7,
+      "rho": 0.17,
+      "hit": 65,
+      "judged": 20,
+      "avg_abs": 46.1,
+      "med_abs_1sigma": 49.2
+     }
+    },
+    "EURGBP": {
+     "h1": {
+      "n": 28,
+      "beta": 5.5,
+      "rho": 0.78,
+      "hit": 95,
+      "judged": 19,
+      "avg_abs": 7.7,
+      "med_abs_1sigma": 7.8
+     },
+     "h4": {
+      "n": 28,
+      "beta": 6.9,
+      "rho": 0.63,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 11.3,
+      "med_abs_1sigma": 11.7
+     },
+     "h24": {
+      "n": 28,
+      "beta": 5.1,
+      "rho": 0.34,
+      "hit": 84,
+      "judged": 19,
+      "avg_abs": 19.7,
+      "med_abs_1sigma": 16.9
+     }
+    },
+    "GBPJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 14.9,
+      "rho": 0.66,
+      "hit": 70,
+      "judged": 20,
+      "avg_abs": 21.4,
+      "med_abs_1sigma": 27.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": 6.6,
+      "rho": 0.19,
+      "hit": 55,
+      "judged": 20,
+      "avg_abs": 33,
+      "med_abs_1sigma": 23.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": -2.3,
+      "rho": 0.01,
+      "hit": 60,
+      "judged": 20,
+      "avg_abs": 84.2,
+      "med_abs_1sigma": 72.8
+     }
+    }
+   }
+  },
+  "USD|Core Inflation Rate YoY": {
+   "country": "USD",
+   "title": "Core Inflation Rate YoY",
+   "n": 29,
+   "since": "2023-10-12",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1171,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 196,
+     "beta": 15.5,
+     "rho": 0.39,
+     "hit": 78,
+     "judged": 119,
+     "avg_abs": 25.2,
+     "med_abs_1sigma": 27.6
+    },
+    "h4": {
+     "n": 196,
+     "beta": 13.8,
+     "rho": 0.27,
+     "hit": 68,
+     "judged": 119,
+     "avg_abs": 31.9,
+     "med_abs_1sigma": 16.7
+    },
+    "h24": {
+     "n": 196,
+     "beta": 13.4,
+     "rho": 0.19,
+     "hit": 54,
+     "judged": 119,
+     "avg_abs": 44.2,
+     "med_abs_1sigma": 19.4
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 16.3,
+      "rho": 0.54,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 24.4,
+      "med_abs_1sigma": 32.9
+     },
+     "h4": {
+      "n": 28,
+      "beta": 13.6,
+      "rho": 0.27,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 33.4,
+      "med_abs_1sigma": 18.7
+     },
+     "h24": {
+      "n": 28,
+      "beta": 17.4,
+      "rho": 0.23,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 48.7,
+      "med_abs_1sigma": 27
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 18.7,
+      "rho": 0.47,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 29.6,
+      "med_abs_1sigma": 39.7
+     },
+     "h4": {
+      "n": 28,
+      "beta": 7.6,
+      "rho": 0.16,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 32.9,
+      "med_abs_1sigma": 9.5
+     },
+     "h24": {
+      "n": 28,
+      "beta": 13.3,
+      "rho": 0.19,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 47.7,
+      "med_abs_1sigma": 21.5
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 28,
+      "beta": 26.8,
+      "rho": 0.35,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 43.8,
+      "med_abs_1sigma": 42.4
+     },
+     "h4": {
+      "n": 28,
+      "beta": 34,
+      "rho": 0.39,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 56.5,
+      "med_abs_1sigma": 84.7
+     },
+     "h24": {
+      "n": 28,
+      "beta": 22.7,
+      "rho": 0.18,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 77.6,
+      "med_abs_1sigma": 86.9
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 28,
+      "beta": 10.9,
+      "rho": 0.45,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 18.4,
+      "med_abs_1sigma": 26.5
+     },
+     "h4": {
+      "n": 28,
+      "beta": 12.9,
+      "rho": 0.39,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 23.7,
+      "med_abs_1sigma": 20.3
+     },
+     "h24": {
+      "n": 28,
+      "beta": 11.6,
+      "rho": 0.19,
+      "hit": 41,
+      "judged": 17,
+      "avg_abs": 40.4,
+      "med_abs_1sigma": 7
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 28,
+      "beta": 12.1,
+      "rho": 0.45,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 20,
+      "med_abs_1sigma": 24.4
+     },
+     "h4": {
+      "n": 28,
+      "beta": 13.9,
+      "rho": 0.35,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 26.5,
+      "med_abs_1sigma": 16
+     },
+     "h24": {
+      "n": 28,
+      "beta": 16.7,
+      "rho": 0.32,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 33.7,
+      "med_abs_1sigma": 21.5
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 12.4,
+      "rho": 0.44,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 20.5,
+      "med_abs_1sigma": 24.8
+     },
+     "h4": {
+      "n": 28,
+      "beta": 7.7,
+      "rho": 0.17,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 26.6,
+      "med_abs_1sigma": 18.5
+     },
+     "h24": {
+      "n": 28,
+      "beta": 6.8,
+      "rho": 0.15,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 30.1,
+      "med_abs_1sigma": 18.5
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 11.4,
+      "rho": 0.43,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 19.4,
+      "med_abs_1sigma": 18.6
+     },
+     "h4": {
+      "n": 28,
+      "beta": 6.9,
+      "rho": 0.19,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 23.5,
+      "med_abs_1sigma": 15.4
+     },
+     "h24": {
+      "n": 28,
+      "beta": 5.1,
+      "rho": 0.14,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 31,
+      "med_abs_1sigma": 22
+     }
+    }
+   }
+  },
+  "USD|Inflation Rate YoY": {
+   "country": "USD",
+   "title": "Inflation Rate YoY",
+   "n": 29,
+   "since": "2023-10-12",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1242,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 196,
+     "beta": 13.8,
+     "rho": 0.27,
+     "hit": 72,
+     "judged": 119,
+     "avg_abs": 25.2,
+     "med_abs_1sigma": 18.6
+    },
+    "h4": {
+     "n": 196,
+     "beta": 19.2,
+     "rho": 0.36,
+     "hit": 83,
+     "judged": 119,
+     "avg_abs": 31.9,
+     "med_abs_1sigma": 16.7
+    },
+    "h24": {
+     "n": 196,
+     "beta": 23.9,
+     "rho": 0.35,
+     "hit": 67,
+     "judged": 119,
+     "avg_abs": 44.2,
+     "med_abs_1sigma": 25.8
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 16.5,
+      "rho": 0.46,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 24.4,
+      "med_abs_1sigma": 32.9
+     },
+     "h4": {
+      "n": 28,
+      "beta": 22.8,
+      "rho": 0.47,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 33.4,
+      "med_abs_1sigma": 20.5
+     },
+     "h24": {
+      "n": 28,
+      "beta": 31.6,
+      "rho": 0.42,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 48.7,
+      "med_abs_1sigma": 5.1
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 15.7,
+      "rho": 0.3,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 29.6,
+      "med_abs_1sigma": 24.9
+     },
+     "h4": {
+      "n": 28,
+      "beta": 12.3,
+      "rho": 0.26,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 32.9,
+      "med_abs_1sigma": 6.4
+     },
+     "h24": {
+      "n": 28,
+      "beta": 28.1,
+      "rho": 0.43,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 47.7,
+      "med_abs_1sigma": 25.8
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 28,
+      "beta": 22.6,
+      "rho": 0.2,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 43.8,
+      "med_abs_1sigma": 22.7
+     },
+     "h4": {
+      "n": 28,
+      "beta": 38.4,
+      "rho": 0.39,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 56.5,
+      "med_abs_1sigma": 29.2
+     },
+     "h24": {
+      "n": 28,
+      "beta": 29.9,
+      "rho": 0.22,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 77.6,
+      "med_abs_1sigma": 142.1
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 28,
+      "beta": 9.3,
+      "rho": 0.3,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 18.4,
+      "med_abs_1sigma": 15.9
+     },
+     "h4": {
+      "n": 28,
+      "beta": 16.4,
+      "rho": 0.48,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 23.7,
+      "med_abs_1sigma": 24.9
+     },
+     "h24": {
+      "n": 28,
+      "beta": 20.4,
+      "rho": 0.35,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 40.4,
+      "med_abs_1sigma": 5.5
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 28,
+      "beta": 11.4,
+      "rho": 0.35,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 20,
+      "med_abs_1sigma": 15.7
+     },
+     "h4": {
+      "n": 28,
+      "beta": 19.7,
+      "rho": 0.48,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 26.5,
+      "med_abs_1sigma": 46.6
+     },
+     "h24": {
+      "n": 28,
+      "beta": 25.9,
+      "rho": 0.5,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 33.7,
+      "med_abs_1sigma": 45.4
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 11.4,
+      "rho": 0.3,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 20.5,
+      "med_abs_1sigma": 17.3
+     },
+     "h4": {
+      "n": 28,
+      "beta": 13.6,
+      "rho": 0.31,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 26.6,
+      "med_abs_1sigma": 12.2
+     },
+     "h24": {
+      "n": 28,
+      "beta": 17.2,
+      "rho": 0.43,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 30.1,
+      "med_abs_1sigma": 41
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 28,
+      "beta": 10.1,
+      "rho": 0.29,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 19.4,
+      "med_abs_1sigma": 16.1
+     },
+     "h4": {
+      "n": 28,
+      "beta": 11.5,
+      "rho": 0.32,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 23.5,
+      "med_abs_1sigma": 15.4
+     },
+     "h24": {
+      "n": 28,
+      "beta": 14.1,
+      "rho": 0.41,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 31,
+      "med_abs_1sigma": 22.6
+     }
+    }
+   }
+  },
+  "USD|Inflation Rate MoM": {
+   "country": "USD",
+   "title": "Inflation Rate MoM",
+   "n": 28,
+   "since": "2023-10-12",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.1043,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 189,
+     "beta": 15.8,
+     "rho": 0.41,
+     "hit": 75,
+     "judged": 105,
+     "avg_abs": 25.3,
+     "med_abs_1sigma": 35.1
+    },
+    "h4": {
+     "n": 189,
+     "beta": 19.9,
+     "rho": 0.42,
+     "hit": 81,
+     "judged": 105,
+     "avg_abs": 32.4,
+     "med_abs_1sigma": 24.9
+    },
+    "h24": {
+     "n": 189,
+     "beta": 26.8,
+     "rho": 0.42,
+     "hit": 71,
+     "judged": 105,
+     "avg_abs": 44.8,
+     "med_abs_1sigma": 25.1
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 15.2,
+      "rho": 0.52,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 24,
+      "med_abs_1sigma": 39.3
+     },
+     "h4": {
+      "n": 27,
+      "beta": 20.5,
+      "rho": 0.45,
+      "hit": 87,
+      "judged": 15,
+      "avg_abs": 34.1,
+      "med_abs_1sigma": 20.5
+     },
+     "h24": {
+      "n": 27,
+      "beta": 29.3,
+      "rho": 0.4,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 50.4,
+      "med_abs_1sigma": 28.1
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 15.2,
+      "rho": 0.38,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 29.5,
+      "med_abs_1sigma": 54.6
+     },
+     "h4": {
+      "n": 27,
+      "beta": 16.2,
+      "rho": 0.37,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 33.8,
+      "med_abs_1sigma": 14.4
+     },
+     "h24": {
+      "n": 27,
+      "beta": 30.2,
+      "rho": 0.49,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 48.7,
+      "med_abs_1sigma": 25.8
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 27,
+      "beta": 34.9,
+      "rho": 0.5,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 44.6,
+      "med_abs_1sigma": 55.8
+     },
+     "h4": {
+      "n": 27,
+      "beta": 46.5,
+      "rho": 0.58,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 57.5,
+      "med_abs_1sigma": 106.1
+     },
+     "h24": {
+      "n": 27,
+      "beta": 51.1,
+      "rho": 0.5,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 75.2,
+      "med_abs_1sigma": 79.7
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 27,
+      "beta": 11.7,
+      "rho": 0.5,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 18.5,
+      "med_abs_1sigma": 28.4
+     },
+     "h4": {
+      "n": 27,
+      "beta": 17.5,
+      "rho": 0.53,
+      "hit": 87,
+      "judged": 15,
+      "avg_abs": 24.2,
+      "med_abs_1sigma": 24.9
+     },
+     "h24": {
+      "n": 27,
+      "beta": 19.8,
+      "rho": 0.34,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 41.8,
+      "med_abs_1sigma": 19.4
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 27,
+      "beta": 10.9,
+      "rho": 0.4,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 20.1,
+      "med_abs_1sigma": 27.6
+     },
+     "h4": {
+      "n": 27,
+      "beta": 15.1,
+      "rho": 0.4,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 26.4,
+      "med_abs_1sigma": 19.4
+     },
+     "h24": {
+      "n": 27,
+      "beta": 23.7,
+      "rho": 0.47,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 34.9,
+      "med_abs_1sigma": 21.5
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 11.6,
+      "rho": 0.42,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 20.6,
+      "med_abs_1sigma": 35
+     },
+     "h4": {
+      "n": 27,
+      "beta": 12.3,
+      "rho": 0.32,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 27.1,
+      "med_abs_1sigma": 18.6
+     },
+     "h24": {
+      "n": 27,
+      "beta": 17.1,
+      "rho": 0.46,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 31.1,
+      "med_abs_1sigma": 27.1
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 11,
+      "rho": 0.43,
+      "hit": 73,
+      "judged": 15,
+      "avg_abs": 19.6,
+      "med_abs_1sigma": 34.7
+     },
+     "h4": {
+      "n": 27,
+      "beta": 10.9,
+      "rho": 0.33,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 23.8,
+      "med_abs_1sigma": 16.7
+     },
+     "h24": {
+      "n": 27,
+      "beta": 16.8,
+      "rho": 0.47,
+      "hit": 80,
+      "judged": 15,
+      "avg_abs": 31.4,
+      "med_abs_1sigma": 22.4
+     }
+    }
+   }
+  },
+  "USD|Core Inflation Rate MoM": {
+   "country": "USD",
+   "title": "Core Inflation Rate MoM",
+   "n": 28,
+   "since": "2023-10-12",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.0939,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 189,
+     "beta": 15.4,
+     "rho": 0.42,
+     "hit": 83,
+     "judged": 119,
+     "avg_abs": 25.3,
+     "med_abs_1sigma": 17.5
+    },
+    "h4": {
+     "n": 189,
+     "beta": 19.6,
+     "rho": 0.45,
+     "hit": 77,
+     "judged": 119,
+     "avg_abs": 32.4,
+     "med_abs_1sigma": 18.6
+    },
+    "h24": {
+     "n": 189,
+     "beta": 27.6,
+     "rho": 0.48,
+     "hit": 64,
+     "judged": 119,
+     "avg_abs": 44.8,
+     "med_abs_1sigma": 25.8
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 16.1,
+      "rho": 0.59,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 24,
+      "med_abs_1sigma": 23.7
+     },
+     "h4": {
+      "n": 27,
+      "beta": 23.5,
+      "rho": 0.57,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 34.1,
+      "med_abs_1sigma": 20.5
+     },
+     "h24": {
+      "n": 27,
+      "beta": 34.8,
+      "rho": 0.54,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 50.4,
+      "med_abs_1sigma": 31.6
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 16.3,
+      "rho": 0.43,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 29.5,
+      "med_abs_1sigma": 23.9
+     },
+     "h4": {
+      "n": 27,
+      "beta": 18.2,
+      "rho": 0.46,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 33.8,
+      "med_abs_1sigma": 27.1
+     },
+     "h24": {
+      "n": 27,
+      "beta": 30.6,
+      "rho": 0.55,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 48.7,
+      "med_abs_1sigma": 28.6
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 27,
+      "beta": 28.3,
+      "rho": 0.4,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 44.6,
+      "med_abs_1sigma": 28.7
+     },
+     "h4": {
+      "n": 27,
+      "beta": 36.7,
+      "rho": 0.47,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 57.5,
+      "med_abs_1sigma": 38.6
+     },
+     "h24": {
+      "n": 27,
+      "beta": 53.2,
+      "rho": 0.57,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 75.2,
+      "med_abs_1sigma": 66.7
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 27,
+      "beta": 11.7,
+      "rho": 0.54,
+      "hit": 88,
+      "judged": 17,
+      "avg_abs": 18.5,
+      "med_abs_1sigma": 17.3
+     },
+     "h4": {
+      "n": 27,
+      "beta": 17.9,
+      "rho": 0.6,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 24.2,
+      "med_abs_1sigma": 20.3
+     },
+     "h24": {
+      "n": 27,
+      "beta": 25.8,
+      "rho": 0.49,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 41.8,
+      "med_abs_1sigma": 21.9
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 27,
+      "beta": 11.6,
+      "rho": 0.46,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 20.1,
+      "med_abs_1sigma": 14.4
+     },
+     "h4": {
+      "n": 27,
+      "beta": 16.7,
+      "rho": 0.48,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 26.4,
+      "med_abs_1sigma": 13.9
+     },
+     "h24": {
+      "n": 27,
+      "beta": 24,
+      "rho": 0.52,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 34.9,
+      "med_abs_1sigma": 23.1
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 12.2,
+      "rho": 0.47,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 20.6,
+      "med_abs_1sigma": 16.4
+     },
+     "h4": {
+      "n": 27,
+      "beta": 13,
+      "rho": 0.37,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 27.1,
+      "med_abs_1sigma": 18.6
+     },
+     "h24": {
+      "n": 27,
+      "beta": 11.6,
+      "rho": 0.32,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 31.1,
+      "med_abs_1sigma": 21.5
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 11.5,
+      "rho": 0.48,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 19.6,
+      "med_abs_1sigma": 16.3
+     },
+     "h4": {
+      "n": 27,
+      "beta": 11.2,
+      "rho": 0.38,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 23.8,
+      "med_abs_1sigma": 16.8
+     },
+     "h24": {
+      "n": 27,
+      "beta": 13.5,
+      "rho": 0.42,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 31.4,
+      "med_abs_1sigma": 22
+     }
+    }
+   }
+  },
+  "USD|Michigan Consumer Sentiment Prel": {
+   "country": "USD",
+   "title": "Michigan Consumer Sentiment Prel",
+   "n": 30,
+   "since": "2023-10-13",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 3.7269,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": -6.2,
+     "rho": -0.27,
+     "hit": 31,
+     "judged": 105,
+     "avg_abs": 11.2,
+     "med_abs_1sigma": 11.6
+    },
+    "h4": {
+     "n": 203,
+     "beta": -6.5,
+     "rho": -0.14,
+     "hit": 31,
+     "judged": 105,
+     "avg_abs": 17.7,
+     "med_abs_1sigma": 13.5
+    },
+    "h24": {
+     "n": 203,
+     "beta": -7.1,
+     "rho": -0.18,
+     "hit": 43,
+     "judged": 105,
+     "avg_abs": 33.5,
+     "med_abs_1sigma": 25.9
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": -6.4,
+      "rho": -0.28,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 10.8,
+      "med_abs_1sigma": 17.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": -8.9,
+      "rho": -0.18,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 18.9,
+      "med_abs_1sigma": 13.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": -6.3,
+      "rho": -0.18,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 34.2,
+      "med_abs_1sigma": 43.8
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": -11.3,
+      "rho": -0.48,
+      "hit": 27,
+      "judged": 15,
+      "avg_abs": 13,
+      "med_abs_1sigma": 11.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": -9,
+      "rho": -0.23,
+      "hit": 27,
+      "judged": 15,
+      "avg_abs": 20.6,
+      "med_abs_1sigma": 8.2
+     },
+     "h24": {
+      "n": 29,
+      "beta": 0.3,
+      "rho": -0.11,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 38.1,
+      "med_abs_1sigma": 28.7
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": -3.9,
+      "rho": -0.1,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 17.3,
+      "med_abs_1sigma": 6
+     },
+     "h4": {
+      "n": 29,
+      "beta": -10.8,
+      "rho": -0.16,
+      "hit": 33,
+      "judged": 15,
+      "avg_abs": 23.1,
+      "med_abs_1sigma": 7.8
+     },
+     "h24": {
+      "n": 29,
+      "beta": -25.6,
+      "rho": -0.25,
+      "hit": 20,
+      "judged": 15,
+      "avg_abs": 55.5,
+      "med_abs_1sigma": 29
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": -4.6,
+      "rho": -0.28,
+      "hit": 20,
+      "judged": 15,
+      "avg_abs": 8.3,
+      "med_abs_1sigma": 11.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": -6.2,
+      "rho": -0.17,
+      "hit": 27,
+      "judged": 15,
+      "avg_abs": 14.2,
+      "med_abs_1sigma": 14.8
+     },
+     "h24": {
+      "n": 29,
+      "beta": -9.2,
+      "rho": -0.19,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 27.3,
+      "med_abs_1sigma": 19.6
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": -8.8,
+      "rho": -0.38,
+      "hit": 27,
+      "judged": 15,
+      "avg_abs": 12.9,
+      "med_abs_1sigma": 14.1
+     },
+     "h4": {
+      "n": 29,
+      "beta": -6.1,
+      "rho": -0.14,
+      "hit": 33,
+      "judged": 15,
+      "avg_abs": 19.4,
+      "med_abs_1sigma": 28
+     },
+     "h24": {
+      "n": 29,
+      "beta": -3.1,
+      "rho": -0.14,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 28.6,
+      "med_abs_1sigma": 25.9
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": -3.8,
+      "rho": -0.21,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 8.3,
+      "med_abs_1sigma": 12.2
+     },
+     "h4": {
+      "n": 29,
+      "beta": -1.6,
+      "rho": 0,
+      "hit": 33,
+      "judged": 15,
+      "avg_abs": 15.6,
+      "med_abs_1sigma": 13.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": -3.4,
+      "rho": -0.25,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 28.1,
+      "med_abs_1sigma": 20.9
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": -4.7,
+      "rho": -0.3,
+      "hit": 20,
+      "judged": 15,
+      "avg_abs": 7.5,
+      "med_abs_1sigma": 11.4
+     },
+     "h4": {
+      "n": 29,
+      "beta": -2.6,
+      "rho": -0.05,
+      "hit": 27,
+      "judged": 15,
+      "avg_abs": 12.1,
+      "med_abs_1sigma": 12.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": -2.6,
+      "rho": -0.19,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 22.4,
+      "med_abs_1sigma": 18.4
+     }
+    }
+   }
+  },
+  "USD|Retail Sales MoM": {
+   "country": "USD",
+   "title": "Retail Sales MoM",
+   "n": 30,
+   "since": "2023-10-17",
+   "policy": false,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 0.3488,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 203,
+     "beta": 9.7,
+     "rho": 0.45,
+     "hit": 73,
+     "judged": 119,
+     "avg_abs": 13,
+     "med_abs_1sigma": 9.4
+    },
+    "h4": {
+     "n": 203,
+     "beta": 8.6,
+     "rho": 0.29,
+     "hit": 66,
+     "judged": 119,
+     "avg_abs": 20.4,
+     "med_abs_1sigma": 15.5
+    },
+    "h24": {
+     "n": 203,
+     "beta": 11.9,
+     "rho": 0.22,
+     "hit": 65,
+     "judged": 119,
+     "avg_abs": 36.6,
+     "med_abs_1sigma": 26.9
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 8.7,
+      "rho": 0.48,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 13.1,
+      "med_abs_1sigma": 12.6
+     },
+     "h4": {
+      "n": 29,
+      "beta": 6.9,
+      "rho": 0.31,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 18.8,
+      "med_abs_1sigma": 21.8
+     },
+     "h24": {
+      "n": 29,
+      "beta": 11.5,
+      "rho": 0.25,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 32.1,
+      "med_abs_1sigma": 24.9
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 6.7,
+      "rho": 0.38,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 12.7,
+      "med_abs_1sigma": 8.9
+     },
+     "h4": {
+      "n": 29,
+      "beta": 6.8,
+      "rho": 0.23,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 23.1,
+      "med_abs_1sigma": 19.1
+     },
+     "h24": {
+      "n": 29,
+      "beta": 8,
+      "rho": 0.11,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 47.6,
+      "med_abs_1sigma": 21.2
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 29,
+      "beta": 26.6,
+      "rho": 0.62,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 24.8,
+      "med_abs_1sigma": 27.7
+     },
+     "h4": {
+      "n": 29,
+      "beta": 23.8,
+      "rho": 0.41,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 41.7,
+      "med_abs_1sigma": 39.6
+     },
+     "h24": {
+      "n": 29,
+      "beta": 29.3,
+      "rho": 0.36,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 59.9,
+      "med_abs_1sigma": 79.7
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 29,
+      "beta": 9.6,
+      "rho": 0.52,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 11.9,
+      "med_abs_1sigma": 6.8
+     },
+     "h4": {
+      "n": 29,
+      "beta": 6.3,
+      "rho": 0.3,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 16.1,
+      "med_abs_1sigma": 9.6
+     },
+     "h24": {
+      "n": 29,
+      "beta": 5.8,
+      "rho": 0.14,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 27,
+      "med_abs_1sigma": 20.5
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 29,
+      "beta": 5.5,
+      "rho": 0.41,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 10.2,
+      "med_abs_1sigma": 9.2
+     },
+     "h4": {
+      "n": 29,
+      "beta": 5.1,
+      "rho": 0.23,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 16.5,
+      "med_abs_1sigma": 12.9
+     },
+     "h24": {
+      "n": 29,
+      "beta": 8.8,
+      "rho": 0.19,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 31.3,
+      "med_abs_1sigma": 28.6
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 4.9,
+      "rho": 0.42,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 9.5,
+      "med_abs_1sigma": 9.4
+     },
+     "h4": {
+      "n": 29,
+      "beta": 4.1,
+      "rho": 0.25,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 12.8,
+      "med_abs_1sigma": 13.7
+     },
+     "h24": {
+      "n": 29,
+      "beta": 11.4,
+      "rho": 0.28,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 29.1,
+      "med_abs_1sigma": 40.9
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 29,
+      "beta": 5.6,
+      "rho": 0.48,
+      "hit": 76,
+      "judged": 17,
+      "avg_abs": 9.1,
+      "med_abs_1sigma": 8.5
+     },
+     "h4": {
+      "n": 29,
+      "beta": 6.9,
+      "rho": 0.38,
+      "hit": 71,
+      "judged": 17,
+      "avg_abs": 14.1,
+      "med_abs_1sigma": 15.5
+     },
+     "h24": {
+      "n": 29,
+      "beta": 8.7,
+      "rho": 0.23,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 29.6,
+      "med_abs_1sigma": 28
+     }
+    }
+   }
+  },
+  "EUR|ECB Interest Rate Decision": {
+   "country": "EUR",
+   "title": "ECB Interest Rate Decision",
+   "n": 24,
+   "since": "2023-10-26",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 0,
+   "currency": null,
+   "pairs": {
+    "EURUSD": {
+     "n": 24,
+     "typical": {
+      "h1": 15.1,
+      "h4": 22.9,
+      "h24": 29.8
+     }
+    },
+    "EURGBP": {
+     "n": 23,
+     "typical": {
+      "h1": 7.7,
+      "h4": 12,
+      "h24": 15.7
+     }
+    },
+    "EURJPY": {
+     "n": 24,
+     "typical": {
+      "h1": 21.2,
+      "h4": 34.8,
+      "h24": 61
+     }
+    }
+   }
+  },
+  "GBP|Unemployment Rate": {
+   "country": "GBP",
+   "title": "Unemployment Rate",
+   "n": 28,
+   "since": "2023-11-14",
+   "policy": false,
+   "inverted": true,
+   "unit": "%",
+   "sigma": 0.1176,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 80,
+     "beta": 8.2,
+     "rho": 0.3,
+     "hit": 74,
+     "judged": 50,
+     "avg_abs": 19.4,
+     "med_abs_1sigma": 8.2
+    },
+    "h4": {
+     "n": 80,
+     "beta": 2.5,
+     "rho": 0.08,
+     "hit": 56,
+     "judged": 50,
+     "avg_abs": 24.4,
+     "med_abs_1sigma": 15.4
+    },
+    "h24": {
+     "n": 80,
+     "beta": 10,
+     "rho": 0.17,
+     "hit": 56,
+     "judged": 50,
+     "avg_abs": 41.5,
+     "med_abs_1sigma": 38.3
+    }
+   },
+   "pairs": {
+    "GBPUSD": {
+     "h1": {
+      "n": 27,
+      "beta": 8.6,
+      "rho": 0.35,
+      "hit": 82,
+      "judged": 17,
+      "avg_abs": 18.1,
+      "med_abs_1sigma": 7.6
+     },
+     "h4": {
+      "n": 27,
+      "beta": 1.9,
+      "rho": 0.06,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 24.2,
+      "med_abs_1sigma": 11.7
+     },
+     "h24": {
+      "n": 27,
+      "beta": 13.8,
+      "rho": 0.23,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 47.3,
+      "med_abs_1sigma": 78.6
+     }
+    },
+    "EURGBP": {
+     "h1": {
+      "n": 26,
+      "beta": 5,
+      "rho": 0.37,
+      "hit": 75,
+      "judged": 16,
+      "avg_abs": 10.4,
+      "med_abs_1sigma": 6.4
+     },
+     "h4": {
+      "n": 26,
+      "beta": 2.4,
+      "rho": 0.13,
+      "hit": 44,
+      "judged": 16,
+      "avg_abs": 15.6,
+      "med_abs_1sigma": 7.6
+     },
+     "h24": {
+      "n": 26,
+      "beta": 8.7,
+      "rho": 0.34,
+      "hit": 63,
+      "judged": 16,
+      "avg_abs": 22.1,
+      "med_abs_1sigma": 24.4
+     }
+    },
+    "GBPJPY": {
+     "h1": {
+      "n": 27,
+      "beta": 10.8,
+      "rho": 0.29,
+      "hit": 65,
+      "judged": 17,
+      "avg_abs": 29.4,
+      "med_abs_1sigma": 9.5
+     },
+     "h4": {
+      "n": 27,
+      "beta": 3.2,
+      "rho": 0.08,
+      "hit": 59,
+      "judged": 17,
+      "avg_abs": 33.1,
+      "med_abs_1sigma": 27.3
+     },
+     "h24": {
+      "n": 27,
+      "beta": 7.4,
+      "rho": 0.1,
+      "hit": 53,
+      "judged": 17,
+      "avg_abs": 54.3,
+      "med_abs_1sigma": 44.5
+     }
+    }
+   }
+  },
+  "CAD|BoC Interest Rate Decision": {
+   "country": "CAD",
+   "title": "BoC Interest Rate Decision",
+   "n": 22,
+   "since": "2024-01-24",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 0,
+   "currency": null,
+   "pairs": {
+    "USDCAD": {
+     "n": 22,
+     "typical": {
+      "h1": 19.9,
+      "h4": 25.6,
+      "h24": 41.7
+     }
+    }
+   }
+  },
+  "EUR|Deposit Facility Rate": {
+   "country": "EUR",
+   "title": "Deposit Facility Rate",
+   "n": 22,
+   "since": "2024-01-25",
+   "policy": true,
+   "inverted": false,
+   "unit": "%",
+   "sigma": 25,
+   "surprises_nonzero": 0,
+   "currency": null,
+   "pairs": {
+    "EURUSD": {
+     "n": 22,
+     "typical": {
+      "h1": 14.5,
+      "h4": 21.5,
+      "h24": 31.6
+     }
+    },
+    "EURGBP": {
+     "n": 21,
+     "typical": {
+      "h1": 7.6,
+      "h4": 11,
+      "h24": 16.1
+     }
+    },
+    "EURJPY": {
+     "n": 22,
+     "typical": {
+      "h1": 20.3,
+      "h4": 33.6,
+      "h24": 63.6
+     }
+    }
+   }
+  },
+  "JPY|Consumer Confidence": {
+   "country": "JPY",
+   "title": "Consumer Confidence",
+   "n": 25,
+   "since": "2024-01-31",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 1.3821,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 75,
+     "beta": -0.7,
+     "rho": -0.08,
+     "hit": 47,
+     "judged": 45,
+     "avg_abs": 11.3,
+     "med_abs_1sigma": 11.2
+    },
+    "h4": {
+     "n": 75,
+     "beta": 9.3,
+     "rho": 0.24,
+     "hit": 56,
+     "judged": 45,
+     "avg_abs": 34.3,
+     "med_abs_1sigma": 39.7
+    },
+    "h24": {
+     "n": 75,
+     "beta": 31,
+     "rho": 0.24,
+     "hit": 60,
+     "judged": 45,
+     "avg_abs": 100,
+     "med_abs_1sigma": 69.4
+    }
+   },
+   "pairs": {
+    "USDJPY": {
+     "h1": {
+      "n": 25,
+      "beta": 0.4,
+      "rho": 0.01,
+      "hit": 47,
+      "judged": 15,
+      "avg_abs": 10.1,
+      "med_abs_1sigma": 11.2
+     },
+     "h4": {
+      "n": 25,
+      "beta": 7.5,
+      "rho": 0.23,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 26.4,
+      "med_abs_1sigma": 26.8
+     },
+     "h24": {
+      "n": 25,
+      "beta": 30.2,
+      "rho": 0.25,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 92.9,
+      "med_abs_1sigma": 45.1
+     }
+    },
+    "EURJPY": {
+     "h1": {
+      "n": 25,
+      "beta": -0.6,
+      "rho": -0.08,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 11.4,
+      "med_abs_1sigma": 15.3
+     },
+     "h4": {
+      "n": 25,
+      "beta": 9.6,
+      "rho": 0.24,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 36.1,
+      "med_abs_1sigma": 40.6
+     },
+     "h24": {
+      "n": 25,
+      "beta": 27.7,
+      "rho": 0.23,
+      "hit": 67,
+      "judged": 15,
+      "avg_abs": 94.4,
+      "med_abs_1sigma": 93.2
+     }
+    },
+    "GBPJPY": {
+     "h1": {
+      "n": 25,
+      "beta": -1.8,
+      "rho": -0.15,
+      "hit": 40,
+      "judged": 15,
+      "avg_abs": 12.4,
+      "med_abs_1sigma": 16.2
+     },
+     "h4": {
+      "n": 25,
+      "beta": 10.9,
+      "rho": 0.25,
+      "hit": 60,
+      "judged": 15,
+      "avg_abs": 40.3,
+      "med_abs_1sigma": 43.2
+     },
+     "h24": {
+      "n": 25,
+      "beta": 35,
+      "rho": 0.26,
+      "hit": 53,
+      "judged": 15,
+      "avg_abs": 112.6,
+      "med_abs_1sigma": 96.3
+     }
+    }
+   }
+  },
+  "USD|Housing Starts": {
+   "country": "USD",
+   "title": "Housing Starts",
+   "n": 12,
+   "since": "2025-01-17",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 0.1108,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 77,
+     "beta": 4.1,
+     "rho": 0.46,
+     "hit": 90,
+     "judged": 63,
+     "avg_abs": 7.5,
+     "med_abs_1sigma": 5.2
+    },
+    "h4": {
+     "n": 77,
+     "beta": 9.8,
+     "rho": 0.55,
+     "hit": 71,
+     "judged": 63,
+     "avg_abs": 15.9,
+     "med_abs_1sigma": 17.3
+    },
+    "h24": {
+     "n": 77,
+     "beta": 8.1,
+     "rho": 0.14,
+     "hit": 57,
+     "judged": 63,
+     "avg_abs": 36.6,
+     "med_abs_1sigma": 22.8
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 11,
+      "beta": 3.2,
+      "rho": 0.45,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 6,
+      "med_abs_1sigma": 1.9
+     },
+     "h4": {
+      "n": 11,
+      "beta": 8.5,
+      "rho": 0.67,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 12,
+      "med_abs_1sigma": 14.9
+     },
+     "h24": {
+      "n": 11,
+      "beta": 13.2,
+      "rho": 0.42,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 26.7,
+      "med_abs_1sigma": 7.7
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 11,
+      "beta": 5,
+      "rho": 0.56,
+      "hit": 100,
+      "judged": 9,
+      "avg_abs": 8.3,
+      "med_abs_1sigma": 6.7
+     },
+     "h4": {
+      "n": 11,
+      "beta": 13.9,
+      "rho": 0.78,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 19.6,
+      "med_abs_1sigma": 21.8
+     },
+     "h24": {
+      "n": 11,
+      "beta": 17,
+      "rho": 0.36,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 39.2,
+      "med_abs_1sigma": 24.1
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 11,
+      "beta": 4.7,
+      "rho": 0.47,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 9.2,
+      "med_abs_1sigma": 7.1
+     },
+     "h4": {
+      "n": 11,
+      "beta": 9.4,
+      "rho": 0.34,
+      "hit": 78,
+      "judged": 9,
+      "avg_abs": 20.1,
+      "med_abs_1sigma": 7
+     },
+     "h24": {
+      "n": 11,
+      "beta": -16.6,
+      "rho": -0.14,
+      "hit": 44,
+      "judged": 9,
+      "avg_abs": 73.1,
+      "med_abs_1sigma": 17.1
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 11,
+      "beta": 2.3,
+      "rho": 0.46,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 4.7,
+      "med_abs_1sigma": 2.4
+     },
+     "h4": {
+      "n": 11,
+      "beta": 9.1,
+      "rho": 0.81,
+      "hit": 78,
+      "judged": 9,
+      "avg_abs": 11.5,
+      "med_abs_1sigma": 16.2
+     },
+     "h24": {
+      "n": 11,
+      "beta": 10.1,
+      "rho": 0.42,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 26.6,
+      "med_abs_1sigma": 22.8
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 11,
+      "beta": 2.8,
+      "rho": 0.26,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 8.3,
+      "med_abs_1sigma": 5.8
+     },
+     "h4": {
+      "n": 11,
+      "beta": 10.6,
+      "rho": 0.54,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 19.3,
+      "med_abs_1sigma": 24
+     },
+     "h24": {
+      "n": 11,
+      "beta": 16.6,
+      "rho": 0.47,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 28.8,
+      "med_abs_1sigma": 17.3
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 11,
+      "beta": 5.7,
+      "rho": 0.51,
+      "hit": 100,
+      "judged": 9,
+      "avg_abs": 8.6,
+      "med_abs_1sigma": 5.2
+     },
+     "h4": {
+      "n": 11,
+      "beta": 8.8,
+      "rho": 0.5,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 15.6,
+      "med_abs_1sigma": 29.9
+     },
+     "h24": {
+      "n": 11,
+      "beta": 7.8,
+      "rho": 0.21,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 28,
+      "med_abs_1sigma": 34.9
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 11,
+      "beta": 4.7,
+      "rho": 0.64,
+      "hit": 100,
+      "judged": 9,
+      "avg_abs": 7.1,
+      "med_abs_1sigma": 4.4
+     },
+     "h4": {
+      "n": 11,
+      "beta": 8.1,
+      "rho": 0.56,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 13.4,
+      "med_abs_1sigma": 21.9
+     },
+     "h24": {
+      "n": 11,
+      "beta": 8.8,
+      "rho": 0.18,
+      "hit": 44,
+      "judged": 9,
+      "avg_abs": 33.9,
+      "med_abs_1sigma": 24.9
+     }
+    }
+   }
+  },
+  "USD|Existing Home Sales": {
+   "country": "USD",
+   "title": "Existing Home Sales",
+   "n": 15,
+   "since": "2025-01-24",
+   "policy": false,
+   "inverted": false,
+   "unit": "",
+   "sigma": 0.1219,
+   "surprises_nonzero": null,
+   "currency": {
+    "h1": {
+     "n": 105,
+     "beta": 2.1,
+     "rho": 0.19,
+     "hit": 54,
+     "judged": 63,
+     "avg_abs": 8,
+     "med_abs_1sigma": 5.7
+    },
+    "h4": {
+     "n": 105,
+     "beta": 4.1,
+     "rho": 0.21,
+     "hit": 76,
+     "judged": 63,
+     "avg_abs": 15.8,
+     "med_abs_1sigma": 19.9
+    },
+    "h24": {
+     "n": 105,
+     "beta": 10.8,
+     "rho": 0.24,
+     "hit": 75,
+     "judged": 63,
+     "avg_abs": 32.5,
+     "med_abs_1sigma": 38
+    }
+   },
+   "pairs": {
+    "EURUSD": {
+     "h1": {
+      "n": 15,
+      "beta": 0.4,
+      "rho": 0.05,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 6.9,
+      "med_abs_1sigma": 2.3
+     },
+     "h4": {
+      "n": 15,
+      "beta": 5.3,
+      "rho": 0.3,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 13.9,
+      "med_abs_1sigma": 19.9
+     },
+     "h24": {
+      "n": 15,
+      "beta": 17.2,
+      "rho": 0.39,
+      "hit": 78,
+      "judged": 9,
+      "avg_abs": 32.2,
+      "med_abs_1sigma": 54.7
+     }
+    },
+    "GBPUSD": {
+     "h1": {
+      "n": 15,
+      "beta": -0.2,
+      "rho": -0.01,
+      "hit": 44,
+      "judged": 9,
+      "avg_abs": 9.1,
+      "med_abs_1sigma": 9.5
+     },
+     "h4": {
+      "n": 15,
+      "beta": 5.7,
+      "rho": 0.22,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 22.9,
+      "med_abs_1sigma": 38.6
+     },
+     "h24": {
+      "n": 15,
+      "beta": 14.3,
+      "rho": 0.23,
+      "hit": 78,
+      "judged": 9,
+      "avg_abs": 40.8,
+      "med_abs_1sigma": 43.7
+     }
+    },
+    "USDJPY": {
+     "h1": {
+      "n": 15,
+      "beta": 8.2,
+      "rho": 0.47,
+      "hit": 44,
+      "judged": 9,
+      "avg_abs": 11.2,
+      "med_abs_1sigma": 8.9
+     },
+     "h4": {
+      "n": 15,
+      "beta": 11.7,
+      "rho": 0.56,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 17.3,
+      "med_abs_1sigma": 18
+     },
+     "h24": {
+      "n": 15,
+      "beta": 29.9,
+      "rho": 0.49,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 46.9,
+      "med_abs_1sigma": 53.3
+     }
+    },
+    "USDCHF": {
+     "h1": {
+      "n": 15,
+      "beta": 2,
+      "rho": 0.22,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 6.3,
+      "med_abs_1sigma": 8.3
+     },
+     "h4": {
+      "n": 15,
+      "beta": 5.4,
+      "rho": 0.35,
+      "hit": 78,
+      "judged": 9,
+      "avg_abs": 11.6,
+      "med_abs_1sigma": 13.4
+     },
+     "h24": {
+      "n": 15,
+      "beta": 13.9,
+      "rho": 0.43,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 21.2,
+      "med_abs_1sigma": 38
+     }
+    },
+    "USDCAD": {
+     "h1": {
+      "n": 15,
+      "beta": 0,
+      "rho": 0.02,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 9.7,
+      "med_abs_1sigma": 11
+     },
+     "h4": {
+      "n": 15,
+      "beta": -0.8,
+      "rho": -0.01,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 18.5,
+      "med_abs_1sigma": 25.7
+     },
+     "h24": {
+      "n": 15,
+      "beta": 4.2,
+      "rho": 0.12,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 34.1,
+      "med_abs_1sigma": 34.8
+     }
+    },
+    "AUDUSD": {
+     "h1": {
+      "n": 15,
+      "beta": 2.2,
+      "rho": 0.24,
+      "hit": 44,
+      "judged": 9,
+      "avg_abs": 7,
+      "med_abs_1sigma": 3.1
+     },
+     "h4": {
+      "n": 15,
+      "beta": -0.5,
+      "rho": 0,
+      "hit": 67,
+      "judged": 9,
+      "avg_abs": 13.8,
+      "med_abs_1sigma": 13.5
+     },
+     "h24": {
+      "n": 15,
+      "beta": -10.1,
+      "rho": -0.25,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 29,
+      "med_abs_1sigma": 32.7
+     }
+    },
+    "NZDUSD": {
+     "h1": {
+      "n": 15,
+      "beta": 2.2,
+      "rho": 0.25,
+      "hit": 56,
+      "judged": 9,
+      "avg_abs": 5.6,
+      "med_abs_1sigma": 4.4
+     },
+     "h4": {
+      "n": 15,
+      "beta": 1.6,
+      "rho": 0.11,
+      "hit": 78,
+      "judged": 9,
+      "avg_abs": 12.4,
+      "med_abs_1sigma": 15.2
+     },
+     "h24": {
+      "n": 15,
+      "beta": 6.4,
+      "rho": 0.2,
+      "hit": 89,
+      "judged": 9,
+      "avg_abs": 23.6,
+      "med_abs_1sigma": 20.7
+     }
+    }
+   }
+  }
+ }
+}

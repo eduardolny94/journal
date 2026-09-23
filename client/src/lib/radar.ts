@@ -1548,3 +1548,103 @@ export async function fetchMethodReport(signal?: AbortSignal): Promise<MethodRep
     throw e;
   }
 }
+
+
+// ---------- Impacto esperado de los próximos datos (β por sorpresa, FedWatch propio, nowcast) ----------
+
+export interface ImpactFit {
+  n: number;
+  beta: number | null;
+  rho: number | null;
+  hit: number | null;
+  judged: number;
+  avg_abs: number | null;
+  med_abs_1sigma: number | null;
+}
+export interface ImpactScenarioPair {
+  symbol: string;
+  pips_1h: number | null;
+  pips_4h: number | null;
+  pips_24h: number | null;
+  hit_1h: number | null;
+  hit_24h: number | null;
+  n: number;
+}
+export interface ImpactScenario {
+  key: 'mejor' | 'peor';
+  label: string;
+  currency_dir: 'up' | 'down';
+  value: string | null;
+  pairs: ImpactScenarioPair[];
+}
+export interface ImpactTilt {
+  source: 'nowcast' | 'adp';
+  weak: boolean;
+  z: number | null;
+  text: string;
+  value?: number;
+  asof?: string;
+}
+export interface FedMeeting {
+  date: string;
+  ok: boolean;
+  rate_before?: number;
+  rate_after?: number;
+  change_bp?: number;
+  p_cut_25?: number;
+  p_cut_50?: number;
+  p_hike_25?: number;
+  p_hike_50?: number;
+  p_hold?: number;
+  method?: string;
+}
+export interface ImpactFed {
+  effr: number | null;
+  effr_date: string | null;
+  meeting: FedMeeting;
+  surprise_if: { hold: number | null; hike_25: number | null; cut_25: number | null };
+  text: string;
+}
+export interface ImpactEvent {
+  id: number | string;
+  title: string;
+  country: CurrencyCode;
+  at_utc: string;
+  minutes: number;
+  forecast: string | null;
+  previous: string | null;
+  category: string | null;
+  policy: boolean;
+  calibrated: boolean;
+  /** Hay calibración pero la sorpresa no explica el movimiento (acierto < 60 % o correlación ≈ 0). */
+  weak_fit: boolean;
+  n: number;
+  since: string | null;
+  unit: string;
+  inverted: boolean;
+  sigma: number | null;
+  sigma_label: string | null;
+  currency: { h1: ImpactFit; h4: ImpactFit; h24: ImpactFit } | null;
+  scenarios: ImpactScenario[];
+  typical: Array<{ symbol: string; h1: number | null; h24: number | null }>;
+  tilt: ImpactTilt | null;
+  fed: ImpactFed | null;
+}
+export interface ImpactReport {
+  generated_at: string;
+  days_ahead: number;
+  calibration: { generated_at: string | null; indicators: number; pairs: string[] };
+  fed: { ok: boolean; effr: number | null; effr_date: string | null; meetings: FedMeeting[]; error: string | null };
+  nowcast: { month: string | null; current: Record<string, { value: number; asof: string }> | null; previous: { month: string | null; nowcast: Record<string, { value: number; asof: string }>; actual: Record<string, { value: number; asof: string }> } | null; error?: string | null };
+  events: ImpactEvent[];
+}
+
+export async function fetchImpact(signal?: AbortSignal): Promise<ImpactReport | null> {
+  if (isRadarMock()) return null;
+  try {
+    return await api<ImpactReport>('/radar/impacto', { signal });
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw e;
+    return null;
+  }
+}
