@@ -22,7 +22,8 @@ function detectOs(): Os {
 /** Comando de Terminal (Mac) que copia el servicio dentro de cada MetaTrader 5 instalado y avisa dónde lo puso. */
 function macCommand(origin: string): string {
   const url = `${origin}/descargas/GTFX_JournalSync.ex5`;
-  return `n=0; while IFS= read -r d; do mkdir -p "$d/Services" && curl -sSL "${url}" -o "$d/Services/GTFX_JournalSync.ex5" && n=$((n+1)) && echo "✅ Instalado en: $d/Services"; done < <(find "$HOME/Library/Application Support" -maxdepth 5 -type d -path "*/drive_c/Program Files/*/MQL5" 2>/dev/null); if [ "$n" -eq 0 ]; then echo "❌ No encontré MetaTrader 5 en este Mac. En MT5: Archivo > Abrir carpeta de datos > MQL5 > Services, y arrastra ahí el archivo .ex5"; else echo "Listo: en MetaTrader, Navegador > Servicios > clic derecho > Actualizar > Añadir servicio"; fi`;
+  // Busca el MQL5 de cualquier MetaTrader 5 (paquete oficial, de bróker, CrossOver o Wine) y deja el servicio en Services.
+  return `n=0; while IFS= read -r d; do if mkdir -p "$d/Services" 2>/dev/null && curl -sSL "${url}" -o "$d/Services/GTFX_JournalSync.ex5"; then n=$((n+1)); echo "✅ Instalado en: $d/Services"; else echo "⚠️ Sin permiso para escribir en: $d/Services"; fi; done < <(find "$HOME/Library/Application Support" "$HOME/Library/Containers" "$HOME/Applications" /Applications "$HOME/.wine" -maxdepth 9 -type d -path "*/drive_c/Program Files/*/MQL5" 2>/dev/null); if [ "$n" -eq 0 ]; then echo "❌ No encontré MetaTrader 5 en este Mac. Usa el método de MetaEditor que aparece en el journal (no necesita carpetas)."; else echo "Listo: en MetaTrader, Navegador > Servicios > clic derecho > Actualizar > Añadir servicio"; fi`;
 }
 
 const STEP_WEBREQUEST = 'En MetaTrader 5: Herramientas → Opciones → Asesores Expertos → marca «Permitir WebRequest para las URL listadas» y añade la dirección de este journal.';
@@ -31,6 +32,7 @@ const STEP_TOKEN = 'En la ventana que se abre, pega el token en el campo «Token
 
 const TROUBLE: Array<[string, string]> = [
   ['En Mac sale «No hay ninguna aplicación definida para abrir Instalar-GTFX-JournalSync.bat».', 'Ese instalador es solo para Windows. En Mac usa el comando de Terminal de arriba (copiar, pegar, Intro) o el camino manual: en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services, y arrastra ahí el archivo GTFX_JournalSync.ex5 de Descargas.'],
+  ['Finder (o el Explorador) no me deja pegar el archivo en Services.', 'Suele ser una carpeta protegida o que se copió desde la barra de descargas del navegador en vez de desde Finder. No hace falta pelearse con la carpeta: usa el comando de Terminal (Mac) o el instalador (Windows), o el método de MetaEditor (pegar el código y compilar), que guarda el servicio en su sitio sin copiar nada a mano.'],
   ['Chrome o Safari no lo descargan o lo marcan como «poco habitual».', 'Es un aviso genérico para archivos que casi nadie descarga. Abre el menú del archivo en la barra de descargas y pulsa «Conservar». Después comprueba que en Descargas esté GTFX_JournalSync.ex5 (no .crdownload).'],
   ['Al pegarlo en Services dice «acceso denegado» o pide permisos (Windows).', 'Estás en la carpeta de instalación (Archivos de programa), que Windows protege. La carpeta correcta es la de datos: en MT5, Archivo → Abrir carpeta de datos → MQL5 → Services. El instalador la encuentra solo.'],
   ['Lo copié y no aparece en el Navegador.', 'MetaTrader no relee la carpeta hasta que pulsas clic derecho en «Servicios» → Actualizar, o reinicias MT5. Si aún no aparece, revisa que la extensión sea .ex5 y no .ex5.txt.'],
@@ -38,10 +40,38 @@ const TROUBLE: Array<[string, string]> = [
   ['Windows pregunta al ejecutar el instalador.', 'Es el aviso estándar para archivos descargados. Pulsa «Ejecutar». El instalador solo copia un archivo a la carpeta de MetaTrader; puedes abrirlo con el Bloc de notas y leerlo entero.'],
 ];
 
+/** Alternativa sin tocar carpetas: MetaEditor crea el archivo en su sitio, se pega el código y se compila. */
+function MetaEditorMethod({ copySource, copied }: { copySource: () => Promise<void>; copied: 'ok' | 'error' | null }) {
+  return (
+    <div className="mt-2 rounded-md border border-border bg-bg/40 p-2.5">
+      <p className="text-gray-100">¿No te deja pegar el archivo en la carpeta? Hazlo desde MetaEditor, sin tocar carpetas:</p>
+      <ol className="mt-1 list-[lower-alpha] space-y-1 pl-5 text-gray-400">
+        <li>En MetaTrader: Herramientas → «MetaQuotes Language Editor» (o pulsa F4). Se abre MetaEditor.</li>
+        <li>En MetaEditor: Archivo → Nuevo → elige <span className="text-gray-200">Servicio</span> → Siguiente → nombre <code className="rounded bg-bg px-1 text-gray-100">GTFX_JournalSync</code> → Siguiente → Finalizar. Se abre un archivo con código de ejemplo.</li>
+        <li>Pulsa aquí <Button size="sm" variant="secondary" className="mx-1 align-middle" onClick={() => void copySource()} leftIcon={copied === 'ok' ? <CheckCircle2 className="h-3.5 w-3.5 text-profit" /> : <Copy className="h-3.5 w-3.5" />}>{copied === 'ok' ? 'Código copiado' : copied === 'error' ? 'No se pudo copiar' : 'Copiar código fuente'}</Button> y, en MetaEditor, selecciona todo el código de ejemplo (⌘A o Ctrl+A) y pega encima (⌘V o Ctrl+V).</li>
+        <li>Pulsa <span className="text-gray-200">Compilar</span> (F7). Abajo debe decir «0 errors». MetaEditor deja el servicio ya en su carpeta.</li>
+      </ol>
+      <p className="mt-1 text-gray-500">Manual, si lo prefieres: en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services, y copia ahí el archivo .ex5 desde Finder o el Explorador (no desde la barra de descargas del navegador).</p>
+    </div>
+  );
+}
+
 function InstallGuide({ origin }: { origin: string }) {
   const [os, setOs] = useState<Os>(() => detectOs());
   const [copiedCmd, setCopiedCmd] = useState(false);
+  const [copiedSrc, setCopiedSrc] = useState<'ok' | 'error' | null>(null);
   const cmd = macCommand(origin);
+  // Método sin carpetas: el código fuente se pega en MetaEditor, que lo guarda y compila en su sitio.
+  async function copySource() {
+    try {
+      const src = await fetch('/descargas/GTFX_JournalSync.mq5').then((r) => r.text());
+      await navigator.clipboard.writeText(src);
+      setCopiedSrc('ok');
+    } catch {
+      setCopiedSrc('error');
+    }
+    window.setTimeout(() => setCopiedSrc(null), 5000);
+  }
   async function copyCmd() {
     try {
       await navigator.clipboard.writeText(cmd);
@@ -71,12 +101,12 @@ function InstallGuide({ origin }: { origin: string }) {
               <code className="block max-h-24 flex-1 overflow-auto whitespace-pre-wrap break-all rounded bg-bg px-2 py-1.5 text-[11px] text-gray-200">{cmd}</code>
               <Button size="sm" variant="secondary" onClick={() => void copyCmd()} leftIcon={copiedCmd ? <CheckCircle2 className="h-3.5 w-3.5 text-profit" /> : <Copy className="h-3.5 w-3.5" />}>{copiedCmd ? 'Copiado' : 'Copiar comando'}</Button>
             </div>
-            <span className="mt-1 block text-gray-500">Manual, si lo prefieres: descarga el servicio (.ex5) abajo y, en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services; arrastra ahí el archivo.</span>
+            <MetaEditorMethod copySource={copySource} copied={copiedSrc} />
           </li>
         ) : (
           <li>
             <span className="text-gray-100">Descarga el servicio (.ex5) y el instalador (.bat) en la misma carpeta (Descargas) y haz doble clic en el instalador.</span> Copia el servicio en la carpeta Services de cada MetaTrader 5 de tu usuario y te dice dónde.
-            <span className="mt-1 block text-gray-500">Manual, si lo prefieres: en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services, y pega ahí el .ex5.</span>
+            <MetaEditorMethod copySource={copySource} copied={copiedSrc} />
           </li>
         )}
         <li>{STEP_NAV}</li>
