@@ -123,8 +123,8 @@ export default function Radar() {
           <ConvictionCards pairs={snap.pairs} currencies={snap.currencies} />
           {/* Dos filas horizontales: noticias y calendario con alturas parejas; debajo, volatilidad y sentimiento. */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <MarketEvents news={news.length ? news : snap.news_top} collapsedCount={Math.min(4, Math.max(2, macroMiniRows(snap.upcoming, published).total))} />
-            <MacroCalendarMini upcoming={snap.upcoming} published={published} />
+            <MarketEvents news={news.length ? news : snap.news_top} collapsedCount={Math.min(6, Math.max(2, macroMiniRows(snap.upcoming, published, favorites, snap.pairs).total - 1))} />
+            <MacroCalendarMini upcoming={snap.upcoming} published={published} favorites={favorites} pairs={snap.pairs} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <VolatilityCard market={snap.market} />

@@ -11,8 +11,7 @@ import {
   CURRENCY_NAMES, PILLARS, STRENGTH_HELP, biasSentence, confidenceVariant, convictionOf, currencyBias, dataWord, favorsClass, favorsText, strengthWord, topDrivers,
   flagOf, fmtCountdown, fmtLocalTime, fmtScore, fmtSignedInt0, fmtSignedPct, fmtSince, parseNewsTag, secondsUntil,
   sentimentLabelText, sentimentVariant, sortByAbsDiff, vixLabelText, vixVariant,
-  type CurrencyCode, type MarketContext, type NewsItem, type NextEvent, type LastEvent, type RadarCurrency, type RadarPair, type Sentiment,
-} from '../../lib/radar';
+  type CurrencyCode, type MarketContext, type NewsItem, type NextEvent, type LastEvent, type RadarCurrency, type RadarPair, type Sentiment, type Impact } from '../../lib/radar';
 import { ConvictionBar, ImpactDots, ScoreValue, SectionHeader, useNow } from './common';
 
 // ---------- Pares con más convicción ----------
@@ -150,40 +149,90 @@ export function MarketEvents({ news, className, collapsedCount = 2 }: { news: Ne
 
 // ---------- Calendario macro (mini) ----------
 
-const MACRO_MINI_ROWS = 4;
+const MACRO_MINI_MAX = 7;
+const MEDIUM_KEY_RE = /interest rate|rate decision|policy rate|cash rate|inflation|cpi|ppi|pmi|payroll|employment|unemployment|jobless|claims|gdp|retail sales|balance of trade|trade balance|consumer confidence|sentiment|minutes|press conference|testimony|rate statement|monetary policy/i;
+const MEDIUM_SKIP_RE = /speech|speaks|auction|bill|bond|stocks change|registrations|leading index|current account|housing|permits|starts|ifo|zew/i;
 
-/** Filas que pinta el calendario del panel: solo impacto alto, 1 publicada como mucho y el resto próximas. */
-export function macroMiniRows(upcoming: NextEvent[], published: LastEvent[]): { published: LastEvent[]; upcoming: NextEvent[]; total: number } {
-  const pub = published.filter((e) => e.impact === 'High').slice(0, 1);
-  const next = upcoming.filter((e) => e.impact === 'High').slice(0, MACRO_MINI_ROWS - pub.length);
-  return { published: pub, upcoming: next, total: pub.length + next.length };
+/** Relación entre un dato publicado y el sesgo de un par que lo contiene: ¿empuja a favor o en contra? */
+export function eventVsPair(e: Pick<LastEvent, 'currency' | 'favors'>, p: RadarPair): 'a favor' | 'en contra' | null {
+  if (!e.favors || !p.base) return null;
+  const currencyUp = e.favors === e.currency ? 1 : e.favors === `contra ${e.currency}` ? -1 : 0;
+  if (!currencyUp) return null;
+  const pairDir = p.base === e.currency ? currencyUp : -currencyUp;
+  const bias = Math.sign(p.diff);
+  if (!bias) return null;
+  return pairDir === bias ? 'a favor' : 'en contra';
 }
 
-export function MacroCalendarMini({ upcoming, published, className }: { upcoming: NextEvent[]; published: LastEvent[]; className?: string }) {
+/**
+ * Filas del calendario del panel. Siempre lo de impacto alto; además, lo de impacto medio de las divisas de tus
+ * favoritos (SNB, RBA, BoC… TradingView a veces las marca así). 2 publicadas como mucho y el resto próximas.
+ */
+export function macroMiniRows(upcoming: NextEvent[], published: LastEvent[], favorites: string[] = [], pairs: RadarPair[] = []): { published: LastEvent[]; upcoming: NextEvent[]; total: number; favPairs: RadarPair[]; followed: string[] } {
+  const favPairs = pairs.filter((p) => favorites.includes(p.symbol) && p.base);
+  const followed = [...new Set(favPairs.flatMap((p) => [p.base as string, p.quote as string]))];
+  // Del impacto medio solo entra lo que de verdad mueve una divisa (tipos, inflación, empleo, PMI, PIB, ventas…),
+  // no inventarios, subastas ni discursos de miembros.
+  const relevant = (e: { impact: Impact; currency: string; title: string }) => e.impact === 'High' || (e.impact === 'Medium' && followed.includes(e.currency) && MEDIUM_KEY_RE.test(e.title) && !MEDIUM_SKIP_RE.test(e.title));
+  const pub = published.filter(relevant).slice(0, 2);
+  const next = [...upcoming].filter(relevant).sort((x, y) => (x.at_utc < y.at_utc ? -1 : 1)).slice(0, MACRO_MINI_MAX - pub.length);
+  return { published: pub, upcoming: next, total: pub.length + next.length, favPairs, followed };
+}
+
+function PairChips({ e, favPairs, published }: { e: LastEvent | NextEvent; favPairs: RadarPair[]; published: boolean }) {
+  const affected = favPairs.filter((p) => p.base === e.currency || p.quote === e.currency);
+  if (!affected.length) return null;
+  if (!published) {
+    // Próximo dato: una sola etiqueta con los pares tuyos a los que afecta.
+    return (
+      <span className="mt-1 inline-flex items-center gap-1 rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 text-[10px] font-semibold text-warn" title={`Este dato mueve ${e.currency}: afecta a tus favoritos ${affected.map((p) => p.symbol).join(', ')}`}>
+        ★ {affected.map((p) => p.symbol).join(' · ')}
+      </span>
+    );
+  }
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      {affected.map((p) => {
+        const rel = published ? eventVsPair(e as LastEvent, p) : null;
+        const biasWord = p.diff > 0 ? 'alcista' : p.diff < 0 ? 'bajista' : 'neutral';
+        const title = rel ? `${p.symbol}: el dato empuja ${rel} del sesgo ${biasWord} del radar` : `${p.symbol} (favorito): este dato mueve ${e.currency}`;
+        return (
+          <span key={p.symbol} title={title} className={cn('inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold', rel === 'a favor' ? 'border-profit/40 bg-profit/10 text-profit' : rel === 'en contra' ? 'border-loss/40 bg-loss/10 text-loss' : 'border-warn/40 bg-warn/10 text-warn')}>
+            ★ {p.symbol}{rel ? ` · ${rel} del sesgo ${biasWord}` : ''}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+export function MacroCalendarMini({ upcoming, published, favorites = [], pairs = [], className }: { upcoming: NextEvent[]; published: LastEvent[]; favorites?: string[]; pairs?: RadarPair[]; className?: string }) {
   const now = useNow(1000);
-  // Solo impacto alto: es lo que mueve el precio y por lo que conviene no entrar justo antes.
-  const rows = macroMiniRows(upcoming, published);
+  const rows = macroMiniRows(upcoming, published, favorites, pairs);
   const items = rows.upcoming;
-  const publishedHigh = rows.published;
+  const publishedRows = rows.published;
   return (
     <Card
       className={className}
       title={<span className="flex items-center gap-2">Noticias fuertes <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-profit"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-profit" />En vivo</span></span>}
+      subtitle={rows.followed.length ? `Impacto alto y, de tus favoritos (${rows.followed.join(', ')}), también el medio. ★ = afecta a un par tuyo.` : 'Impacto alto. Marca favoritos para ver también lo que mueve tus pares.'}
       flush
     >
       <ul className="divide-y divide-border">
-        {publishedHigh.map((e) => (
+        {publishedRows.map((e) => (
           <li key={`${e.currency}|${e.title}|${e.at_utc}`} className="bg-bg/40 p-3">
             <div className="flex items-center gap-2 text-[11px] text-gray-500">
               <span>{fmtLocalTime(e.at_utc)}</span>
               <span>{flagOf(e.currency)} {e.currency}</span>
               <ImpactDots impact={e.impact} />
+              <span className="text-gray-600">publicado</span>
             </div>
             <p className="mt-0.5 text-sm text-gray-200">{e.title}</p>
             <p className="mt-0.5 text-[11px] tnum text-gray-400">
               Act <span className="text-gray-100">{e.actual ?? '—'}</span> · Prev {e.forecast ?? '—'} · Ant {e.previous ?? '—'}
               {e.favors && <span className={cn('ml-2', favorsClass(e.favors))}>{favorsText(e.favors)}</span>}
             </p>
+            <PairChips e={e} favPairs={rows.favPairs} published />
           </li>
         ))}
         {items.map((e, i) => {
@@ -201,10 +250,11 @@ export function MacroCalendarMini({ upcoming, published, className }: { upcoming
               </div>
               <p className="mt-0.5 text-sm text-gray-200">{e.title}</p>
               {(e.forecast || e.previous) && <p className="mt-0.5 text-[11px] tnum text-gray-500">Prev {e.forecast ?? '—'} · Ant {e.previous ?? '—'}</p>}
+              <PairChips e={e} favPairs={rows.favPairs} published={false} />
             </li>
           );
         })}
-        {items.length === 0 && <li className="p-4 text-sm text-gray-500">Sin noticias de impacto alto en los próximos 7 días.</li>}
+        {items.length === 0 && publishedRows.length === 0 && <li className="p-4 text-sm text-gray-500">Sin noticias de impacto en los próximos 7 días.</li>}
       </ul>
     </Card>
   );

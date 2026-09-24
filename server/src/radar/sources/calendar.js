@@ -285,6 +285,14 @@ export function dateInTz(iso, tz) {
   return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
 }
 
+/**
+ * Impacto con el que se trata un evento. TradingView marca varias decisiones de tipos (SNB, a veces RBA/BoC) como
+ * "Medium"; para el radar toda decisión de banco central es de impacto alto: mueve el precio y fija el sesgo.
+ */
+export function effectiveImpact(row) {
+  return isPolicyDecision(row) ? 'High' : row.impact;
+}
+
 export function toEventDto(row) {
   const s = surpriseOf(row);
   return {
@@ -292,7 +300,7 @@ export function toEventDto(row) {
     title: row.title,
     country: row.country,
     at_utc: row.at_utc,
-    impact: row.impact,
+    impact: effectiveImpact(row),
     category: row.category || categorize(row.title),
     forecast: row.forecast || null,
     previous: row.previous || null,
@@ -319,7 +327,7 @@ export function queryCalendar(db, { from, to, countries, impacts, categories, tz
   const byDay = new Map();
   for (const r of rows) {
     if (countries && countries.length && !countries.includes(r.country)) continue;
-    if (impacts && impacts.length && !impacts.includes(r.impact)) continue;
+    if (impacts && impacts.length && !impacts.includes(effectiveImpact(r))) continue;
     const cat = r.category || categorize(r.title);
     if (categories && categories.length && !categories.includes(cat)) continue;
     const date = dateInTz(r.at_utc, tz);
