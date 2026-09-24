@@ -12,20 +12,84 @@ import { fmtMoney } from '../lib/format';
 import { fmtSince } from '../lib/radar';
 import type { Account } from '../store/session';
 
-const STEPS = [
-  'En MetaTrader 5: Herramientas → Opciones → Asesores Expertos → marca «Permitir WebRequest para las URL listadas» y añade la dirección de este journal.',
-  'Descarga abajo el servicio (.ex5) y el instalador (.bat) en la misma carpeta (por ejemplo Descargas) y ejecuta el instalador: copia el servicio en la carpeta Services de cada MetaTrader 5 de tu usuario. Si prefieres hacerlo a mano: en MT5, Archivo → Abrir carpeta de datos → MQL5 → Services, y pega ahí el .ex5.',
-  'En el Navegador de MT5 (Ctrl+N): clic derecho en «Servicios» → Actualizar. Luego clic derecho → «Añadir servicio» → GTFX_JournalSync.',
-  'En la ventana que se abre, pega el token en el campo «Token» y pulsa Aceptar. Listo: arranca solo cada vez que abras MetaTrader.',
-];
+type Os = 'mac' | 'windows';
+
+function detectOs(): Os {
+  const ua = navigator.platform + ' ' + navigator.userAgent;
+  return /Mac|iPhone|iPad|Macintosh/i.test(ua) ? 'mac' : 'windows';
+}
+
+/** Comando de Terminal (Mac) que copia el servicio dentro de cada MetaTrader 5 instalado y avisa dónde lo puso. */
+function macCommand(origin: string): string {
+  const url = `${origin}/descargas/GTFX_JournalSync.ex5`;
+  return `n=0; while IFS= read -r d; do mkdir -p "$d/Services" && curl -sSL "${url}" -o "$d/Services/GTFX_JournalSync.ex5" && n=$((n+1)) && echo "✅ Instalado en: $d/Services"; done < <(find "$HOME/Library/Application Support" -maxdepth 5 -type d -path "*/drive_c/Program Files/*/MQL5" 2>/dev/null); if [ "$n" -eq 0 ]; then echo "❌ No encontré MetaTrader 5 en este Mac. En MT5: Archivo > Abrir carpeta de datos > MQL5 > Services, y arrastra ahí el archivo .ex5"; else echo "Listo: en MetaTrader, Navegador > Servicios > clic derecho > Actualizar > Añadir servicio"; fi`;
+}
+
+const STEP_WEBREQUEST = 'En MetaTrader 5: Herramientas → Opciones → Asesores Expertos → marca «Permitir WebRequest para las URL listadas» y añade la dirección de este journal.';
+const STEP_NAV = 'En el Navegador de MT5 (Ctrl+N o Ver → Navegador): clic derecho en «Servicios» → Actualizar. Luego clic derecho → «Añadir servicio» → GTFX_JournalSync.';
+const STEP_TOKEN = 'En la ventana que se abre, pega el token en el campo «Token» y pulsa Aceptar. Listo: arranca solo cada vez que abras MetaTrader.';
 
 const TROUBLE: Array<[string, string]> = [
-  ['Chrome no lo descarga o lo marca como «poco habitual».', 'Es un aviso genérico de Chrome para archivos que casi nadie descarga. En la barra de descargas abre el menú del archivo y pulsa «Conservar». Después comprueba que en Descargas esté GTFX_JournalSync.ex5 (no .crdownload).'],
-  ['Al pegarlo en Services dice «acceso denegado» o pide permisos.', 'Estás en la carpeta de instalación (Archivos de programa), que Windows protege. La carpeta correcta es la de datos: en MT5, Archivo → Abrir carpeta de datos → MQL5 → Services. El instalador (.bat) la encuentra solo.'],
+  ['En Mac sale «No hay ninguna aplicación definida para abrir Instalar-GTFX-JournalSync.bat».', 'Ese instalador es solo para Windows. En Mac usa el comando de Terminal de arriba (copiar, pegar, Intro) o el camino manual: en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services, y arrastra ahí el archivo GTFX_JournalSync.ex5 de Descargas.'],
+  ['Chrome o Safari no lo descargan o lo marcan como «poco habitual».', 'Es un aviso genérico para archivos que casi nadie descarga. Abre el menú del archivo en la barra de descargas y pulsa «Conservar». Después comprueba que en Descargas esté GTFX_JournalSync.ex5 (no .crdownload).'],
+  ['Al pegarlo en Services dice «acceso denegado» o pide permisos (Windows).', 'Estás en la carpeta de instalación (Archivos de programa), que Windows protege. La carpeta correcta es la de datos: en MT5, Archivo → Abrir carpeta de datos → MQL5 → Services. El instalador la encuentra solo.'],
   ['Lo copié y no aparece en el Navegador.', 'MetaTrader no relee la carpeta hasta que pulsas clic derecho en «Servicios» → Actualizar, o reinicias MT5. Si aún no aparece, revisa que la extensión sea .ex5 y no .ex5.txt.'],
   ['No existe la carpeta Services.', 'Tu MetaTrader es anterior a 2018 (los servicios llegaron en la versión 1930). Actualízalo desde Ayuda → Buscar actualizaciones, o descarga la versión actual de tu bróker.'],
   ['Windows pregunta al ejecutar el instalador.', 'Es el aviso estándar para archivos descargados. Pulsa «Ejecutar». El instalador solo copia un archivo a la carpeta de MetaTrader; puedes abrirlo con el Bloc de notas y leerlo entero.'],
 ];
+
+function InstallGuide({ origin }: { origin: string }) {
+  const [os, setOs] = useState<Os>(() => detectOs());
+  const [copiedCmd, setCopiedCmd] = useState(false);
+  const cmd = macCommand(origin);
+  async function copyCmd() {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopiedCmd(true);
+      window.setTimeout(() => setCopiedCmd(false), 4000);
+    } catch {
+      setCopiedCmd(false);
+    }
+  }
+  const btn = 'inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold';
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs uppercase tracking-wide text-gray-500">Instalación en MetaTrader 5 (una sola vez)</p>
+        <div className="flex gap-1 rounded-md border border-border p-0.5 text-xs">
+          {(['windows', 'mac'] as Os[]).map((o) => (
+            <button key={o} type="button" onClick={() => setOs(o)} className={cn('rounded px-2.5 py-1', os === o ? 'bg-accent/15 text-accent-soft' : 'text-gray-400 hover:text-gray-200')}>{o === 'mac' ? 'Mac' : 'Windows'}</button>
+          ))}
+        </div>
+      </div>
+      <ol className="list-decimal space-y-2 pl-5 text-xs text-gray-300">
+        <li>{STEP_WEBREQUEST} <code className="select-all rounded bg-bg px-1 text-gray-100">{origin}</code></li>
+        {os === 'mac' ? (
+          <li>
+            <span className="text-gray-100">Copia este comando, abre Terminal (⌘ + espacio, escribe «Terminal»), pégalo y pulsa Intro.</span> Descarga el servicio y lo deja dentro de cada MetaTrader 5 de este Mac; te dice dónde lo puso.
+            <div className="mt-1.5 flex flex-wrap items-start gap-2">
+              <code className="block max-h-24 flex-1 overflow-auto whitespace-pre-wrap break-all rounded bg-bg px-2 py-1.5 text-[11px] text-gray-200">{cmd}</code>
+              <Button size="sm" variant="secondary" onClick={() => void copyCmd()} leftIcon={copiedCmd ? <CheckCircle2 className="h-3.5 w-3.5 text-profit" /> : <Copy className="h-3.5 w-3.5" />}>{copiedCmd ? 'Copiado' : 'Copiar comando'}</Button>
+            </div>
+            <span className="mt-1 block text-gray-500">Manual, si lo prefieres: descarga el servicio (.ex5) abajo y, en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services; arrastra ahí el archivo.</span>
+          </li>
+        ) : (
+          <li>
+            <span className="text-gray-100">Descarga el servicio (.ex5) y el instalador (.bat) en la misma carpeta (Descargas) y haz doble clic en el instalador.</span> Copia el servicio en la carpeta Services de cada MetaTrader 5 de tu usuario y te dice dónde.
+            <span className="mt-1 block text-gray-500">Manual, si lo prefieres: en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services, y pega ahí el .ex5.</span>
+          </li>
+        )}
+        <li>{STEP_NAV}</li>
+        <li>{STEP_TOKEN}</li>
+      </ol>
+      <div className="flex flex-wrap gap-2">
+        <a href="/descargas/GTFX_JournalSync.ex5" download className={cn(btn, 'bg-accent text-black hover:bg-accent/90')}><Download className="h-3.5 w-3.5" /> Descargar servicio (.ex5)</a>
+        {os === 'windows' && <a href="/descargas/Instalar-GTFX-JournalSync.bat" download className={cn(btn, 'border border-accent/50 text-accent-soft hover:bg-accent/10')}><Download className="h-3.5 w-3.5" /> Instalador para Windows (.bat)</a>}
+        <a href="/descargas/GTFX_JournalSync.mq5" download className={cn(btn, 'border border-border text-gray-200 hover:bg-gray-800')}><Download className="h-3.5 w-3.5" /> Código fuente (.mq5)</a>
+      </div>
+    </div>
+  );
+}
 
 export default function Mt5SyncCard({ account, onChange }: { account: Account; onChange: (a: Account) => void }) {
   const [token, setToken] = useState<string | null>(null);
@@ -140,19 +204,7 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
 
         {enabled && (
           <>
-            <div>
-              <p className="mb-2 text-xs uppercase tracking-wide text-gray-500">Instalación en MetaTrader 5 (una sola vez)</p>
-              <ol className="list-decimal space-y-1.5 pl-5 text-xs text-gray-300">
-                {STEPS.map((s, i) => (
-                  <li key={i}>{i === 0 ? <>{s} <code className="select-all rounded bg-bg px-1 text-gray-100">{origin}</code></> : s}</li>
-                ))}
-              </ol>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <a href="/descargas/GTFX_JournalSync.ex5" download className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-black hover:bg-accent/90"><Download className="h-3.5 w-3.5" /> Descargar servicio (.ex5)</a>
-              <a href="/descargas/Instalar-GTFX-JournalSync.bat" download className="inline-flex items-center gap-2 rounded-md border border-accent/50 px-3 py-2 text-xs font-semibold text-accent-soft hover:bg-accent/10"><Download className="h-3.5 w-3.5" /> Instalador (.bat)</a>
-              <a href="/descargas/GTFX_JournalSync.mq5" download className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-gray-200 hover:bg-gray-800"><Download className="h-3.5 w-3.5" /> Código fuente (.mq5)</a>
-            </div>
+            <InstallGuide origin={origin} />
             <details className="rounded-lg border border-border bg-bg/40 p-3 text-xs">
               <summary className="cursor-pointer font-semibold text-gray-200">¿No se descarga, no se copia o no aparece? Soluciones</summary>
               <ul className="mt-2 space-y-2 text-gray-400">

@@ -50,6 +50,18 @@ Diseñado para no dar ningún motivo de sospecha a una prop firm:
 
 Mensajes del servicio: pestaña "Expertos" del terminal (token inválido, WebRequest sin permitir, sin conexión…).
 
+## Instalación en Mac
+
+MetaTrader 5 para Mac es la versión de MetaQuotes envuelta en Wine: la carpeta de datos está en
+`~/Library/Application Support/<paquete>/drive_c/Program Files/<MetaTrader 5>/MQL5`. El `.ex5` compilado en Windows sirve
+igual. El instalador `.bat` es solo de Windows (en Mac sale "No hay ninguna aplicación definida para abrir…").
+
+La tarjeta detecta el sistema y, en Mac, ofrece un **comando de Terminal** (copiar → pegar → Intro) que busca todos los
+MetaTrader 5 del usuario con `find`, descarga el servicio y lo deja en `MQL5/Services`, diciendo dónde. Si no encuentra
+ninguno (instalación en Parallels, CrossOver u otra ruta), indica el camino manual: MT5 → Archivo → Abrir carpeta de
+datos → MQL5 → Services → arrastrar el `.ex5`. Después, igual que en Windows: Navegador → Servicios → Actualizar →
+Añadir servicio → token. Probado en local con una estructura de carpetas simulada (paquete oficial y de bróker).
+
 ## Piezas
 
 | Pieza | Dónde |
