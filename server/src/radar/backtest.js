@@ -11,6 +11,7 @@ import { cotRows } from './sources/cot.js';
 import { eventsBetween, latestActual } from './sources/calendar.js';
 import { atr, round } from './indicators.js';
 import { setMeta, getMetaJson } from './store.js';
+import { calibrateLogit } from './quant.js';
 
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 const MONTHLY_LAG_DAYS = 40; // retraso de publicación asumido para series mensuales (IPC, paro, tasa 3 meses)
@@ -26,6 +27,12 @@ export const WEIGHT_CANDIDATES = {
   riesgo_alto: { tasas: 10, expectativas: 10, inflacion: 5, crecimiento: 10, posicionamiento: 10, riesgo: 35, momentum: 20, tono: 0 },
   // Divisas refugio: el nivel de tasas (carry) no predice a corto plazo (USDCHF "alcista fuerte" 268 días, 49 %).
   sin_carry_refugio: { ...PILLAR_WEIGHTS, per_currency: { CHF: { tasas: 0 }, JPY: { tasas: 0 } } },
+  // Fórmulas cuantitativas (docs/FORMULAS-CUANT.md): se miden una a una y combinadas.
+  con_tendencia: { ...PILLAR_WEIGHTS, tendencia: 15 },
+  con_valor: { ...PILLAR_WEIGHTS, valor: 10 },
+  sorpresas_cesi: { ...PILLAR_WEIGHTS, crecimiento: 5, sorpresas: 15 },
+  cuant: { ...PILLAR_WEIGHTS, crecimiento: 5, sorpresas: 10, tendencia: 15, valor: 10 },
+  cuant_tendencia_fuerte: { ...PILLAR_WEIGHTS, momentum: 10, tendencia: 25, sorpresas: 10, crecimiento: 5 },
 };
 
 /** Elige los pesos de un régimen solo con evidencia fuera de muestra (n ≥ 60, ≥ 55 % y ≥ 3 puntos mejor que los vigentes). */
@@ -135,6 +142,16 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
   });
   const pairsOk = PAIRS.filter((p) => daily[p] && daily[p].length > 300);
   if (pairsOk.length < 6) throw new Error(`Precios insuficientes para el backtest (${failed.join('; ') || 'pocas velas'})`);
+  // Los cierres diarios (5 años) se guardan para que el radar en vivo calcule valor y tendencia con el mismo historial.
+  try {
+    const up = db.prepare('INSERT OR REPLACE INTO radar_daily_prices (symbol, date, close) VALUES (?, ?, ?)');
+    db.exec('BEGIN');
+    for (const sym of pairsOk) for (const b of daily[sym]) if (b.close > 0) up.run(sym, b.date, b.close);
+    db.exec('COMMIT');
+  } catch (e) {
+    try { db.exec('ROLLBACK'); } catch { /* sin transacción */ }
+    log(`no se pudieron guardar los cierres diarios: ${e.message}`);
+  }
   const marketKeys = ['vix', 'sp500', 'oil', 'dxy'];
   const idx = {};
   for (const key of [...pairsOk, ...marketKeys.map((k) => `market:${k}`)]) {
@@ -201,8 +218,13 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     const market = { vix: mk('vix', false), sp500: mk('sp500', true), oil: mk('oil', true), dxy: mk('dxy', true) };
     const cot = cotRows(db, date);
     const policy = policyAsOf(db, date);
-    const events = eventsBetween(db, new Date(asOfMs - SURPRISE_DAYS * 86400000).toISOString(), new Date(asOfMs).toISOString());
-    const cur = computeCurrencies(db, { now: asOfMs, market, pairData, cot, policy, manual: {}, expectations: {}, events, lag_days: MONTHLY_LAG_DAYS });
+    const events = eventsBetween(db, new Date(asOfMs - Math.max(SURPRISE_DAYS, 90) * 86400000).toISOString(), new Date(asOfMs).toISOString());
+    // Cierres "a fecha" para valor (3 años) y tendencia (12 meses): solo lo que se conocía ese día.
+    const closesAsOf = (sym) => {
+      const i = lastIndexAt(sym, date);
+      return i < 0 ? [] : daily[sym].slice(Math.max(0, i - 800), i + 1);
+    };
+    const cur = computeCurrencies(db, { now: asOfMs, market, pairData, cot, policy, manual: {}, expectations: {}, events, lag_days: MONTHLY_LAG_DAYS, closesAsOf });
     const pillarsByCcy = {};
     for (const c of cur.currencies) {
       pillarsByCcy[c.code] = pillarKeys.map((k) => c.pillars[k].value);
@@ -351,9 +373,18 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     return finish(b, { year, horizon_d: Number(h) });
   }).sort((a, b) => a.year.localeCompare(b.year) || a.horizon_d - b.horizon_d);
 
+  // Probabilidad calibrada (regresión logística) por horizonte y par, con el sesgo vigente.
+  let calibrationLogit = null;
+  try {
+    calibrationLogit = calibrateLogit(records, horizons);
+  } catch (e) {
+    log(`calibración logística: ${e.message}`);
+  }
+
   const report = {
     computed_at: new Date(now).toISOString(),
     duration_ms: Date.now() - t0,
+    calibration_logit: calibrationLogit,
     from: usable[0],
     to: lastMeasured,
     days: usable.length,

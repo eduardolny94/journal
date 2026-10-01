@@ -327,7 +327,7 @@ export function SentimentCard({ sentiment }: { sentiment: Sentiment | null }) {
 
 // ---------- Fuerza de divisas ----------
 
-export function CurrencyStrength({ currencies, selected, onSelect }: { currencies: RadarCurrency[]; selected?: CurrencyCode | null; onSelect?: (c: CurrencyCode | null) => void }) {
+export function CurrencyStrength({ currencies, selected, onSelect, snapWeights }: { currencies: RadarCurrency[]; selected?: CurrencyCode | null; onSelect?: (c: CurrencyCode | null) => void; snapWeights?: Record<string, number> | null }) {
   const sorted = [...currencies].sort((a, b) => a.rank - b.rank);
   return (
     <Card title="Fuerza de divisas" subtitle="Puntuación −10..+10 (tasas 20 %, expectativas de tipos 15 %, sorpresas 15 %, momentum 15 %, inflación 10 %, COT 10 %, riesgo 10 %, tono 5 %). Abre una divisa para ver sus pilares." flush>
@@ -358,9 +358,11 @@ export function CurrencyStrength({ currencies, selected, onSelect }: { currencie
                 <div className="grid gap-1.5 bg-bg/50 px-4 pb-3 pt-1 sm:grid-cols-2">
                   {PILLARS.map((p) => {
                     const v = c.pillars[p.key];
+                    if (!v) return null;
+                    const w = snapWeights?.[p.key] ?? p.weight;
                     return (
                       <div key={p.key} className="flex items-center gap-2 text-xs" title={p.hint}>
-                        <span className="w-28 text-gray-400">{p.label} <span className="text-gray-600">{p.weight}%</span></span>
+                        <span className="w-28 text-gray-400">{p.label} <span className="text-gray-600">{w}%</span></span>
                         <span className="relative h-1.5 w-20 rounded-full bg-gray-800">
                           <span className={cn('absolute top-0 h-full rounded-full', v.value >= 0 ? 'bg-profit' : 'bg-loss')} style={v.value >= 0 ? { left: '50%', width: `${Math.min(50, Math.abs(v.value) * 25)}%` } : { right: '50%', width: `${Math.min(50, Math.abs(v.value) * 25)}%` }} />
                         </span>

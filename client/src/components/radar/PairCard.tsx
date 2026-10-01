@@ -85,6 +85,13 @@ export default function PairCard({ pair, compact = false, className, favorite, o
         <div className="space-y-3">
           <p className="text-sm text-gray-200">{biasSentence(pair)}</p>
           {pair.base && <CalibrationLine level={n} />}
+          {pair.prob_favor && pair.prob_favor.length > 0 && Math.abs(pair.diff) >= 2 && (
+            <p className="text-[11px] text-gray-400" title="Regresión logística ajustada con el historial del backtest (3 años): P(a favor) = σ(a + b·diferencia). Por par cuando hay muestras suficientes.">
+              Probabilidad calibrada de ir a favor del sesgo: {pair.prob_favor.map((x, i) => (
+                <span key={x.horizon_d}>{i > 0 ? ' · ' : ''}a {x.horizon_d} días <span className={cn('tnum font-semibold', x.p >= 55 ? 'text-profit' : x.p < 48 ? 'text-loss' : 'text-gray-200')}>{x.p.toFixed(0)} %</span></span>
+              ))}{pair.prob_favor[0]?.per_pair ? ' (ajuste por par)' : ' (ajuste global)'}.
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
             <span>
               Precio <span className="tnum text-base font-semibold text-white">{fmtPrice(price, digits)}</span>

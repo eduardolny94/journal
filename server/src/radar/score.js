@@ -10,6 +10,7 @@ import { latestActual, eventsBetween, surpriseOf, categorize } from './sources/c
 import { aggregateNyDays, aggregateH4, aggregateWeeks, atr, efficiencyRatio, trendByEma, trendWeekly, trendBySwings, momentumAtr, zscores, round, mean, NY } from './indicators.js';
 import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
+import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
 
 const fmt = (n, k = 2) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -263,8 +264,8 @@ export function computeRadar(db, input) {
   const pairData = {};
   for (const sym of PAIRS) if (symbols[sym] && symbols[sym].h1 && symbols[sym].h1.length > 30) pairData[sym] = pairComputations(sym, symbols[sym], now);
 
-  const { currencies, risk, byCode } = computeCurrencies(db, { ...input, now, market, pairData });
-  return finishRadar(db, input, { now, prices, symbols, market, pairData, currencies, risk, byCode });
+  const { currencies, risk, byCode, weights } = computeCurrencies(db, { ...input, now, market, pairData });
+  return finishRadar(db, input, { now, prices, symbols, market, pairData, currencies, risk, byCode, weights });
 }
 
 /**
@@ -296,6 +297,15 @@ export function computeCurrencies(db, input) {
   }
   const risk = riskPillar(market);
   const momC = momentumByCurrency(pairData);
+  // Fórmulas cuantitativas (quant.js): valor y tendencia necesitan cierres diarios "a fecha"; sorpresas, el calendario.
+  const closesAsOf = typeof input.closesAsOf === 'function' ? input.closesAsOf : null;
+  const valueC = closesAsOf ? valueByCurrency(db, closesAsOf, now) : null;
+  const trendC = closesAsOf ? trendByCurrency(closesAsOf).byCurrency : null;
+  const sidx = {};
+  for (const c of CURRENCIES) sidx[c] = surpriseIndex(db, c, now, preloaded, eventsBetween);
+  const zValue = zscores(CURRENCIES.map((c) => (valueC && valueC[c] ? valueC[c].raw : null)));
+  const zTrend = zscores(CURRENCIES.map((c) => (trendC && trendC[c] ? trendC[c].raw : null)));
+  const zSidx = zscores(CURRENCIES.map((c) => sidx[c].raw));
 
   const zPolicy = zscores(CURRENCIES.map((c) => rates[c].policy));
   const zLevel = zscores(CURRENCIES.map((c) => rates[c].level));
@@ -337,6 +347,14 @@ export function computeCurrencies(db, input) {
         text: momC[c].raw === null ? 'sin precios' : `momentum 20 días ${zMom[i] >= 0 ? '+' : ''}${fmt(zMom[i], 1)} σ${Math.abs(zMom[i]) >= 1.2 ? (zMom[i] > 0 ? ' (de las más fuertes del G8)' : ' (de las más débiles del G8)') : ''}` },
       tono: { value: clamp(Number(manual.cb_tone) || 0, -2, 2), raw: Number(manual.cb_tone) || 0, missing: false,
         text: manual.cb_tone ? `${CENTRAL_BANKS[c].article} con tono ${manual.cb_tone > 0 ? 'halcón' : 'paloma'} (ajuste manual)` : 'tono neutro' },
+      valor: { value: round(valueC && valueC[c] && valueC[c].raw !== null ? zValue[i] : 0), raw: round(valueC && valueC[c] ? valueC[c].raw : null), missing: !(valueC && valueC[c] && valueC[c].raw !== null), deviation_pct: valueC && valueC[c] ? valueC[c].deviation_pct ?? null : null,
+        text: valueC && valueC[c] && valueC[c].raw !== null
+          ? (c === 'USD' ? `dólar ${valueC[c].raw > 0.3 ? 'barato' : valueC[c].raw < -0.3 ? 'caro' : 'en su media'} frente al resto (tipo de cambio real, 3 años)` : `${valueC[c].deviation_pct > 3 ? 'cara' : valueC[c].deviation_pct < -3 ? 'barata' : 'en su media'} en términos reales (${valueC[c].deviation_pct >= 0 ? '+' : ''}${fmt(valueC[c].deviation_pct, 1)} % frente a su media de 3 años)`)
+          : 'sin historial de precios o inflación' },
+      tendencia: { value: round(trendC && trendC[c] && trendC[c].raw !== null ? zTrend[i] : 0), raw: round(trendC && trendC[c] ? trendC[c].raw : null), missing: !(trendC && trendC[c] && trendC[c].raw !== null), s3: round(trendC && trendC[c] ? trendC[c].s3 : null), s12: round(trendC && trendC[c] ? trendC[c].s12 : null),
+        text: trendC && trendC[c] && trendC[c].raw !== null ? `tendencia ${trendC[c].raw > 0.3 ? 'alcista' : trendC[c].raw < -0.3 ? 'bajista' : 'plana'} a 3 y 12 meses (${fmt(trendC[c].s3, 1)} / ${trendC[c].s12 === null ? '—' : fmt(trendC[c].s12, 1)} σ)` : 'sin historial de precios' },
+      sorpresas: { value: round(sidx[c].raw === null ? 0 : zSidx[i]), raw: round(sidx[c].raw), missing: sidx[c].raw === null, n: sidx[c].n,
+        text: sidx[c].raw === null ? 'sin datos recientes' : `índice de sorpresas ${sidx[c].raw >= 0 ? '+' : ''}${fmt(sidx[c].raw, 2)} σ (90 días con decaimiento, ${sidx[c].n} datos)` },
     };
     let num = 0;
     let den = 0;
@@ -418,8 +436,12 @@ function finishRadar(db, input, ctx) {
     const diff = round(byCode[base].score - byCode[quote].score);
     const bias = diff >= 0 ? 'alcista' : 'bajista';
     const strength = Math.abs(diff) >= 4 ? 'fuerte' : Math.abs(diff) >= 2 ? 'moderado' : 'sin sesgo';
-    const missing = (PILLARS.filter((k) => byCode[base].pillars[k].missing).length + PILLARS.filter((k) => byCode[quote].pillars[k].missing).length) / 2;
-    const confidence = Math.round(100 * (1 - missing / PILLARS.length) * Math.min(1, Math.abs(diff) / 6));
+    // La confianza solo cuenta los pilares con peso (los experimentales a peso 0 no restan).
+    const activePillars = PILLARS.filter((k) => ((ctx.weights && ctx.weights[k]) || 0) > 0);
+    const missing = (activePillars.filter((k) => byCode[base].pillars[k].missing).length + activePillars.filter((k) => byCode[quote].pillars[k].missing).length) / 2;
+    const confidence = Math.round(100 * (1 - missing / (activePillars.length || 1)) * Math.min(1, Math.abs(diff) / 6));
+    const calib = input.backtest && input.backtest.calibration_logit ? input.backtest.calibration_logit : null;
+    const probFavorList = calib ? [5, 20].map((h) => probFavor(calib, sym, diff, h)).filter(Boolean) : [];
     const nextEv = eventsBetween(db, nowIso, in7d, { countries: [base, quote] }).filter((e) => e.impact === 'High' || e.impact === 'Medium').slice(0, 3)
       .map((e) => ({ title: e.title, currency: e.country, at_utc: e.at_utc, impact: e.impact, minutes: Math.round((new Date(e.at_utc).getTime() - now) / 60000), forecast: e.forecast, previous: e.previous }));
     // Últimos datos publicados: primero los de impacto alto/medio; los de impacto bajo solo si no hay otros.
@@ -442,7 +464,7 @@ function finishRadar(db, input, ctx) {
     if (prices.status.stale) warnings.push({ kind: 'precios_stale', text: `Precios desactualizados (${prices.status.note}).` });
     if (!p) {
       return { symbol: sym, base, quote, main: MAIN_PAIRS.includes(sym), price: { bid: s ? s.bid : 0, ask: s ? s.ask : 0, spread_pips: s ? s.spread_pips : null, digits: s ? s.digits : 5, pip: s ? s.pip : 0.0001 }, diff, bias, strength, confidence,
-        fluidity: { score: 0, label: 'sin datos', er20: 0, adr20_pips: 0, wick: 0, spread_pips: null }, momentum: { h1: 0, h4: 0, d1: 0 }, structure: null, plan: 'Sin precios suficientes para este par.', reasons: [], warnings, next_events: nextEv, last_events: lastEv, bias_change: biasChange };
+        fluidity: { score: 0, label: 'sin datos', er20: 0, adr20_pips: 0, wick: 0, spread_pips: null }, momentum: { h1: 0, h4: 0, d1: 0 }, structure: null, plan: 'Sin precios suficientes para este par.', reasons: [], warnings, next_events: nextEv, last_events: lastEv, bias_change: biasChange, prob_favor: probFavorList };
     }
     if (strength !== 'sin sesgo' && p.mom && p.mom.m20 * (diff > 0 ? 1 : -1) < -0.3) {
       const v = input.backtest && Array.isArray(input.backtest.variants) ? input.backtest.variants.find((x) => x.key === 'contra_tendencia') : null;
@@ -470,6 +492,7 @@ function finishRadar(db, input, ctx) {
       next_events: nextEv,
       last_events: lastEv,
       bias_change: biasChange,
+      prob_favor: probFavorList,
     };
   });
 

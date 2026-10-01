@@ -74,6 +74,11 @@ export const PILLAR_WEIGHTS = {
   riesgo: 10,
   momentum: 15,
   tono: 5,
+  // Fórmulas cuantitativas (docs/FORMULAS-CUANT.md). Peso 0 hasta que el backtest demuestre que aportan:
+  // valor (PPP / tipo de cambio real), tendencia (retorno 3 y 12 meses / volatilidad), sorpresas (índice tipo Citi).
+  valor: 0,
+  tendencia: 0,
+  sorpresas: 0,
 };
 export const PILLARS = Object.keys(PILLAR_WEIGHTS);
 

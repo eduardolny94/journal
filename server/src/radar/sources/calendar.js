@@ -149,6 +149,7 @@ export async function refreshCalendarForexFactory(db, { now = new Date() } = {})
        fetched_at = excluded.fetched_at, category = excluded.category`,
   );
   let count = 0;
+  const fetchedAt = now.toISOString();
   db.exec('BEGIN');
   try {
     for (const e of json) {

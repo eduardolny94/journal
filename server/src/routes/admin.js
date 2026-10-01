@@ -1,6 +1,7 @@
 // Panel de administración: suscriptores, suscripciones, pagos manuales, plantillas y registro de emails,
 // ajustes y tareas automáticas. Solo administradores. La pasarela de pago queda reservada (provider = 'manual').
 import { Router } from 'express';
+import { diagnostics } from '../services/diagnostics.js';
 import { getDb } from '../db.js';
 import { adminLevel, ownerLocked, permissionsFor, requireOwner } from '../services/admin.js';
 import {
@@ -364,6 +365,15 @@ router.post('/jobs/run', async (_req, res, next) => {
 });
 
 // GET /api/admin/whoami -> útil para el cliente
+// GET /api/admin/diagnostico -> salud del servidor, de las fuentes del radar y de los datos recogidos
+router.get('/diagnostico', (_req, res, next) => {
+  try {
+    res.json(diagnostics(getDb()));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/whoami', (req, res) => {
   res.json({ admin: true, level: req.adminLevel, permissions: permissionsFor(req.adminLevel) });
 });

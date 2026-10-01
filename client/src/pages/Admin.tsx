@@ -1,10 +1,11 @@
 // Panel de administración de la plataforma: resumen del negocio, suscriptores, pagos, emails y ajustes.
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BarChart3, CreditCard, Mail, RefreshCw, Settings2, ShieldCheck, Users } from 'lucide-react';
+import { Activity, BarChart3, CreditCard, Mail, RefreshCw, Settings2, ShieldCheck, Users } from 'lucide-react';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import UserDetailModal from '../components/admin/UserDetailModal';
 import { EmailsTab, MailerBanner, PaymentsTab, SettingsTab, SubscribersTab } from '../components/admin/AdminPanels';
+import DiagnosticsTab from '../components/admin/DiagnosticsTab';
 import { TabBar } from '../components/radar/common';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -20,6 +21,7 @@ const TABS = [
   { key: 'pagos', label: 'Pagos', icon: <CreditCard className="h-3.5 w-3.5" /> },
   { key: 'emails', label: 'Emails', icon: <Mail className="h-3.5 w-3.5" /> },
   { key: 'ajustes', label: 'Ajustes', icon: <Settings2 className="h-3.5 w-3.5" /> },
+  { key: 'diagnostico', label: 'Diagnóstico', icon: <Activity className="h-3.5 w-3.5" /> },
 ];
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 type ModalTab = 'suscripcion' | 'pago' | 'email' | 'historial';
@@ -132,6 +134,7 @@ export default function Admin() {
       {tab === 'suscriptores' && <SubscribersTab onManage={onManage} reloadKey={reloadKey} />}
       {tab === 'pagos' && <PaymentsTab reloadKey={reloadKey} onManage={onManage} />}
       {tab === 'emails' && <EmailsTab reloadKey={reloadKey} onTemplates={setTemplates} canEdit={isOwner} />}
+      {tab === 'diagnostico' && <DiagnosticsTab />}
       {tab === 'ajustes' && ov && <SettingsTab initial={ov.settings} mailer={ov.mailer} lastJob={ov.last_job} onSaved={reload} canEdit={isOwner} />}
 
       <UserDetailModal userId={managing?.id ?? null} initialTab={managing?.tab} onClose={() => setManaging(null)} onChanged={reload} settings={ov?.settings ?? null} templates={templates} isOwner={isOwner} ownerLocked={ov?.owner_locked ?? false} />

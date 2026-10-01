@@ -130,7 +130,7 @@ export default function Radar() {
             <VolatilityCard market={snap.market} />
             <SentimentCard sentiment={snap.sentiment} />
           </div>
-          <CurrencyStrength currencies={snap.currencies} selected={selected} onSelect={setSelected} />
+          <CurrencyStrength currencies={snap.currencies} selected={selected} onSelect={setSelected} snapWeights={snap.regime?.weights ?? null} />
           <div>
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <h2 className="flex items-center gap-2 text-base font-semibold text-white">

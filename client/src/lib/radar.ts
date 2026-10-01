@@ -75,7 +75,7 @@ export const MAX_FAVORITES = 3;
 /** Pares "principales" del usuario (arriba en la UI). */
 export const MAIN_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];
 
-export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono';
+export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas';
 
 export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: number; hint: string }> = [
   { key: 'tasas', label: 'Tasas', weight: 20, hint: 'Tasa de política y nivel del bono a 2 años (carry y lo ya descontado)' },
@@ -86,6 +86,10 @@ export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: num
   { key: 'riesgo', label: 'Riesgo', weight: 10, hint: 'Apetito de riesgo (S&P, VIX) y petróleo' },
   { key: 'momentum', label: 'Momentum', weight: 15, hint: 'Retornos a 1, 5 y 20 días normalizados por ATR' },
   { key: 'tono', label: 'Tono', weight: 5, hint: 'Ajuste manual del tono del banco central' },
+  // Fórmulas cuantitativas (docs/FORMULAS-CUANT.md). Peso 0 = informativo hasta que el backtest las valide.
+  { key: 'valor', label: 'Valor (PPP)', weight: 0, hint: 'Tipo de cambio real frente a su media de 3 años: positivo = divisa barata (Rogoff; Asness, Moskowitz y Pedersen)' },
+  { key: 'tendencia', label: 'Tendencia', weight: 0, hint: 'Retorno a 3 y 12 meses dividido por la volatilidad (time-series momentum, Moskowitz–Ooi–Pedersen)' },
+  { key: 'sorpresas', label: 'Sorpresas (CESI)', weight: 0, hint: 'Índice de sorpresas macro de 90 días con decaimiento (vida media 45 días) y peso por impacto medido, estilo Citi' },
 ];
 
 // ---------- Contrato de la API: divisas y pares ----------
@@ -127,6 +131,10 @@ export interface CurrencyPillars {
   riesgo: Pillar;
   momentum: MomentumPillar;
   tono: Pillar;
+  /** Fórmulas cuantitativas (pueden faltar en snapshots antiguos). */
+  valor?: Pillar & { deviation_pct?: number | null };
+  tendencia?: Pillar & { s3?: number | null; s12?: number | null };
+  sorpresas?: Pillar & { n?: number };
 }
 
 export interface PolicyRate {
@@ -286,6 +294,8 @@ export interface RadarPair {
   last_events: LastEvent[];
   /** Comparación con el sesgo de hace 5 días hábiles (reconstrucción diaria). */
   bias_change?: BiasChange | null;
+  /** Probabilidad calibrada (regresión logística) de que el precio vaya a favor del sesgo, por horizonte. */
+  prob_favor?: Array<{ horizon_d: number; p: number; n: number; per_pair: boolean }>;
 }
 
 export interface CotRow {
@@ -1353,7 +1363,12 @@ export function topDrivers(pair: Pick<RadarPair, 'base' | 'quote' | 'diff' | 'pi
   const q = currencies.find((c) => c.code === pair.quote);
   if (!b || !q) return [];
   const sign = pair.diff >= 0 ? 1 : -1;
-  return PILLARS.map((p) => ({ label: p.label.toLowerCase(), v: (b.pillars[p.key].value - q.pillars[p.key].value) * p.weight * sign }))
+  // Los pilares cuantitativos pueden faltar en snapshots antiguos y tienen peso 0: no empujan.
+  return PILLARS.map((p) => {
+    const pb = b.pillars[p.key];
+    const pq = q.pillars[p.key];
+    return { label: p.label.toLowerCase(), v: pb && pq ? (pb.value - pq.value) * p.weight * sign : 0 };
+  })
     .filter((x) => x.v > 0)
     .sort((x, y) => y.v - x.v)
     .slice(0, max)

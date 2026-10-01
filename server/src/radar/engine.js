@@ -133,6 +133,42 @@ function policyMap(db) {
   return map;
 }
 
+// ---------- Cierres diarios para las fórmulas cuantitativas (valor, tendencia) ----------
+
+let lastDailyPersist = 0;
+/** Guarda los cierres diarios (2 años, Yahoo) cada 6 h: así la tabla sigue viva aunque el backtest tarde en correr. */
+function persistDailyCloses(db, prices, now) {
+  if (now - lastDailyPersist < 6 * 3600_000) return;
+  lastDailyPersist = now;
+  try {
+    const up = db.prepare('INSERT OR REPLACE INTO radar_daily_prices (symbol, date, close) VALUES (?, ?, ?)');
+    db.exec('BEGIN');
+    for (const [sym, s] of Object.entries(prices.symbols || {})) {
+      if (!CURRENCIES.includes(sym.slice(0, 3)) || !Array.isArray(s.d1)) continue;
+      for (const b of s.d1) if (b && b.close > 0 && b.time) up.run(sym, new Date(b.time * 1000).toISOString().slice(0, 10), b.close);
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    try { db.exec('ROLLBACK'); } catch { /* sin transacción */ }
+    console.warn('[radar] cierres diarios:', e.message);
+  }
+}
+
+/** Cierres diarios ascendentes por par (hasta 820 días), leídos una vez por cálculo. */
+function dailyClosesProvider(db) {
+  const cache = new Map();
+  return (sym) => {
+    if (!cache.has(sym)) {
+      try {
+        cache.set(sym, db.prepare('SELECT date, close FROM radar_daily_prices WHERE symbol = ? ORDER BY date DESC LIMIT 820').all(sym).reverse());
+      } catch {
+        cache.set(sym, []);
+      }
+    }
+    return cache.get(sym);
+  };
+}
+
 async function compute() {
   const db = getDb();
   const now = Date.now();
@@ -151,7 +187,9 @@ async function compute() {
   const rsel = rw && rw.apply && rw.regimes && rw.regimes[regimeKey] && rw.regimes[regimeKey].weights ? rw.regimes[regimeKey] : null;
   const weights = rsel ? rsel.weights : PILLAR_WEIGHTS;
   const backtest = lastBacktest(db);
-  const core = computeRadar(db, { prices, cot, expectations: expByCcy, manual, policy, now, weights, backtest });
+  persistDailyCloses(db, prices, now);
+  const closesAsOf = dailyClosesProvider(db);
+  const core = computeRadar(db, { prices, cot, expectations: expByCcy, manual, policy, now, weights, backtest, closesAsOf });
   let instruments = [];
   try {
     const usd = core.currencies.find((c) => c.code === 'USD');
@@ -313,4 +351,15 @@ export function startEngine() {
 export function stopEngine() {
   if (state.timer) clearInterval(state.timer);
   state.timer = null;
+}
+
+/** Estado del motor para el diagnóstico de administración: fuentes, snapshot y backtest. */
+export function engineStatus() {
+  return {
+    sources: state.sources,
+    computed_at: state.computedAt ? new Date(state.computedAt).toISOString() : null,
+    snapshot_prices: state.snapshot && state.snapshot.status ? state.snapshot.status.prices : null,
+    regime: state.snapshot ? state.snapshot.regime : null,
+    backtest: backtestStatus(),
+  };
 }

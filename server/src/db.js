@@ -295,6 +295,14 @@ CREATE TABLE IF NOT EXISTS account_transactions (
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_account_tx_user_date ON account_transactions(user_id, occurred_at);
+-- Cierres diarios por par (5 años, Yahoo): base de las fórmulas de valor y tendencia (quant.js).
+CREATE TABLE IF NOT EXISTS radar_daily_prices (
+  symbol TEXT NOT NULL,
+  date TEXT NOT NULL,
+  close REAL NOT NULL,
+  PRIMARY KEY (symbol, date)
+);
+
 CREATE TABLE IF NOT EXISTS radar_daily_bias (
   date TEXT NOT NULL,
   symbol TEXT NOT NULL,

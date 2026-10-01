@@ -37,6 +37,7 @@ Hay dos niveles de personal:
 | **Suscriptores** | Tabla con buscador y filtros por estado y plan: plan, estado, vencimiento y días restantes, precio, total pagado, último acceso y uso (operaciones y cuentas). Botones para registrar pago, enviar email y "Gestionar". |
 | **Pagos** | Todos los pagos registrados, con el periodo que cubre cada uno. |
 | **Emails** | Plantillas editables (vista previa y "enviarme una prueba") y registro de todo lo enviado. |
+| **Diagnóstico** | Salud del sistema en un vistazo: servidor (memoria, tiempo encendido, correo, clave FRED, tarea de suscripciones), fuentes del radar (última descarga y error de cada una), datos recogidos (calendario, FRED, bonos, COT, snapshots, backtest, cierres diarios, noticias) y usuarios/sincronización MT5. Semáforo OK/Aviso/Error por fila. `GET /api/admin/diagnostico`. |
 | **Ajustes** | Días de prueba, días de gracia, exigir suscripción, recordatorios automáticos, precios, remitente, email de soporte, enlace de pago, "revisar vencimientos ahora" y la tarjeta de la pasarela (pendiente). |
 
 La **ficha de cada usuario** (botón "Gestionar") tiene: suscripción (plan, estado, precio, fechas, notas y —solo el
