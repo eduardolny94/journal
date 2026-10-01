@@ -67,7 +67,7 @@ export const CB_WATCH_LINKS: Partial<Record<CurrencyCode, { label: string; url: 
 };
 
 /** Los 10 pares que calcula el radar (los 7 mayores + 3 cruces solo mostrados). */
-export const RADAR_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'EURAUD', 'EURCAD'];
+export const RADAR_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'EURAUD', 'EURCAD', 'EURCHF', 'EURNZD', 'GBPCHF', 'GBPCAD', 'GBPAUD', 'GBPNZD', 'CHFJPY', 'NZDJPY', 'AUDCHF', 'AUDCAD', 'AUDNZD', 'CADCHF', 'NZDCAD', 'NZDCHF'];
 
 /** Favoritos por usuario (igual que en el servidor): pocos a propósito. */
 export const MAX_FAVORITES = 3;
@@ -229,6 +229,41 @@ export interface RadarWarning {
   text: string;
 }
 
+export interface PairConviction {
+  tier: 'A' | 'B' | 'C';
+  p1: number | null;
+  p5: number;
+  p20: number | null;
+  evidence: { hit_rate: number | null; n: number; avg_r: number | null } | null;
+  pros: string[];
+  cons: string[];
+  atr_pips: number | null;
+}
+export interface QueOperarItem {
+  symbol: string;
+  bias: 'alcista' | 'bajista';
+  diff: number;
+  strength: string;
+  tier: 'A' | 'B' | 'C';
+  p5: number;
+  p20: number | null;
+  liquidity: number;
+  synthetic: boolean;
+  rank_score: number;
+  pros: string[];
+  cons: string[];
+  atr_pips: number | null;
+  warnings: string[];
+}
+export interface QueOperar {
+  as_of: string;
+  strongest: Array<{ code: CurrencyCode; score: number }>;
+  weakest: Array<{ code: CurrencyCode; score: number }>;
+  best: QueOperarItem[];
+  total_a: number;
+  total_b: number;
+}
+
 export interface NextEvent {
   title: string;
   currency: string;
@@ -296,6 +331,10 @@ export interface RadarPair {
   bias_change?: BiasChange | null;
   /** Probabilidad calibrada (regresión logística) de que el precio vaya a favor del sesgo, por horizonte. */
   prob_favor?: Array<{ horizon_d: number; p: number; n: number; per_pair: boolean }>;
+  /** Capa de convicción (modelo con todas las condiciones, validado fuera de muestra). */
+  conviction?: PairConviction | null;
+  /** Cruce calculado a partir de sus patas con dólar. */
+  synthetic?: boolean;
 }
 
 export interface CotRow {
@@ -525,6 +564,7 @@ export interface RadarSnapshot {
   market: MarketContext | null;
   sentiment: Sentiment | null;
   news_top: NewsItem[];
+  que_operar?: QueOperar | null;
 }
 
 export interface RadarPairDetail {
@@ -600,6 +640,7 @@ export function normalizeSnapshot(raw: unknown): RadarSnapshot {
     pairs: asArray<RadarPair>(r.pairs).map((p) => ({ ...p, reasons: asArray(p.reasons), warnings: asArray(p.warnings), next_events: asArray(p.next_events), last_events: asArray(p.last_events) })),
     instruments: asArray<RadarPair>(r.instruments).map((p) => ({ ...p, base: null, quote: null, reasons: asArray(p.reasons), warnings: asArray(p.warnings), next_events: asArray(p.next_events), last_events: asArray(p.last_events) })),
     upcoming: asArray<NextEvent>(r.upcoming),
+    que_operar: (r.que_operar as QueOperar | null | undefined) ?? null,
     cot: asArray<CotRow>(r.cot),
     expectations: asArray<Expectation>(r.expectations),
     week: r.week ?? null,

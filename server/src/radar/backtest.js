@@ -12,6 +12,10 @@ import { eventsBetween, latestActual } from './sources/calendar.js';
 import { atr, round } from './indicators.js';
 import { setMeta, getMetaJson } from './store.js';
 import { calibrateLogit } from './quant.js';
+import { signalFeatures, buildConvictionModel } from './conviction.js';
+import { surpriseOf } from './sources/calendar.js';
+import { SYNTHETIC_CROSS_PAIRS, pairDigits as digitsOfPair } from './constants.js';
+import { legsOf, synthDaily } from './synthetic.js';
 
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 const MONTHLY_LAG_DAYS = 40; // retraso de publicación asumido para series mensuales (IPC, paro, tasa 3 meses)
@@ -140,13 +144,18 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     if (r.status === 'fulfilled') daily[r.value[0]] = r.value[1];
     else failed.push(`${symbols[i][0]}: ${r.reason && r.reason.message}`);
   });
+  // Cruces sintéticos a partir de las patas con dólar (mismas fechas, mismo origen).
+  for (const sym of SYNTHETIC_CROSS_PAIRS) {
+    const { base, quote } = legsOf(sym);
+    if (base && quote && daily[base.sym] && daily[quote.sym]) daily[sym] = synthDaily(daily[base.sym], daily[quote.sym], base.invert, quote.invert, digitsOfPair(sym));
+  }
   const pairsOk = PAIRS.filter((p) => daily[p] && daily[p].length > 300);
   if (pairsOk.length < 6) throw new Error(`Precios insuficientes para el backtest (${failed.join('; ') || 'pocas velas'})`);
   // Los cierres diarios (5 años) se guardan para que el radar en vivo calcule valor y tendencia con el mismo historial.
   try {
-    const up = db.prepare('INSERT OR REPLACE INTO radar_daily_prices (symbol, date, close) VALUES (?, ?, ?)');
+    const up = db.prepare('INSERT OR REPLACE INTO radar_daily_prices (symbol, date, close, open, high, low) VALUES (?, ?, ?, ?, ?, ?)');
     db.exec('BEGIN');
-    for (const sym of pairsOk) for (const b of daily[sym]) if (b.close > 0) up.run(sym, b.date, b.close);
+    for (const sym of pairsOk) for (const b of daily[sym]) if (b.close > 0) up.run(sym, b.date, b.close, b.open ?? null, b.high ?? null, b.low ?? null);
     db.exec('COMMIT');
   } catch (e) {
     try { db.exec('ROLLBACK'); } catch { /* sin transacción */ }
@@ -194,6 +203,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
   const records = []; // una fila por (día, par) para las variantes
   const diffHist = {}; // sym -> diff por índice de día
   const dailyRows = []; // [date, sym, diff, regime] para radar_daily_bias
+  const convRows = []; // filas (día, par) con todas las condiciones, para la capa de convicción
   let samples = 0;
   let missingPillarCount = 0;
   let pillarObs = 0;
@@ -225,6 +235,17 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
       return i < 0 ? [] : daily[sym].slice(Math.max(0, i - 800), i + 1);
     };
     const cur = computeCurrencies(db, { now: asOfMs, market, pairData, cot, policy, manual: {}, expectations: {}, events, lag_days: MONTHLY_LAG_DAYS, closesAsOf });
+    // Condiciones del día para la capa de convicción: datos fuertes en las próximas 24 h y último dato publicado (48 h).
+    const newsSoonCcy = new Set(eventsBetween(db, new Date(asOfMs).toISOString(), new Date(asOfMs + 24 * 3600_000).toISOString()).filter((e) => e.impact === 'High').map((e) => e.country));
+    const lastDir = {};
+    for (const ev of events) {
+      if (!ev.actual || ev.impact === 'Low') continue;
+      const t = new Date(ev.at_utc).getTime();
+      if (t < asOfMs - 48 * 3600_000 || t > asOfMs) continue;
+      const sp = surpriseOf(ev, db);
+      if (!sp.favors) continue;
+      lastDir[ev.country] = { t, dir: sp.favors === ev.country ? 1 : -1 };
+    }
     const pillarsByCcy = {};
     for (const c of cur.currencies) {
       pillarsByCcy[c.code] = pillarKeys.map((k) => c.pillars[k].value);
@@ -250,12 +271,28 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
       outcomes[sym] = { diff, h: {} };
       if (!diffHist[sym]) diffHist[sym] = [];
       diffHist[sym][di] = diff;
-      records.push({ di, sym, level, sign, diff, mom20: pairData[sym].mom.m20, prevDiff: di >= 5 && diffHist[sym][di - 5] !== undefined ? diffHist[sym][di - 5] : null, h: outcomes[sym].h });
+      const prevDiff5 = di >= 5 && diffHist[sym][di - 5] !== undefined ? diffHist[sym][di - 5] : null;
+      records.push({ di, sym, level, sign, diff, mom20: pairData[sym].mom.m20, prevDiff: prevDiff5, h: outcomes[sym].h });
+      const pb = cur.byCode[base].pillars;
+      const pq = cur.byCode[quote].pillars;
+      const dirB = lastDir[base] ? lastDir[base].dir : 0;
+      const dirQ = lastDir[quote] ? lastDir[quote].dir : 0;
+      const feat = signalFeatures({
+        symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value,
+        cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon: newsSoonCcy.has(base) || newsSoonCcy.has(quote),
+        lastSurprise: clamp(sign * (dirB - dirQ), -1, 1),
+        pillarDiff: { valor: (pb.valor ? pb.valor.value : 0) - (pq.valor ? pq.valor.value : 0), tendencia: (pb.tendencia ? pb.tendencia.value : 0) - (pq.tendencia ? pq.tendencia.value : 0), sorpresas: (pb.sorpresas ? pb.sorpresas.value : 0) - (pq.sorpresas ? pq.sorpresas.value : 0) },
+      });
+      const atrPips = feat.atr ? feat.atr / pip : null;
+      convRows.push({ date, sym, x: feat.x, signed_pips: {}, r: {}, atr_pips: atrPips });
+      const convRow = convRows[convRows.length - 1];
       for (const h of horizons) {
         if (i + h >= bars.length) continue;
         const pips = (bars[i + h].close - bars[i].close) / pip;
         outcomes[sym].h[h] = pips;
         const signed = pips * sign;
+        convRow.signed_pips[h] = signed;
+        convRow.r[h] = atrPips ? signed / atrPips : 0;
         samples++;
         const kb = `${h}|${level}`;
         if (!buckets[kb]) buckets[kb] = newBucket();
@@ -381,10 +418,20 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     log(`calibración logística: ${e.message}`);
   }
 
+  // Capa de convicción (walk-forward) a 1, 5 y 20 días.
+  let conviction = null;
+  try {
+    conviction = { h1: buildConvictionModel(convRows, { horizon: 1 }), h5: buildConvictionModel(convRows, { horizon: 5 }), h20: buildConvictionModel(convRows, { horizon: 20 }) };
+    for (const [k, m] of Object.entries(conviction)) if (m) log(`convicción ${k}: fuera de muestra A ${m.test.tiers.A.hit_rate}% (n=${m.test.tiers.A.n}, ${m.test.tiers.A.avg_r}R) · B ${m.test.tiers.B.hit_rate}% (n=${m.test.tiers.B.n}) · C ${m.test.tiers.C.hit_rate}% (n=${m.test.tiers.C.n}) · todo ${m.test.all.hit_rate}%`);
+  } catch (e) {
+    log(`convicción: ${e.message}`);
+  }
+
   const report = {
     computed_at: new Date(now).toISOString(),
     duration_ms: Date.now() - t0,
     calibration_logit: calibrationLogit,
+    conviction,
     from: usable[0],
     to: lastMeasured,
     days: usable.length,

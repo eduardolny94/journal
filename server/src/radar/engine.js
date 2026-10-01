@@ -141,11 +141,11 @@ function persistDailyCloses(db, prices, now) {
   if (now - lastDailyPersist < 6 * 3600_000) return;
   lastDailyPersist = now;
   try {
-    const up = db.prepare('INSERT OR REPLACE INTO radar_daily_prices (symbol, date, close) VALUES (?, ?, ?)');
+    const up = db.prepare('INSERT OR REPLACE INTO radar_daily_prices (symbol, date, close, open, high, low) VALUES (?, ?, ?, ?, ?, ?)');
     db.exec('BEGIN');
     for (const [sym, s] of Object.entries(prices.symbols || {})) {
       if (!CURRENCIES.includes(sym.slice(0, 3)) || !Array.isArray(s.d1)) continue;
-      for (const b of s.d1) if (b && b.close > 0 && b.time) up.run(sym, new Date(b.time * 1000).toISOString().slice(0, 10), b.close);
+      for (const b of s.d1) if (b && b.close > 0 && b.time) up.run(sym, new Date(b.time * 1000).toISOString().slice(0, 10), b.close, b.open ?? null, b.high ?? null, b.low ?? null);
     }
     db.exec('COMMIT');
   } catch (e) {
@@ -160,7 +160,7 @@ function dailyClosesProvider(db) {
   return (sym) => {
     if (!cache.has(sym)) {
       try {
-        cache.set(sym, db.prepare('SELECT date, close FROM radar_daily_prices WHERE symbol = ? ORDER BY date DESC LIMIT 820').all(sym).reverse());
+        cache.set(sym, db.prepare('SELECT date, close, open, high, low FROM radar_daily_prices WHERE symbol = ? ORDER BY date DESC LIMIT 820').all(sym).reverse());
       } catch {
         cache.set(sym, []);
       }
@@ -217,6 +217,7 @@ async function compute() {
     pairs: core.pairs,
     instruments,
     upcoming: core.upcoming,
+    que_operar: core.que_operar || null,
     cot: cot.rows,
     expectations,
     week,
@@ -307,7 +308,8 @@ function scheduleBackgroundJobs() {
       const db = getDb();
       const last = lastBacktest(db);
       const age = last ? Date.now() - new Date(last.computed_at).getTime() : Infinity;
-      if (age >= BACKTEST_EVERY_MS) await runBacktestNow();
+      // Semanal, o en cuanto el informe guardado no tenga la capa de convicción (primer arranque tras actualizar).
+      if (age >= BACKTEST_EVERY_MS || !(last && last.conviction)) await runBacktestNow();
     } catch (e) {
       console.warn('[radar] tareas de fondo:', e.message);
     }

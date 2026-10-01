@@ -8,10 +8,20 @@ export const MAJOR_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'A
 // Cruces líquidos (spread bajo en brokers y prop firms) con una lógica macro distinta cada uno: riesgo (AUDJPY),
 // petróleo contra refugio (CADJPY), Europa contra materias primas (EURAUD, EURCAD).
 export const CROSS_PAIRS = ['EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'EURAUD', 'EURCAD'];
+/** Pares que se descargan de Yahoo. Los demás cruces se calculan a partir de sus patas con dólar (synthetic.js). */
+export const FETCHED_PAIRS = [...MAJOR_PAIRS, ...CROSS_PAIRS];
+/** Resto de combinaciones del G8, sintéticas: así "divisa fuerte contra divisa débil" siempre tiene un par. */
+export const SYNTHETIC_CROSS_PAIRS = ['EURCHF', 'EURNZD', 'GBPCHF', 'GBPCAD', 'GBPAUD', 'GBPNZD', 'CHFJPY', 'NZDJPY', 'AUDCHF', 'AUDCAD', 'AUDNZD', 'CADCHF', 'NZDCAD', 'NZDCHF'];
+/** Liquidez relativa (spread y profundidad típicos en brokers de forex): penaliza el ranking de "qué operar". */
+export const PAIR_LIQUIDITY = {
+  EURUSD: 1, GBPUSD: 1, USDJPY: 1, USDCHF: 0.95, USDCAD: 0.95, AUDUSD: 0.95, NZDUSD: 0.85,
+  EURGBP: 0.9, EURJPY: 0.9, GBPJPY: 0.85, AUDJPY: 0.85, EURCHF: 0.85, EURAUD: 0.8, EURCAD: 0.8, CADJPY: 0.8, CHFJPY: 0.75,
+  GBPCHF: 0.75, GBPCAD: 0.75, GBPAUD: 0.75, AUDCAD: 0.75, AUDNZD: 0.75, NZDJPY: 0.7, EURNZD: 0.65, GBPNZD: 0.65, AUDCHF: 0.65, CADCHF: 0.6, NZDCAD: 0.6, NZDCHF: 0.55,
+};
 
 /** Favoritos por usuario: pocos a propósito, para centrar el día en lo que de verdad se opera. */
 export const MAX_FAVORITES = 3;
-export const PAIRS = [...MAJOR_PAIRS, ...CROSS_PAIRS];
+export const PAIRS = [...FETCHED_PAIRS, ...SYNTHETIC_CROSS_PAIRS];
 
 /** Pares "principales" del usuario (arriba en la UI). */
 export const MAIN_PAIRS = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];
@@ -97,7 +107,7 @@ export const PILLAR_LABELS = {
 // ---------- Precios (RADAR-v2 §A): Yahoo Finance como fuente principal ----------
 
 /** Símbolo de Yahoo de cada par. */
-export const YAHOO_PAIR_SYMBOLS = Object.fromEntries(PAIRS.map((p) => [p, `${p}=X`]));
+export const YAHOO_PAIR_SYMBOLS = Object.fromEntries(FETCHED_PAIRS.map((p) => [p, `${p}=X`]));
 
 /** Series de mercado en Yahoo (sustituyen a SP500/VIXCLS/DCOILWTICO/DTWEXBGS de FRED). */
 export const YAHOO_MARKET_SYMBOLS = {

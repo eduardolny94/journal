@@ -1,5 +1,6 @@
 // Radar de divisas, índices y metales (privado): panel global tipo terminal con pestañas y favoritos.
 import FavoritesPicker from '../components/radar/FavoritesPicker';
+import QueOperarCard from '../components/radar/QueOperarCard';
 import ImpactCard from '../components/radar/ImpactCard';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -120,6 +121,7 @@ export default function Radar() {
       {tab === 'panel' && (
         <div className="space-y-6">
           <WorldMap currencies={snap.currencies} onSelect={(c) => setSelected(c)} updatedLabel={`Actualizado ${fmtSince(snap.computed_at, now)}`} />
+          <QueOperarCard data={snap.que_operar ?? null} pairs={snap.pairs} favorites={favorites} />
           <ConvictionCards pairs={snap.pairs} currencies={snap.currencies} />
           {/* Dos filas horizontales: noticias y calendario con alturas parejas; debajo, volatilidad y sentimiento. */}
           <div className="grid gap-4 lg:grid-cols-2">

@@ -13,6 +13,7 @@ import {
 } from '../../lib/radar';
 import { ImpactDots, useNow } from './common';
 import { CalibrationLine } from './BacktestCard';
+import { TierBadge } from './QueOperarCard';
 
 function Level({ label, value, price, digits, pip, accent }: { label: string; value: number; price: number; digits: number; pip?: number; accent?: boolean }) {
   const dist = toPips(value - price, digits, pip);
@@ -84,6 +85,14 @@ export default function PairCard({ pair, compact = false, className, favorite, o
       <div className="grid gap-4 p-4 lg:grid-cols-[1.1fr_1fr]">
         <div className="space-y-3">
           <p className="text-sm text-gray-200">{biasSentence(pair)}</p>
+          {pair.conviction && Math.abs(pair.diff) >= 2 && (
+            <p className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
+              <TierBadge tier={pair.conviction.tier} p5={pair.conviction.p5} />
+              {pair.conviction.evidence && pair.conviction.evidence.n >= 30 && <span>Las señales de este nivel acertaron {pair.conviction.evidence.hit_rate} % a 5 días fuera de muestra (n={pair.conviction.evidence.n}{pair.conviction.evidence.avg_r !== null ? `, ${pair.conviction.evidence.avg_r > 0 ? '+' : ''}${pair.conviction.evidence.avg_r}R` : ''}).</span>}
+              {pair.conviction.pros.length > 0 && <span className="text-gray-300">+ {pair.conviction.pros.join(' · ')}</span>}
+              {pair.conviction.cons.length > 0 && <span className="text-gray-500">− {pair.conviction.cons.join(' · ')}</span>}
+            </p>
+          )}
           {pair.base && <CalibrationLine level={n} />}
           {pair.prob_favor && pair.prob_favor.length > 0 && Math.abs(pair.diff) >= 2 && (
             <p className="text-[11px] text-gray-400" title="Regresión logística ajustada con el historial del backtest (3 años): P(a favor) = σ(a + b·diferencia). Por par cuando hay muestras suficientes.">

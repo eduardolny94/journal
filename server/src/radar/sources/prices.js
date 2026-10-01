@@ -1,10 +1,11 @@
 // Precios del radar (RADAR-v2 §A): Yahoo Finance sin clave → MT5 (opcional) → muestra.
 // Mantiene una caché por símbolo con refresco escalonado (vivo 60 s, H1 5 min, D1 30 min, mercado 15 min)
 // y backoff de 5 min si Yahoo responde 429/999 o falla la red.
-import { PAIRS, YAHOO_PAIR_SYMBOLS, YAHOO_MARKET_SYMBOLS, REFRESH_MS, YAHOO_BACKOFF_MS, pairDigits, pairPip, INSTRUMENTS, INSTRUMENT_BY_SYMBOL } from '../constants.js';
+import { PAIRS, FETCHED_PAIRS, YAHOO_PAIR_SYMBOLS, YAHOO_MARKET_SYMBOLS, REFRESH_MS, YAHOO_BACKOFF_MS, pairDigits, pairPip, INSTRUMENTS, INSTRUMENT_BY_SYMBOL } from '../constants.js';
+import { addSyntheticSymbols } from '../synthetic.js';
 
 /** Todos los símbolos con velas: pares FX + índices y metales, con su símbolo de Yahoo. */
-const ALL_SYMBOLS = [...PAIRS.map((p) => ({ symbol: p, yahoo: YAHOO_PAIR_SYMBOLS[p] })), ...INSTRUMENTS.map((i) => ({ symbol: i.symbol, yahoo: i.yahoo }))];
+const ALL_SYMBOLS = [...FETCHED_PAIRS.map((p) => ({ symbol: p, yahoo: YAHOO_PAIR_SYMBOLS[p] })), ...INSTRUMENTS.map((i) => ({ symbol: i.symbol, yahoo: i.yahoo }))];
 function digitsOf(symbol) {
   return INSTRUMENT_BY_SYMBOL[symbol] ? INSTRUMENT_BY_SYMBOL[symbol].digits : pairDigits(symbol);
 }
@@ -125,7 +126,7 @@ export async function refreshYahoo({ now = Date.now(), force = false } = {}) {
 }
 
 function yahooReady() {
-  return PAIRS.every((p) => cache.pairs[p] && cache.pairs[p].h1 && cache.pairs[p].d1);
+  return FETCHED_PAIRS.every((p) => cache.pairs[p] && cache.pairs[p].h1 && cache.pairs[p].d1);
 }
 
 function fromYahoo(now) {
@@ -153,6 +154,7 @@ function fromYahoo(now) {
       d1: c.d1.bars,
     };
   }
+  addSyntheticSymbols(symbols);
   return { symbols, age_seconds: Math.round(Math.max(0, oldest) / 1000) };
 }
 
@@ -225,6 +227,7 @@ export async function getPrices({ now = Date.now() } = {}) {
       };
     }
   }
+  addSyntheticSymbols(symbols);
   const provider = mt5.ok ? 'mt5' : 'sample';
   return {
     status: {

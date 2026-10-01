@@ -11,6 +11,8 @@ import { aggregateNyDays, aggregateH4, aggregateWeeks, atr, efficiencyRatio, tre
 import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
 import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
+import { signalFeatures, predictProb, tierOf, explain } from './conviction.js';
+import { PAIR_LIQUIDITY, pairPip } from './constants.js';
 
 const fmt = (n, k = 2) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -478,11 +480,12 @@ function finishRadar(db, input, ctx) {
     }
     if (s.spread_pips !== null && s.spread_pips > 3) warnings.push({ kind: 'spread_alto', text: `Spread alto (${fmt(s.spread_pips, 1)} pips).` });
     const reasons = [...reasonsFor(byCode[base], input.cot.byCurrency[base], market), ...reasonsFor(byCode[quote], input.cot.byCurrency[quote], market)];
+    const conviction = convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, closesAsOf: input.closesAsOf });
     if (risk.spRet !== null) reasons.push(`Riesgo global: S&P ${risk.spRet >= 0 ? '+' : ''}${fmt(risk.spRet, 1)} % en 20 días, VIX ${fmt(risk.vix, 1)}: ${risk.riskOn > 0.3 ? 'apoya AUD/NZD/CAD y pesa sobre JPY/CHF' : risk.riskOn < -0.3 ? 'apoya USD/JPY/CHF y pesa sobre AUD/NZD' : 'sin sesgo de riesgo claro'}`);
     return {
       symbol: sym, base, quote, main: MAIN_PAIRS.includes(sym),
       price: { bid: s.bid, ask: s.ask, spread_pips: s.spread_pips === null ? null : round(s.spread_pips, 1), digits: s.digits, pip: s.pip },
-      diff, bias, strength, confidence,
+      diff, bias, strength, confidence, synthetic: !!s.synthetic,
       fluidity: { score: fluidity[sym].score, label: fluidity[sym].label, er20: round(p.fluidRaw.er20, 3), adr20_pips: round(p.fluidRaw.adr_pips, 1), wick: round(p.fluidRaw.wick, 3), spread_pips: s.spread_pips === null ? null : round(s.spread_pips, 1) },
       momentum: p.momentum,
       structure,
@@ -493,13 +496,79 @@ function finishRadar(db, input, ctx) {
       last_events: lastEv,
       bias_change: biasChange,
       prob_favor: probFavorList,
+      conviction,
     };
   });
 
   const upcoming = eventsBetween(db, nowIso, in7d).filter((e) => (e.impact === 'High' || e.impact === 'Medium') && CURRENCIES.includes(e.country)).slice(0, 40)
     .map((e) => ({ title: e.title, currency: e.country, at_utc: e.at_utc, impact: e.impact, minutes: Math.round((new Date(e.at_utc).getTime() - now) / 60000), forecast: e.forecast, previous: e.previous }));
 
-  return { currencies, pairs, upcoming, risk, pairData };
+  const que_operar = rankTradeable(pairs, currencies, now);
+  return { currencies, pairs, upcoming, risk, pairData, que_operar };
+}
+
+// ---------- Capa de convicción y "qué operar" ----------
+
+/** Nivel A/B/C de un par con el modelo del backtest (mismas condiciones que en la reconstrucción histórica). */
+function convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, closesAsOf }) {
+  const bt = input.backtest && input.backtest.conviction ? input.backtest.conviction : null;
+  const model5 = bt && bt.h5 ? bt.h5.model : null;
+  if (!model5 || !diff || typeof closesAsOf !== 'function') return null;
+  const bars = (closesAsOf(sym) || []).slice(-80);
+  if (bars.length < 30 || !bars[bars.length - 1].open) return null;
+  let prevDiff5 = null;
+  try {
+    const row = db.prepare('SELECT diff FROM radar_daily_bias WHERE symbol = ? ORDER BY date DESC LIMIT 1 OFFSET 4').get(sym);
+    prevDiff5 = row ? row.diff : null;
+  } catch { /* sin historial */ }
+  const sign = diff > 0 ? 1 : -1;
+  const in24h = new Date(input.now || Date.now()).getTime() + 24 * 3600_000;
+  const newsSoon = nextEv.some((e) => e.impact === 'High' && new Date(e.at_utc).getTime() <= in24h);
+  const dir = {};
+  for (const e of [...lastEv].reverse()) if (e.favors && e.impact !== 'Low') dir[e.currency] = e.favors === e.currency ? 1 : -1;
+  const pb = byCode[base].pillars;
+  const pq = byCode[quote].pillars;
+  const feat = signalFeatures({
+    symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null,
+    cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
+    lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
+    pillarDiff: { valor: (pb.valor ? pb.valor.value : 0) - (pq.valor ? pq.valor.value : 0), tendencia: (pb.tendencia ? pb.tendencia.value : 0) - (pq.tendencia ? pq.tendencia.value : 0), sorpresas: (pb.sorpresas ? pb.sorpresas.value : 0) - (pq.sorpresas ? pq.sorpresas.value : 0) },
+  });
+  const p5 = predictProb(model5, feat.x);
+  // Los horizontes secundarios solo se enseñan si su nivel A también acertó ≥ 55 % fuera de muestra.
+  const validated = (m) => !!(m && m.model && m.test && m.test.tiers && m.test.tiers.A.n >= 30 && m.test.tiers.A.hit_rate !== null && m.test.tiers.A.hit_rate >= 55);
+  const p20 = validated(bt.h20) ? predictProb(bt.h20.model, feat.x) : null;
+  const p1 = validated(bt.h1) ? predictProb(bt.h1.model, feat.x) : null;
+  const tier = tierOf(p5);
+  const ev = bt.h5.test && bt.h5.test.tiers ? bt.h5.test.tiers[tier] : null;
+  const { pros, cons } = explain(model5, feat.x);
+  return {
+    tier,
+    p1: p1 === null ? null : round(100 * p1, 0),
+    p5: round(100 * p5, 0),
+    p20: p20 === null ? null : round(100 * p20, 0),
+    evidence: ev ? { hit_rate: ev.hit_rate, n: ev.n, avg_r: ev.avg_r } : null,
+    pros, cons,
+    atr_pips: feat.atr ? round(feat.atr / pairPip(sym), 0) : null,
+  };
+}
+
+/** Ranking "qué operar": pares con nivel A o B, ordenados por probabilidad a 5 días y liquidez, sin dato fuerte en 2 h. */
+function rankTradeable(pairs, currencies, now) {
+  const sorted = [...currencies].sort((a, b) => b.score - a.score);
+  const strongest = sorted.slice(0, 2).map((c) => ({ code: c.code, score: c.score }));
+  const weakest = sorted.slice(-2).reverse().map((c) => ({ code: c.code, score: c.score }));
+  const list = pairs
+    .filter((p) => p.conviction && p.conviction.tier !== 'C' && Math.abs(p.diff) >= 2)
+    .filter((p) => !p.warnings.some((w) => w.kind === 'noticia_en_2h' || w.kind === 'precios_stale'))
+    .map((p) => ({
+      symbol: p.symbol, bias: p.bias, diff: p.diff, strength: p.strength, tier: p.conviction.tier, p5: p.conviction.p5, p20: p.conviction.p20,
+      liquidity: PAIR_LIQUIDITY[p.symbol] ?? 0.6, synthetic: !!p.synthetic,
+      rank_score: round((p.conviction.p5 / 100) * (0.7 + 0.3 * (PAIR_LIQUIDITY[p.symbol] ?? 0.6)), 3),
+      pros: p.conviction.pros, cons: p.conviction.cons, atr_pips: p.conviction.atr_pips, warnings: p.warnings.map((w) => w.kind),
+    }))
+    .sort((a, b) => b.rank_score - a.rank_score);
+  return { as_of: new Date(now).toISOString(), strongest, weakest, best: list.slice(0, 6), total_a: list.filter((x) => x.tier === 'A').length, total_b: list.filter((x) => x.tier === 'B').length };
 }
 
 // ---------- Mercado y sentimiento ----------

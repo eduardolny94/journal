@@ -334,6 +334,10 @@ const COLUMN_MIGRATIONS = [
   { table: 'users', column: 'is_disabled', ddl: 'INTEGER DEFAULT 0' },
   { table: 'users', column: 'last_login_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'outcome', ddl: "TEXT DEFAULT 'activa'" },
+  // Cierres diarios: apertura, máximo y mínimo (vela de ayer, EMA y ATR para la capa de convicción).
+  { table: 'radar_daily_prices', column: 'open', ddl: 'REAL' },
+  { table: 'radar_daily_prices', column: 'high', ddl: 'REAL' },
+  { table: 'radar_daily_prices', column: 'low', ddl: 'REAL' },
   // Sincronización automática desde MT5 (token por cuenta; solo se guarda su hash).
   { table: 'accounts', column: 'sync_token_hash', ddl: 'TEXT' },
   { table: 'accounts', column: 'sync_token_hint', ddl: 'TEXT' },
