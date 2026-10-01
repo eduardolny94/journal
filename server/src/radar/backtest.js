@@ -2,8 +2,8 @@
 // Para cada día hábil de los últimos N años recalcula la puntuación de las 8 divisas solo con lo que se sabía
 // ese día (bonos, calendario con datos reales, COT con 3 días de retraso, FRED con retraso de publicación,
 // precios diarios de Yahoo) y mira qué hizo cada par 1, 3, 5 y 10 días después.
-import { PAIRS, CURRENCIES, PILLARS, PILLAR_WEIGHTS, YAHOO_PAIR_SYMBOLS, YAHOO_MARKET_SYMBOLS, FRED_BY_CURRENCY, POLICY_EVENT_TITLES, REGIMES, regimeOf, splitPair, pairPip } from './constants.js';
-import { computeCurrencies } from './score.js';
+import { PAIRS, FETCHED_PAIRS, CURRENCIES, PILLARS, PILLAR_WEIGHTS, YAHOO_PAIR_SYMBOLS, YAHOO_MARKET_SYMBOLS, FRED_BY_CURRENCY, POLICY_EVENT_TITLES, REGIMES, regimeOf, splitPair, pairPip } from './constants.js';
+import { computeCurrencies, pillarDiffs } from './score.js';
 import { parseYahooChart } from './sources/prices.js';
 import { fetchJson, mapLimit } from './sources/http.js';
 import { getSeries, seriesAsOf, shiftDays } from './sources/fred.js';
@@ -37,6 +37,11 @@ export const WEIGHT_CANDIDATES = {
   sorpresas_cesi: { ...PILLAR_WEIGHTS, crecimiento: 5, sorpresas: 15 },
   cuant: { ...PILLAR_WEIGHTS, crecimiento: 5, sorpresas: 10, tendencia: 15, valor: 10 },
   cuant_tendencia_fuerte: { ...PILLAR_WEIGHTS, momentum: 10, tendencia: 25, sorpresas: 10, crecimiento: 5 },
+  // Fase 2: fundamentales reforzados.
+  taylor: { ...PILLAR_WEIGHTS, taylor: 15, inflacion: 5 },
+  descontado: { ...PILLAR_WEIGHTS, descontado: 15 },
+  fundamental: { ...PILLAR_WEIGHTS, taylor: 15, descontado: 10, real: 10, tot: 10, inflacion: 5, crecimiento: 10 },
+  fundamental_valor: { ...PILLAR_WEIGHTS, taylor: 15, descontado: 10, real: 10, tot: 10, valor: 10, inflacion: 5, crecimiento: 10 },
 };
 
 /** Elige los pesos de un régimen solo con evidencia fuera de muestra (n ≥ 60, ≥ 55 % y ≥ 3 puntos mejor que los vigentes). */
@@ -132,11 +137,11 @@ function finish(b, extra = {}) {
  * @param {object} db
  * @param {{ years?: number, horizons?: number[], now?: number, log?: (s: string) => void }} opts
  */
-export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20], now = Date.now(), log = () => {} } = {}) {
+export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20], now = Date.now(), log = () => {}, keepRows = false } = {}) {
   const t0 = Date.now();
   const maxH = Math.max(...horizons);
   log('descargando precios diarios (Yahoo, 5 años)…');
-  const symbols = [...PAIRS.map((p) => [p, YAHOO_PAIR_SYMBOLS[p]]), ...Object.entries(YAHOO_MARKET_SYMBOLS).map(([k, y]) => [`market:${k}`, y])];
+  const symbols = [...FETCHED_PAIRS.map((p) => [p, YAHOO_PAIR_SYMBOLS[p]]), ...Object.entries(YAHOO_MARKET_SYMBOLS).map(([k, y]) => [`market:${k}`, y])];
   const fetched = await mapLimit(symbols, 3, async ([key, yahoo]) => [key, await fetchDaily(yahoo)]);
   const daily = {};
   const failed = [];
@@ -161,7 +166,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     try { db.exec('ROLLBACK'); } catch { /* sin transacción */ }
     log(`no se pudieron guardar los cierres diarios: ${e.message}`);
   }
-  const marketKeys = ['vix', 'sp500', 'oil', 'dxy'];
+  const marketKeys = ['vix', 'sp500', 'oil', 'dxy', 'copper'];
   const idx = {};
   for (const key of [...pairsOk, ...marketKeys.map((k) => `market:${k}`)]) {
     if (!daily[key]) continue;
@@ -225,7 +230,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
       const bars = daily[k];
       return { value: bars[i].close, prev: i > 0 ? bars[i - 1].close : null, closes: withCloses ? bars.slice(Math.max(0, i - 30), i + 1).map((b) => b.close) : [] };
     };
-    const market = { vix: mk('vix', false), sp500: mk('sp500', true), oil: mk('oil', true), dxy: mk('dxy', true) };
+    const market = { vix: mk('vix', false), sp500: mk('sp500', true), oil: mk('oil', true), dxy: mk('dxy', true), copper: mk('copper', true) };
     const cot = cotRows(db, date);
     const policy = policyAsOf(db, date);
     const events = eventsBetween(db, new Date(asOfMs - Math.max(SURPRISE_DAYS, 90) * 86400000).toISOString(), new Date(asOfMs).toISOString());
@@ -281,7 +286,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
         symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value,
         cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon: newsSoonCcy.has(base) || newsSoonCcy.has(quote),
         lastSurprise: clamp(sign * (dirB - dirQ), -1, 1),
-        pillarDiff: { valor: (pb.valor ? pb.valor.value : 0) - (pq.valor ? pq.valor.value : 0), tendencia: (pb.tendencia ? pb.tendencia.value : 0) - (pq.tendencia ? pq.tendencia.value : 0), sorpresas: (pb.sorpresas ? pb.sorpresas.value : 0) - (pq.sorpresas ? pq.sorpresas.value : 0) },
+        pillarDiff: pillarDiffs(pb, pq),
       });
       const atrPips = feat.atr ? feat.atr / pip : null;
       convRows.push({ date, sym, x: feat.x, signed_pips: {}, r: {}, atr_pips: atrPips });
@@ -421,7 +426,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
   // Capa de convicción (walk-forward) a 1, 5 y 20 días.
   let conviction = null;
   try {
-    conviction = { h1: buildConvictionModel(convRows, { horizon: 1 }), h5: buildConvictionModel(convRows, { horizon: 5 }), h20: buildConvictionModel(convRows, { horizon: 20 }) };
+    conviction = { h1: buildConvictionModel(convRows, { horizon: 1, candidates: true }), h5: buildConvictionModel(convRows, { horizon: 5, candidates: true }), h20: buildConvictionModel(convRows, { horizon: 20, candidates: true }) };
     for (const [k, m] of Object.entries(conviction)) if (m) log(`convicción ${k}: fuera de muestra A ${m.test.tiers.A.hit_rate}% (n=${m.test.tiers.A.n}, ${m.test.tiers.A.avg_r}R) · B ${m.test.tiers.B.hit_rate}% (n=${m.test.tiers.B.n}) · C ${m.test.tiers.C.hit_rate}% (n=${m.test.tiers.C.n}) · todo ${m.test.all.hit_rate}%`);
   } catch (e) {
     log(`convicción: ${e.message}`);
@@ -471,7 +476,8 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     log(`no se pudo guardar el sesgo diario: ${e.message}`);
   }
   log(`listo en ${Math.round(report.duration_ms / 1000)} s · ${samples} comparaciones`);
-  return report;
+  // keepRows (solo experimentos locales): devuelve las filas de la capa de convicción sin guardarlas.
+  return keepRows ? { ...report, conv_rows: convRows } : report;
 }
 
 export function lastBacktest(db) {

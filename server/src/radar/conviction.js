@@ -8,7 +8,19 @@
 export const FEATURE_NAMES = [
   'fuerza', 'extremo', 'crecimiento', 'tendencia20', 'vela_ayer', 'extension_ema', 'eficiencia',
   'vix_tension', 'cot_extremo', 'noticia_24h', 'ultima_sorpresa', 'valor', 'tendencia_larga', 'sorpresas', 'par_usd', 'par_jpy',
+  'taylor', 'descontado', 'real', 'tot',
 ];
+/** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
+export const FEATURE_VERSION = 2;
+/**
+ * Condiciones candidatas: se calculan y se miden en cada backtest, pero no entran en el modelo activo hasta que
+ * mejoren el nivel A fuera de muestra en todos los cortes temporales (ver docs/CONVICCION.md, fase 2).
+ */
+export const CANDIDATE_FEATURES = ['taylor', 'descontado', 'real', 'tot'];
+export const ACTIVE_FEATURES = FEATURE_NAMES.filter((n) => !CANDIDATE_FEATURES.includes(n));
+const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
+/** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
+export const LAMBDA = 2;
 export const TIER_A = 0.6;
 export const TIER_B = 0.55;
 
@@ -79,6 +91,10 @@ export function signalFeatures(ctx) {
     clamp(((pd.sorpresas || 0) * s) / 2, -1, 1),
     ctx.symbol && ctx.symbol.includes('USD') ? 1 : 0,
     ctx.symbol && ctx.symbol.includes('JPY') ? 1 : 0,
+    clamp(((pd.taylor || 0) * s) / 2, -1, 1),
+    clamp(((pd.descontado || 0) * s) / 2, -1, 1),
+    clamp(((pd.real || 0) * s) / 2, -1, 1),
+    clamp(((pd.tot || 0) * s) / 2, -1, 1),
   ];
   return { x, atr, level };
 }
@@ -162,6 +178,10 @@ const REASON_TEXT = {
   sorpresas: ['sorpresas macro a favor', 'sorpresas macro en contra'],
   par_usd: ['par con dólar', 'cruce sin dólar'],
   par_jpy: ['par con yen', 'par sin yen'],
+  taylor: ['regla de Taylor a favor (el banco central va por detrás)', 'regla de Taylor en contra'],
+  descontado: ['el mercado aún no descuenta lo que piden los datos', 'el mercado ya lo descuenta'],
+  real: ['tipo real a favor', 'tipo real en contra'],
+  tot: ['materias primas a favor', 'materias primas en contra'],
 };
 
 /** Las 3 condiciones que más suman y las 2 que más restan, en castellano, para explicar un nivel. */
@@ -187,20 +207,23 @@ function fin(b) { return { n: b.n, hit_rate: b.n ? Math.round((1000 * b.hits) / 
  * Construye el modelo de convicción para un horizonte con validación walk-forward.
  * @param {Array} rows [{ date, sym, x, signed_pips: {h: pips}, r: {h: pips/ATR} }]
  */
-export function buildConvictionModel(rows, { horizon, splitIndexFraction = 2 / 3 } = {}) {
+export function buildConvictionModel(rows, { horizon, splitIndexFraction = 2 / 3, lambda = LAMBDA, mask = indexesOf(ACTIVE_FEATURES), candidates = false } = {}) {
+  // `mask`: índices de condiciones que entran en el modelo; el resto se anula (peso 0) sin cambiar la forma del vector,
+  // así `predictProb` y `explain` funcionan con el vector completo. `null` = todas.
+  const xOf = mask ? (r) => r.x.map((v, i) => (mask.includes(i) ? v : 0)) : (r) => r.x;
   const usable = rows.filter((r) => r.signed_pips[horizon] !== undefined);
   if (usable.length < 300) return null;
   const dates = [...new Set(usable.map((r) => r.date))].sort();
   const splitDate = dates[Math.floor(dates.length * splitIndexFraction)];
   const train = usable.filter((r) => r.date < splitDate);
   const test = usable.filter((r) => r.date >= splitDate);
-  const fit = (set) => fitLogitMulti(set.map((r) => r.x), set.map((r) => (r.signed_pips[horizon] > 0 ? 1 : 0)));
+  const fit = (set) => fitLogitMulti(set.map(xOf), set.map((r) => (r.signed_pips[horizon] > 0 ? 1 : 0)), lambda);
   const trainModel = fit(train);
   if (!trainModel) return null;
   const tiers = { A: bucket(), B: bucket(), C: bucket() };
   const byPair = {};
   for (const r of test) {
-    const p = predictProb(trainModel, r.x);
+    const p = predictProb(trainModel, xOf(r));
     const t = tierOf(p);
     add(tiers[t], r.signed_pips[horizon], r.r[horizon]);
     if (t === 'A') {
@@ -211,10 +234,29 @@ export function buildConvictionModel(rows, { horizon, splitIndexFraction = 2 / 3
   const all = bucket();
   for (const r of test) add(all, r.signed_pips[horizon], r.r[horizon]);
   const finalModel = fit(usable);
+  // Vigilancia: las condiciones candidatas (una a una y todas) y la robustez del modelo activo con otro corte temporal
+  // (entrenar con la primera mitad y probar con la segunda), para no fiarse de un solo periodo de prueba.
+  let candidatos = null;
+  let robustez = null;
+  if (candidates) {
+    const oos = (opts) => {
+      const m = buildConvictionModel(rows, { horizon, lambda, candidates: false, ...opts });
+      return m ? { A: m.test.tiers.A, B: m.test.tiers.B, from: m.test.from } : null;
+    };
+    candidatos = { todas: oos({ mask: null }) };
+    for (const c of CANDIDATE_FEATURES) candidatos[`con_${c}`] = oos({ mask: indexesOf([...ACTIVE_FEATURES, c]) });
+    robustez = { corte_1_2: oos({ mask, splitIndexFraction: 0.5 }), corte_1_3: oos({ mask, splitIndexFraction: 1 / 3 }) };
+  }
   return {
     horizon_d: horizon,
+    feature_version: FEATURE_VERSION,
     features: FEATURE_NAMES,
+    features_active: mask ? FEATURE_NAMES.filter((_, i) => mask.includes(i)) : FEATURE_NAMES,
     thresholds: { A: TIER_A, B: TIER_B },
+    lambda,
+    mask,
+    candidatos,
+    robustez,
     train: { from: dates[0], to: splitDate, n: train.length },
     test: { from: splitDate, to: dates[dates.length - 1], n: test.length, all: fin(all), tiers: { A: fin(tiers.A), B: fin(tiers.B), C: fin(tiers.C) }, tier_a_by_pair: Object.fromEntries(Object.entries(byPair).map(([k, b]) => [k, fin(b)])) },
     model_test: trainModel,

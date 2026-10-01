@@ -8,6 +8,7 @@ import { refreshFred, latest } from './sources/fred.js';
 import { refreshCalendar, refreshCalendarHistory } from './sources/calendar.js';
 import { refreshYieldsOfficial, refreshYieldsLive } from './sources/yields.js';
 import { runBacktest, lastBacktest } from './backtest.js';
+import { FEATURE_VERSION } from './conviction.js';
 import { refreshCot, cotRows } from './sources/cot.js';
 import { refreshNews, listNews } from './sources/news.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
@@ -309,7 +310,8 @@ function scheduleBackgroundJobs() {
       const last = lastBacktest(db);
       const age = last ? Date.now() - new Date(last.computed_at).getTime() : Infinity;
       // Semanal, o en cuanto el informe guardado no tenga la capa de convicción (primer arranque tras actualizar).
-      if (age >= BACKTEST_EVERY_MS || !(last && last.conviction)) await runBacktestNow();
+      const staleModel = !(last && last.conviction && last.conviction.h5 && last.conviction.h5.feature_version === FEATURE_VERSION);
+      if (age >= BACKTEST_EVERY_MS || staleModel) await runBacktestNow();
     } catch (e) {
       console.warn('[radar] tareas de fondo:', e.message);
     }

@@ -12,6 +12,7 @@ import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
 import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
 import { signalFeatures, predictProb, tierOf, explain } from './conviction.js';
+import { fundamentalsFor, termsOfTrade } from './fundamentals.js';
 import { PAIR_LIQUIDITY, pairPip } from './constants.js';
 
 const fmt = (n, k = 2) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
@@ -305,6 +306,14 @@ export function computeCurrencies(db, input) {
   const trendC = closesAsOf ? trendByCurrency(closesAsOf).byCurrency : null;
   const sidx = {};
   for (const c of CURRENCIES) sidx[c] = surpriseIndex(db, c, now, preloaded, eventsBetween);
+  // Fase 2: Taylor, descontado frente a debido, tipo real, términos de intercambio (fundamentals.js).
+  const fund = {};
+  for (const c of CURRENCIES) fund[c] = fundamentalsFor(db, c, { policy: rates[c].policy, inflation: infl[c] ? infl[c].value : null, now, lagDays });
+  const totC = termsOfTrade(market);
+  const zTaylor = zscores(CURRENCIES.map((c) => fund[c].taylor_gap));
+  const zPriced = zscores(CURRENCIES.map((c) => (exps[c].d60 !== null ? exps[c].d60 : exps[c].d20)));
+  const zReal = zscores(CURRENCIES.map((c) => fund[c].real));
+  const zTot = zscores(CURRENCIES.map((c) => totC[c].raw));
   const zValue = zscores(CURRENCIES.map((c) => (valueC && valueC[c] ? valueC[c].raw : null)));
   const zTrend = zscores(CURRENCIES.map((c) => (trendC && trendC[c] ? trendC[c].raw : null)));
   const zSidx = zscores(CURRENCIES.map((c) => sidx[c].raw));
@@ -357,6 +366,14 @@ export function computeCurrencies(db, input) {
         text: trendC && trendC[c] && trendC[c].raw !== null ? `tendencia ${trendC[c].raw > 0.3 ? 'alcista' : trendC[c].raw < -0.3 ? 'bajista' : 'plana'} a 3 y 12 meses (${fmt(trendC[c].s3, 1)} / ${trendC[c].s12 === null ? '—' : fmt(trendC[c].s12, 1)} σ)` : 'sin historial de precios' },
       sorpresas: { value: round(sidx[c].raw === null ? 0 : zSidx[i]), raw: round(sidx[c].raw), missing: sidx[c].raw === null, n: sidx[c].n,
         text: sidx[c].raw === null ? 'sin datos recientes' : `índice de sorpresas ${sidx[c].raw >= 0 ? '+' : ''}${fmt(sidx[c].raw, 2)} σ (90 días con decaimiento, ${sidx[c].n} datos)` },
+      taylor: { value: round(fund[c].taylor_gap === null ? 0 : zTaylor[i]), raw: fund[c].taylor_gap, missing: fund[c].taylor_gap === null, taylor_rate: fund[c].taylor_rate ?? null, pmi: fund[c].pmi ?? null, unemp12: fund[c].unemp12 ?? null,
+        text: fund[c].taylor_gap === null ? 'sin tasa o inflación' : `regla de Taylor pide ${fmt(fund[c].taylor_rate, 2)} % frente a ${fmt(rates[c].policy, 2)} % actual (${fund[c].taylor_gap >= 0 ? '+' : ''}${fmt(fund[c].taylor_gap, 2)} pp${fund[c].pmi !== null ? `, PMI ${fmt(fund[c].pmi, 1)}` : ''})` },
+      descontado: { value: round(fund[c].taylor_gap === null ? 0 : clamp(zTaylor[i] - (exps[c].d60 !== null || exps[c].d20 !== null ? zPriced[i] : 0), -2, 2)), raw: fund[c].taylor_gap === null ? null : round(zTaylor[i] - zPriced[i]), missing: fund[c].taylor_gap === null,
+        text: fund[c].taylor_gap === null ? 'sin datos' : zTaylor[i] - zPriced[i] > 0.5 ? 'los datos piden más de lo que el mercado descuenta' : zTaylor[i] - zPriced[i] < -0.5 ? 'el mercado descuenta más de lo que piden los datos' : 'lo descontado va en línea con los datos' },
+      real: { value: round(fund[c].real === null ? 0 : zReal[i]), raw: fund[c].real, missing: fund[c].real === null,
+        text: fund[c].real === null ? 'sin datos' : `tipo real ${fund[c].real >= 0 ? '+' : ''}${fmt(fund[c].real, 2)} % (tasa menos inflación)` },
+      tot: { value: round(totC[c].raw === null ? 0 : zTot[i]), raw: round(totC[c].raw), missing: totC[c].raw === null,
+        text: totC[c].raw === null ? 'sin exposición a materias primas' : `materias primas ${totC[c].raw >= 0 ? 'a favor' : 'en contra'} (petróleo ${totC[c].oil === null ? '—' : (totC[c].oil >= 0 ? '+' : '') + fmt(totC[c].oil, 1) + ' %'}, cobre ${totC[c].copper === null ? '—' : (totC[c].copper >= 0 ? '+' : '') + fmt(totC[c].copper, 1) + ' %'} en 20 d)` },
     };
     let num = 0;
     let den = 0;
@@ -509,6 +526,12 @@ function finishRadar(db, input, ctx) {
 
 // ---------- Capa de convicción y "qué operar" ----------
 
+/** Diferencias base − cotizada de los pilares que entran como condiciones en la capa de convicción. */
+export function pillarDiffs(pb, pq) {
+  const d = (k) => ((pb[k] ? pb[k].value : 0) || 0) - ((pq[k] ? pq[k].value : 0) || 0);
+  return { valor: d('valor'), tendencia: d('tendencia'), sorpresas: d('sorpresas'), taylor: d('taylor'), descontado: d('descontado'), real: d('real'), tot: d('tot') };
+}
+
 /** Nivel A/B/C de un par con el modelo del backtest (mismas condiciones que en la reconstrucción histórica). */
 function convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, closesAsOf }) {
   const bt = input.backtest && input.backtest.conviction ? input.backtest.conviction : null;
@@ -532,7 +555,7 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
     symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null,
     cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
     lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
-    pillarDiff: { valor: (pb.valor ? pb.valor.value : 0) - (pq.valor ? pq.valor.value : 0), tendencia: (pb.tendencia ? pb.tendencia.value : 0) - (pq.tendencia ? pq.tendencia.value : 0), sorpresas: (pb.sorpresas ? pb.sorpresas.value : 0) - (pq.sorpresas ? pq.sorpresas.value : 0) },
+    pillarDiff: pillarDiffs(pb, pq),
   });
   const p5 = predictProb(model5, feat.x);
   // Los horizontes secundarios solo se enseñan si su nivel A también acertó ≥ 55 % fuera de muestra.

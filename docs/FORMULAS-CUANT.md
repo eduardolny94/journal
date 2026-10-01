@@ -87,3 +87,16 @@ Fuentes: [Quantpedia, factor investing in currencies](https://quantpedia.com/fac
 [Quantpedia, currency value (PPP)](https://test.quantpedia.com/strategies/currency-value-factor-ppp-strategy/) ·
 [Scotti (Fed), surprise indexes](https://www.federalreserve.gov/pubs/ifdp/2013/1093/ifdp1093.pdf) ·
 [ESI G10 methodology](https://globalinvesting.github.io/guide-economic-surprises.html).
+
+## Fase 2: fundamentales reforzados (`server/src/radar/fundamentals.js`, 01-10-2026)
+
+| Fórmula | Cálculo | Fuente |
+|---|---|---|
+| Regla de Taylor | i* = r* + π + 0,5·(π − 2) + 0,5·brecha, con r* = 0,5; brecha = 0,6·(PMI − 50)/2,5 + 0,4·(−Δparo 12 m·2), acotada a ±2; `taylor = i* − tasa` | inflación (FRED + calendario), PMI del calendario, paro FRED |
+| Descontado frente a debido | z(taylor) − z(Δ bono 2 años en 3 meses) | bonos oficiales ya cargados |
+| Tipo real | tasa de política − inflación interanual | FRED + calendario |
+| Términos de intercambio | petróleo 20 d/8 y cobre 20 d/6 acotados a ±2, por coeficiente (CAD +1, AUD +1, NZD +0,5, JPY −0,4, EUR −0,2, CHF −0,1) | Yahoo CL=F y HG=F |
+
+Referencias: Taylor (1993); Molodtsova y Papell (2009) sobre fundamentales de Taylor y tipos de cambio; Chen y Rogoff
+(2003) sobre divisas de materias primas. Resultado medido y decisión en [CONVICCION.md](CONVICCION.md) (fase 2):
+ninguna entra en el modelo activo todavía; se vigilan cada semana.

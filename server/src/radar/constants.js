@@ -89,6 +89,11 @@ export const PILLAR_WEIGHTS = {
   valor: 0,
   tendencia: 0,
   sorpresas: 0,
+  // Fase 2 (fundamentals.js): regla de Taylor, descontado frente a debido, tipo real, términos de intercambio.
+  taylor: 0,
+  descontado: 0,
+  real: 0,
+  tot: 0,
 };
 export const PILLARS = Object.keys(PILLAR_WEIGHTS);
 
@@ -115,6 +120,7 @@ export const YAHOO_MARKET_SYMBOLS = {
   sp500: '^GSPC',
   oil: 'CL=F',
   dxy: 'DX-Y.NYB',
+  copper: 'HG=F', // términos de intercambio de AUD y NZD
 };
 
 /** Intervalos de refresco (ms) de cada bloque de datos. */

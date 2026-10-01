@@ -75,7 +75,7 @@ export const MAX_FAVORITES = 3;
 /** Pares "principales" del usuario (arriba en la UI). */
 export const MAIN_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];
 
-export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas';
+export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas' | 'taylor' | 'descontado' | 'real' | 'tot';
 
 export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: number; hint: string }> = [
   { key: 'tasas', label: 'Tasas', weight: 20, hint: 'Tasa de política y nivel del bono a 2 años (carry y lo ya descontado)' },
@@ -90,6 +90,10 @@ export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: num
   { key: 'valor', label: 'Valor (PPP)', weight: 0, hint: 'Tipo de cambio real frente a su media de 3 años: positivo = divisa barata (Rogoff; Asness, Moskowitz y Pedersen)' },
   { key: 'tendencia', label: 'Tendencia', weight: 0, hint: 'Retorno a 3 y 12 meses dividido por la volatilidad (time-series momentum, Moskowitz–Ooi–Pedersen)' },
   { key: 'sorpresas', label: 'Sorpresas (CESI)', weight: 0, hint: 'Índice de sorpresas macro de 90 días con decaimiento (vida media 45 días) y peso por impacto medido, estilo Citi' },
+  { key: 'taylor', label: 'Regla de Taylor', weight: 0, hint: 'Tasa que pide la regla de Taylor (inflación y actividad: PMI y paro) menos la tasa actual: positivo = el banco central va por detrás' },
+  { key: 'descontado', label: 'Descontado vs debido', weight: 0, hint: 'Lo que piden los datos (Taylor) menos lo que el mercado ya descuenta (bono a 2 años): la oportunidad está donde aún no está en precio' },
+  { key: 'real', label: 'Tipo real', weight: 0, hint: 'Tasa de política menos inflación interanual' },
+  { key: 'tot', label: 'Materias primas', weight: 0, hint: 'Petróleo (CAD +, JPY −) y cobre (AUD, NZD) a 20 días: términos de intercambio' },
 ];
 
 // ---------- Contrato de la API: divisas y pares ----------
@@ -135,6 +139,10 @@ export interface CurrencyPillars {
   valor?: Pillar & { deviation_pct?: number | null };
   tendencia?: Pillar & { s3?: number | null; s12?: number | null };
   sorpresas?: Pillar & { n?: number };
+  taylor?: Pillar & { taylor_rate?: number | null; pmi?: number | null; unemp12?: number | null };
+  descontado?: Pillar;
+  real?: Pillar;
+  tot?: Pillar;
 }
 
 export interface PolicyRate {

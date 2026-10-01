@@ -64,7 +64,46 @@ como "cruce calculado". Así "divisa fuerte contra divisa débil" siempre tiene 
 - Se recalibra sola cada semana con el backtest; cuando el informe no tiene capa de convicción (tras actualizar), el
   servidor la calcula al arrancar.
 
-## Siguiente paso medido
+## Fase 2: fundamentales reforzados (medida el 01-10-2026)
 
-Fase 2: fundamentales reforzados como condiciones del mismo modelo (regla de Taylor por país, "descontado frente a
-debido", tipos reales, términos de intercambio). Entrarán como columnas y se medirán igual.
+Código: `server/src/radar/fundamentals.js`. Cuatro condiciones nuevas por divisa, point-in-time, que se ven como
+pilares (peso 0) en el detalle de cada divisa y entran como columnas del mismo modelo:
+
+- **Regla de Taylor**: `i* = 0,5 + π + 0,5·(π − 2) + 0,5·brecha` con brecha de actividad por PMI (manufacturas y
+  servicios del calendario) y variación del paro a 12 meses; `taylor = i* − tasa de política` (positivo: el banco
+  central va por detrás).
+- **Descontado frente a debido**: z(Taylor) − z(cambio del bono a 2 años en 3 meses): lo que piden los datos menos
+  lo que el mercado ya ha puesto en precio.
+- **Tipo real**: tasa de política − inflación interanual.
+- **Términos de intercambio**: petróleo (CAD +1, JPY −0,4, EUR −0,2, CHF −0,1) y cobre (AUD +1, NZD +0,5) a 20 días.
+
+Ablación (`server/scripts/ablacion-conviccion.mjs`): cada condición se añade por separado al modelo de 16 y se mide
+el nivel A fuera de muestra; además se repite con otros cortes temporales para no fiarse de un solo año de prueba.
+
+| Modelo a 5 días (nivel A, fuera de muestra) | corte 2/3 (prueba = último año) | corte 1/2 | corte 1/3 |
+|---|---|---|---|
+| 16 condiciones (activo) | **67,1 % +0,53R (n=170)** | 55,1 % (n=671) | 53,3 % (n=2.660) |
+| + tipo real | 67,3 % +0,42R (n=226) | 57,4 % (n=695) | — |
+| + Taylor | 66,5 % +0,48R (n=167) | — | — |
+| + descontado | 61,2 % +0,42R (n=281) | 54,7 % (n=1.105) | 53,2 % (n=3.601) |
+| + materias primas | 67,1 % +0,53R (n=167) | 55,4 % (n=744) | — |
+| las 20 a la vez | 57,9 % +0,07R (n=1.058) | — | — |
+
+A 20 días, "descontado" dispara el nivel A al 61,7 % y +0,64R (n=1.071) en el corte 2/3… pero cae al 53,7 % y 51,6 %
+en los otros cortes: era el periodo, no la condición. A 1 día ninguna aporta con n suficiente.
+
+**Decisión**: ninguna de las cuatro entra en el modelo activo (`ACTIVE_FEATURES`); quedan como candidatas
+(`CANDIDATE_FEATURES`) que el backtest semanal vuelve a medir (`conviction.h5.candidatos`) junto con la robustez del
+modelo activo en otros cortes (`conviction.h5.robustez`). Entrarán si mejoran el nivel A en todos los cortes.
+
+Dos lecciones que cambian cómo leer la tarjeta:
+
+1. Los fundamentales lentos (tipos reales, Taylor) cambian pocas veces en 3 años: el modelo aprende "el carry
+   funcionó en 2023-2025" y lo aplica a un año en que no funcionó. Para validarlos hacen falta 10–20 años de
+   historial, no 3. Mientras tanto son contexto para el trader, no condición del modelo.
+2. **El 67 % del nivel A es el del último año con dos años de entrenamiento.** Con la mitad del historial para
+   entrenar el mismo modelo acierta 55 %; con un tercio, 53 %. El nivel A sigue siendo mejor que operar todo (52 %),
+   pero su acierto real estará entre 55 % y 67 % según el periodo. Por eso la tarjeta dice "las señales de este
+   nivel acertaron X % fuera de muestra" y no "probabilidad garantizada".
+
+Pendiente para que mejoren de verdad: más historial (precios y calendario de 10 años) y medir en el journal.
