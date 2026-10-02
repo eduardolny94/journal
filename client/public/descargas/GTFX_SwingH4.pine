@@ -20,13 +20,20 @@ targetR   = input.float(2.0, "Objetivo (R)", minval = 0.5, step = 0.5)
 trailAtr  = input.float(2.0, "Trailing (× ATR desde el mejor cierre)", minval = 0.5, step = 0.5)
 maxBars   = input.int(30, "Salida por tiempo (velas)", minval = 5)
 showTrail = input.bool(true, "Dibujar trailing")
+reqDaily  = input.bool(true, "Exigir cruce diario a favor (EMA 8 sobre MA 18 en D1)", tooltip = "Medido: con el diario a favor el barrido con nivel A/B llega a 2R el 47 % y a 3R el 36 % (+0,5R); con el diario en contra, 39 % y 23 %. Usa el día cerrado anterior (no repinta).")
 
 atr       = ta.atr(atrLen)
 priorLow  = ta.lowest(low, lookback)[1]
 priorHigh = ta.highest(high, lookback)[1]
 
-allowLong  = dirInput != "Solo cortos"
-allowShort = dirInput != "Solo largos"
+// Contexto diario: EMA 8 frente a media 18 del último día cerrado (sin repintar).
+dFast = request.security(syminfo.tickerid, "D", ta.ema(close, 8)[1], lookahead = barmerge.lookahead_on)
+dSlow = request.security(syminfo.tickerid, "D", ta.sma(close, 18)[1], lookahead = barmerge.lookahead_on)
+dailyUp   = dFast > dSlow
+dailyDown = dFast < dSlow
+
+allowLong  = dirInput != "Solo cortos" and (not reqDaily or dailyUp)
+allowShort = dirInput != "Solo largos" and (not reqDaily or dailyDown)
 
 // Vela de barrido y recuperación (se evalúa al cierre de la vela).
 sweepLong  = allowLong  and low  < priorLow  and close > priorLow  and close > open
@@ -99,9 +106,10 @@ plotshape(sweepShort, "Barrido bajista", shape.triangledown, location.abovebar, 
 alertcondition(sweepLong, "GTFX H4 largo", "GTFX Swing H4: barrido y recuperación alcista en {{ticker}}. Comprueba que el radar tenga nivel A o B alcista.")
 alertcondition(sweepShort, "GTFX H4 corto", "GTFX Swing H4: barrido y recuperación bajista en {{ticker}}. Comprueba que el radar tenga nivel A o B bajista.")
 
-var table info = table.new(position.top_right, 1, 3, bgcolor = color.new(color.black, 40))
+var table info = table.new(position.top_right, 1, 4, bgcolor = color.new(color.black, 40))
 if barstate.islast
     notH4 = timeframe.period != "240"
     table.cell(info, 0, 0, "GTFX Swing H4 · " + dirInput, text_color = color.white, text_size = size.small)
-    table.cell(info, 0, 1, dir == 0 ? "Sin señal activa" : (dir > 0 ? "Largo" : "Corto") + " · vela " + str.tostring(barsOpen) + "/" + str.tostring(maxBars), text_color = color.white, text_size = size.small)
-    table.cell(info, 0, 2, notH4 ? "⚠ Medido en H4: cambia el gráfico a 4 horas" : "Riesgo sugerido: 0,5 % por operación", text_color = notH4 ? color.orange : color.gray, text_size = size.small)
+    table.cell(info, 0, 1, "Diario 8/18: " + (dailyUp ? "alcista" : dailyDown ? "bajista" : "—") + (reqDaily ? " (exigido)" : ""), text_color = dailyUp ? color.teal : dailyDown ? color.red : color.gray, text_size = size.small)
+    table.cell(info, 0, 2, dir == 0 ? "Sin señal activa" : (dir > 0 ? "Largo" : "Corto") + " · vela " + str.tostring(barsOpen) + "/" + str.tostring(maxBars), text_color = color.white, text_size = size.small)
+    table.cell(info, 0, 3, notH4 ? "⚠ Medido en H4: cambia el gráfico a 4 horas" : "Riesgo sugerido: 0,5 % por operación", text_color = notH4 ? color.orange : color.gray, text_size = size.small)

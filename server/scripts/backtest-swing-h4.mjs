@@ -254,6 +254,21 @@ for (const sym of SYMBOLS) {
   for (const b of h4) dayClose.set(b.date, b.c);
   const dates = [...dayClose.keys()];
   const dayIdx = new Map(dates.map((d, i) => [d, i]));
+  // Cruce 8/18 en diario y en semanal (velas cerradas: se usa el día o la semana anterior a la vela H4).
+  const dCloses = dates.map((d) => dayClose.get(d));
+  const dE8 = ema(dCloses, 8), dS18 = sma(dCloses, 18);
+  const weekKey = (date) => { const t = new Date(`${date}T00:00:00Z`); const day = (t.getUTCDay() + 6) % 7; t.setUTCDate(t.getUTCDate() - day); return t.toISOString().slice(0, 10); };
+  const weeks = []; const weekOf = new Map();
+  for (const d of dates) { const k = weekKey(d); if (!weeks.length || weeks[weeks.length - 1].key !== k) weeks.push({ key: k, c: dayClose.get(d) }); else weeks[weeks.length - 1].c = dayClose.get(d); weekOf.set(d, weeks.length - 1); }
+  const wE8 = ema(weeks.map((w) => w.c), 8), wS18 = sma(weeks.map((w) => w.c), 18);
+  const htf = (date, dir) => {
+    const di = dayIdx.get(date), wi = weekOf.get(date);
+    const dA = di !== undefined && di >= 1 && dE8[di - 1] !== null && dS18[di - 1] !== null ? (dir > 0 ? dE8[di - 1] > dS18[di - 1] : dE8[di - 1] < dS18[di - 1]) : null;
+    let dRecent = false; // cruce diario a favor en los últimos 5 días cerrados
+    if (di !== undefined) for (let k = Math.max(1, di - 5); k <= di - 1; k++) if (dE8[k] !== null && dE8[k - 1] !== null && dS18[k] !== null && dS18[k - 1] !== null && (dir > 0 ? dE8[k - 1] <= dS18[k - 1] && dE8[k] > dS18[k] : dE8[k - 1] >= dS18[k - 1] && dE8[k] < dS18[k])) dRecent = true;
+    const wA = wi !== undefined && wi >= 1 && wE8[wi - 1] !== null && wS18[wi - 1] !== null ? (dir > 0 ? wE8[wi - 1] > wS18[wi - 1] : wE8[wi - 1] < wS18[wi - 1]) : null;
+    return { d_aligned: dA, d_cross_recent: dRecent, w_aligned: wA };
+  };
   const openUntil = {}; // una operación a la vez por par, patrón y dirección (cada patrón se mide por separado)
   for (let i = 60; i < h4.length - MAX_BARS; i++) {
     if (ind.atr[i] === null || ind.atr[i - 1] === null) continue;
@@ -286,6 +301,7 @@ for (const sym of SYMBOLS) {
           // Contexto de medias "C4L": EMA 8 sobre/bajo la media 18, y precio frente a la EMA 200, en el sentido de la operación.
           ma_aligned: ind.ema8[i] !== null && ind.sma18[i] !== null ? (dir > 0 ? ind.ema8[i] > ind.sma18[i] : ind.ema8[i] < ind.sma18[i]) : null,
           ema200_aligned: ind.ema200[i] !== null ? (dir > 0 ? h4[i].c > ind.ema200[i] : h4[i].c < ind.ema200[i]) : null,
+          ...htf(h4[i].date, dir),
           ...sim,
         });
         openUntil[key] = h1End;

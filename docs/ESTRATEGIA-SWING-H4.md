@@ -177,3 +177,31 @@ confirmado con 2 velas a cada lado, hasta 30 velas atrás) y `cruce_max10` (extr
 - Solo 7 de las 107 señales coinciden en día y par con un barrido: son entradas complementarias, no la misma.
 - En R rinde lo mismo que el barrido (+0,30R frente a +0,29R a 2R), con un stop 2,5 veces mayor: en pips por
   operación gana más (31 frente a 13), pero con riesgo fijo por operación da igual.
+
+## Cruce 8/18 en diario y semanal como contexto de la entrada en H4 (medido el 02-10-2026)
+
+Campos `d_aligned`, `d_cross_recent`, `w_aligned` en `backtest-swing-h4.mjs` (día y semana cerrados, sin futuro).
+
+| Barrido en H4 | 1R | 2R | 3R | 4R | Solo stop, 5 días | Recorrido mediana / p75 | n |
+|---|---|---|---|---|---|---|---|
+| Técnica sola, 5 años | 50 % · −0,04R | 32 % · −0,06R | 22 % · −0,07R | 15 % · −0,09R | −0,13R | 1,0R / 2,6R | 3.164 |
+| + diario 8/18 a favor | 50 % · −0,05R | 31 % · −0,09R | 22 % · −0,08R | 15 % · −0,09R | −0,13R | 1,0R / 2,6R | 1.618 |
+| + diario y semanal a favor | 48 % · −0,08R | 31 % · −0,09R | 23 % · −0,04R | 15 % · −0,04R | −0,10R | 1,0R / 2,6R | 872 |
+| Nivel A/B | 55 % · +0,06R | 43 % · +0,29R | 29 % · +0,20R | 20 % · +0,24R | +0,16R | 1,5R / 3,3R | 121 |
+| **Nivel A/B + diario a favor** | 62 % · +0,19R | **47 % · +0,42R** | **36 % · +0,50R** | 25 % · +0,53R | **+0,79R** | **1,9R / 4,1R** | 55 |
+| Nivel A/B + diario en contra | 48 % · −0,05R | 39 % · +0,18R | 23 % · −0,04R | 15 % · +0,01R | −0,36R | 0,9R / 2,9R | 66 |
+| Nivel A/B + diario y semanal a favor | 69 % · +0,32R | 51 % · +0,58R | 40 % · +0,69R | 29 % · +0,77R | +1,00R | 2,1R / 4,5R | 35 |
+| Nivel A/B + fuerza ≥ 2 + diario a favor | 83 % · +0,61R | 63 % · +0,95R | 38 % · +0,66R | 33 % · +0,99R | +1,89R | 2,2R / 5,9R | 24 |
+
+- El cruce diario o semanal **por sí solo no aporta nada** (idéntico a la técnica sola). Lo que hace es **separar el
+  nivel A/B en dos mitades**: con el diario a favor, el barrido corre más (mediana 1,9R, un cuarto llega a 4,1R) y
+  los objetivos de 3–4R pasan a ser viables (36 % y 25 %); con el diario en contra, la operación se agota en 1R.
+- Es la respuesta a "cómo alargar el RR": no con stops más anchos sino con el diario a favor; ahí dejar correr 5 días
+  da +0,79R y el objetivo 3R +0,50R.
+- Robustez: 2023 +0,44R, 2024 +0,77R, 2025 **−0,32R** (n=18), 2026 +0,94R a 2R; último año fuera de muestra +0,80R
+  (n=21). Un año malo de cuatro y 55 operaciones: prometedor, no demostrado. Para el cruce con pivote el diario sube
+  el acierto (68 % a 1R, +0,57R a 1,5R, n=41) pero no alarga el recorrido (p75 2,1R igual).
+- La hora 16:00 del servidor vuelve a ser la peor (−0,10R a 2R, n=14) y la 0:00/4:00/20:00 las mejores (n < 12).
+
+Indicador: opción "Exigir cruce diario a favor" en `GTFX_SwingH4.pine` (día cerrado anterior, sin repintar) y la
+lectura del diario en la tabla.
