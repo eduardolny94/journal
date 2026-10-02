@@ -590,6 +590,36 @@ try {
     assert(del.status === 200 || del.status === 204, `borrar la cuenta sincronizada (${del.status})`);
   });
 
+  await test('sincronización TradingView: órdenes del panel, emparejado FIFO, duplicados y balance', async () => {
+    const acc = await api('POST', '/accounts', { name: 'Plus500 Futures', firm: 'Plus500', platform: 'tradingview', account_type: 'personal', size: 5000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17 });
+    assert(acc.status === 201, `cuenta tradingview (${acc.status}) ${JSON.stringify(acc.data)}`);
+    const id = acc.data.id;
+    const tk = await api('POST', `/accounts/${id}/sync-token`);
+    assert(tk.status === 201, 'genera token');
+    const as = { token: tk.data.token };
+    const orders = [
+      { symbol: 'PLUS500:MESZ2026', side: 'Buy', type: 'Market', qty: '2', fill_price: '5810.25', status: 'Filled', commission: '1.24', placing_time: '2026-10-01 09:31:05', closing_time: '2026-10-01 09:31:06', order_id: '1001' },
+      { symbol: 'PLUS500:MESZ2026', side: 'Sell', type: 'Limit', qty: '2', fill_price: '5822.00', status: 'Filled', commission: '1.24', placing_time: '2026-10-01 09:31:10', closing_time: '2026-10-01 11:02:40', order_id: '1002' },
+      { symbol: 'PLUS500:MESZ2026', side: 'Sell', type: 'Stop', qty: '2', fill_price: '', status: 'Cancelled', commission: '', placing_time: '2026-10-01 09:31:10', closing_time: '2026-10-01 11:02:40', order_id: '1003' },
+    ];
+    const body = { account: { broker: 'Plus500', account_id: 'PF-123', timezone: 'America/New_York', balance: 5117.52 }, orders };
+    const s1 = await api('POST', '/sync/tradingview', body, as);
+    assert(s1.status === 200 && s1.data.trades === 1 && s1.data.imported === 1 && s1.data.duplicates === 0, `primer envío ${JSON.stringify(s1.data)}`);
+    const s2 = await api('POST', '/sync/tradingview', body, as);
+    assert(s2.status === 200 && s2.data.imported === 0 && s2.data.duplicates === 1, `reenvío no duplica ${JSON.stringify(s2.data)}`);
+    const trades = await api('GET', `/trades?account_id=${id}`);
+    const rows = Array.isArray(trades.data) ? trades.data : trades.data.trades || trades.data.rows || trades.data.items || [];
+    const mes = rows.find((t) => t.external_id === 'tradingview:1002');
+    assert(mes && mes.symbol === 'MES' && mes.side === 'long' && Math.abs(mes.pnl - 115.02) < 0.01 && mes.source === 'sync:tradingview', `operación MES ${JSON.stringify(mes)}`);
+    assert(mes.entry_time.startsWith('2026-10-01T13:31:06'), `hora de Nueva York → UTC: ${mes.entry_time}`);
+    const det = await api('GET', `/accounts/${id}`);
+    assert(det.data.sync.login === 'Plus500:PF-123' && det.data.sync.balance === 5117.52 && det.data.sync.trades_total === 1, `estado de sync ${JSON.stringify(det.data.sync)}`);
+    const other = await api('POST', '/sync/tradingview', { account: { broker: 'Plus500', account_id: 'PF-999' }, orders: [] }, as);
+    assert(other.status === 409 && other.data.code === 'login_mismatch', `otra cuenta del bróker debería dar 409, dio ${other.status}`);
+    const del = await api('DELETE', `/accounts/${id}`);
+    assert(del.status === 200 || del.status === 204, `borrar la cuenta (${del.status})`);
+  });
+
   await test('borrar operación y cuenta (cascada)', async () => {
     const d = await api('DELETE', `/trades/${tradeIds[0]}`);
     if (isStub(d)) return SKIP;

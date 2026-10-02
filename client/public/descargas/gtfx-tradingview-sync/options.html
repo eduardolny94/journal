@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>GTFX Journal Sync · Ajustes</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; background: #0b0f14; color: #e5e7eb; max-width: 560px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p { color: #9ca3af; margin: 0 0 16px; }
+    label { display: block; margin: 12px 0 4px; color: #d1d5db; }
+    input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #374151; border-radius: 6px; background: #111827; color: #f9fafb; }
+    button { margin-top: 16px; padding: 8px 14px; border: 0; border-radius: 6px; background: #22c55e; color: #052e16; font-weight: 600; cursor: pointer; }
+    button.secondary { background: #374151; color: #e5e7eb; margin-left: 8px; }
+    #msg { margin-top: 14px; padding: 10px; border-radius: 6px; background: #111827; color: #d1d5db; white-space: pre-wrap; }
+    small { color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>GTFX Journal Sync para TradingView</h1>
+  <p>Lee la pestaña <b>History</b> del panel de trading de TradingView y envía las órdenes ejecutadas al journal. Solo lee: nunca opera ni toca al bróker.</p>
+  <label for="url">Dirección del journal</label>
+  <input id="url" placeholder="https://journal.cesarzorrilla.com" />
+  <label for="token">Token de la cuenta <small>(journal → Cuentas → la cuenta → Conectar → Sincronización automática)</small></label>
+  <input id="token" placeholder="gtfx_…" autocomplete="off" />
+  <label for="timezone">Zona horaria del panel de TradingView <small>(la de tu gráfico; por defecto la del navegador)</small></label>
+  <input id="timezone" placeholder="America/New_York" />
+  <button id="save">Guardar</button>
+  <button id="test" class="secondary">Probar conexión</button>
+  <div id="msg">Sin probar todavía.</div>
+  <p style="margin-top:18px"><small>Para que sincronice, deja abierta una pestaña de TradingView con el panel de trading y la pestaña History visible. Se revisa cada 20 segundos y se envía solo lo que cambia.</small></p>
+  <script src="options.js"></script>
+</body>
+</html>

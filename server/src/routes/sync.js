@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { getDb } from '../db.js';
 import { SyncError, accountForToken, applySync } from '../services/mt5Sync.js';
+import { applyTradingviewSync } from '../services/tradingviewSync.js';
 import { requireSubscription } from '../services/subscriptions.js';
 
 const router = Router();
@@ -35,6 +36,16 @@ function tokenAuth(req, res, next) {
 router.post('/mt5', tokenAuth, requireSubscription(getDb), (req, res, next) => {
   try {
     res.json(applySync(getDb(), req.syncAccount, req.body || {}));
+  } catch (err) {
+    if (err instanceof SyncError) return res.status(err.status).json({ error: err.message, code: err.code });
+    next(err);
+  }
+});
+
+// TradingView: la extensión del navegador envía las órdenes ejecutadas del panel de trading (ver services/tradingviewSync.js).
+router.post('/tradingview', tokenAuth, requireSubscription(getDb), (req, res, next) => {
+  try {
+    res.json(applyTradingviewSync(getDb(), req.syncAccount, req.body || {}));
   } catch (err) {
     if (err instanceof SyncError) return res.status(err.status).json({ error: err.message, code: err.code });
     next(err);

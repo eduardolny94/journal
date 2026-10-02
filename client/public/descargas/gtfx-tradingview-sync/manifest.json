@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "GTFX Journal Sync para TradingView",
+  "version": "1.0.0",
+  "description": "Envía al journal de Global Traders FX las órdenes ejecutadas que muestra el panel de trading de TradingView (pestaña History). Sin API del bróker ni contraseñas.",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["https://journal.cesarzorrilla.com/*", "http://localhost:3200/*", "http://127.0.0.1:3200/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["https://www.tradingview.com/*", "https://*.tradingview.com/*"], "js": ["content.js"], "run_at": "document_idle" }
+  ],
+  "options_page": "options.html",
+  "action": { "default_title": "GTFX Journal Sync: abrir ajustes" }
+}

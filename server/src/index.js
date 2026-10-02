@@ -173,7 +173,7 @@ const clientDist = path.resolve(__dirname, '..', '..', 'client', 'dist');
 // en vez de abrirlo o bloquearlo por tipo desconocido.
 app.use('/descargas', (req, res, next) => {
   const name = path.basename(req.path);
-  if (/^[\w.-]+\.(ex5|mq5|bat|pine)$/i.test(name)) {
+  if (/^[\w.-]+\.(ex5|mq5|bat|pine|zip)$/i.test(name)) {
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
     res.setHeader('Cache-Control', 'no-cache');

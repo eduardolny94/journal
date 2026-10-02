@@ -1,6 +1,7 @@
 // Página «Conectar cuenta»: guía por plataforma para traer las operaciones al journal,
 // activar el bloqueo real en la propia plataforma y conocer el estado de la sincronización automática.
 import Mt5SyncCard from '../components/Mt5SyncCard';
+import TradingviewSyncCard from '../components/TradingviewSyncCard';
 import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -156,8 +157,8 @@ const GUIDES: Record<Platform, PlatformGuide> = {
     ],
     nativeNote: 'Ni TradingView ni Plus500 bloquean la cuenta al tocar una pérdida; el bloqueo del journal es un compromiso contigo.',
     sync: {
-      level: 'no-disponible',
-      text: 'Plus500 no ofrece API a clientes y TradingView no exporta las ejecuciones a otras apps. Importar el CSV lleva dos minutos; con el histórico cargado, el radar y el dashboard trabajan igual que con una cuenta sincronizada.',
+      level: 'disponible',
+      text: 'Sincronización automática con la extensión «GTFX Journal Sync» del navegador: lee la pestaña History del panel de trading de TradingView y envía las órdenes ejecutadas. Sin API del bróker ni contraseñas.',
     },
   },
   otro: {
@@ -340,6 +341,8 @@ export default function Connect() {
 
         {account.platform === 'mt5' ? (
           <Mt5SyncCard account={account} onChange={replaceAccount} />
+        ) : account.platform === 'tradingview' ? (
+          <TradingviewSyncCard account={account} onChange={replaceAccount} />
         ) : (
         <Card
           title="3. Sincronización"
