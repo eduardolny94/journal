@@ -144,3 +144,10 @@ Ampliar el stop **no sube el acierto**: a 1R se queda en 60 % de 25 a 40 pips y 
 que van 25–35 pips en contra ya han fallado y suelen seguir cayendo; darles 40 o 50 no las rescata y solo aleja el
 objetivo en pips. El stop pequeño (25–35) es el que mejor paga en este patrón, porque su stop natural está pegado al
 extremo de la vela de barrido. Con fuerza ≥ 2 además del nivel (n=38): 25–35 pips dan 74–76 % a 1R y 61–68 % a 1,5R.
+
+Stops más cortos (nivel A/B, n=121): 15 pips → +0,04R a 1R y +0,16R a 2R (2 pips por operación); 20 pips → +0,26R a
+2R (5 pips). Por debajo de 25 el spread pesa un 7–15 % del riesgo y el ruido de H4 salta el stop antes de que el
+barrido se desarrolle. Por tamaño natural del stop (estructura): las velas de barrido con stop de 35–60 pips son las
+mejores (67 % a 1R, +0,48R a 2R, 22,6 pips por operación, n=33); las muy pequeñas (≤ 25 pips) rinden 3,5 pips. Por hora
+de cierre de la vela (servidor): 16:00 (mañana de Londres) +0,02R con n=33, el resto entre +0,16R y +0,66R; candidato
+a filtro cuando haya más datos, no regla.
