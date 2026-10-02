@@ -98,3 +98,34 @@ vender cuando cruza por debajo; la EMA 200 (morada) como contexto. Script: `serv
 
 Conclusión: el cruce 8/18 sirve para leer la dirección en el gráfico, no para disparar entradas. La dirección la
 pone el radar (nivel A/B) y la entrada medida es el barrido y recuperación.
+
+## Recorrido y objetivo con stop fijo de 35 pips (medido el 02-10-2026)
+
+Barrido y recuperación con nivel A/B a favor, stop fijo de 35 pips, dejando correr solo con el stop (`backtest-swing-h4.mjs
+--stop-pips 35 --max-bars 30` y `scripts/analizar-rr.mjs sweep ab`, n=121):
+
+| Recorrido máximo a favor antes de que salte el stop | R | pips |
+|---|---|---|
+| Una de cada cuatro no pasa de | 0,6R | 20 |
+| Mediana | 1,6R | 55 |
+| Una de cada cuatro llega a | 2,9R | 100 |
+| Una de cada diez llega a | 7,5R | 262 |
+| Máximo | 27,7R | 971 |
+
+La mitad de las operaciones hacen su máximo en las 3 primeras velas H4 (12 horas); tres de cada cuatro, antes de 15.
+
+| Objetivo fijo | Lo alcanzan | Esperanza |
+|---|---|---|
+| 1R (35 pips) | 60 % | +0,16R |
+| **1,5R (53 pips)** | 52 % | **+0,29R** |
+| 2R (70 pips) | 40 % | +0,26R |
+| 3R (105 pips) | 24 % | +0,13R |
+| 5R y más | < 18 % | la "esperanza" la pone la salida por tiempo, no el objetivo |
+| Trailing a 2 ATR, cierre a 5 días | — | +0,40R |
+| Solo stop, cierre a 5 días | — | +0,44R |
+
+Dejar correr hasta 15 días lo empeora (+0,16R, n=62): la ventaja del nivel A/B se agota en la semana. Con fuerza ≥ 2
+además del nivel (n=21): mediana 2,1R y el objetivo 2R lo alcanza el 57 % (+0,67R), muestra pequeña.
+
+Regla práctica: stop 35 pips; objetivo de referencia 1,5R–2R (50–70 pips); si se quiere más, mitad en 1,5R y el
+resto con trailing a 2 ATR, y todo cerrado a los 5 días.

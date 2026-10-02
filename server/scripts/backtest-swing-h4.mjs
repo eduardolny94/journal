@@ -12,8 +12,11 @@ const DATA = path.join(ROOT, 'data', 'mt5');
 const db = new DatabaseSync('data/journal.db', { readOnly: true });
 const SYMBOLS = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD', 'EURJPY', 'GBPJPY', 'EURGBP'];
 const SPREAD_PIPS = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURJPY: 1.6, GBPJPY: 2.2, EURGBP: 1.4 };
-const MAX_BARS = 30; // salida por tiempo: 30 velas H4 (5 días de trading)
+// --max-bars 30 → salida por tiempo en velas H4 (30 = 5 días de trading; 90 = 15 días para "dejar correr").
+const argBars = process.argv.indexOf('--max-bars');
+const MAX_BARS = argBars >= 0 ? Number(process.argv[argBars + 1]) : 30;
 const ATR_N = 14;
+const TARGETS = [1, 1.5, 2, 3, 4, 5, 6, 8, 10]; // objetivos en R que se miden en cada operación
 // --stop-pips 25 → stop fijo en pips en todos los patrones (en vez del stop por estructura/ATR).
 const argStop = process.argv.indexOf('--stop-pips');
 const FIXED_STOP_PIPS = argStop >= 0 ? Number(process.argv[argStop + 1]) : null;
@@ -97,23 +100,29 @@ try {
 /** Simula sobre H1 desde la vela h1Start: stop, objetivos fijos, trailing por ATR y salida por tiempo. */
 function simulate(h1, h1Start, h1End, dir, entry, stop, atr, spread) {
   const risk = Math.abs(entry - stop);
-  const res = { tp: { 1: null, 2: null, 3: null }, stopped: null, trail_r: null, time_r: null, mfe: 0, mae: 0 };
+  const res = { tp: Object.fromEntries(TARGETS.map((t) => [t, null])), stopped: null, trail_r: null, time_r: null, mfe: 0, mae: 0, mfe_run: 0, mfe_run_bar: 0 };
   let trailStop = stop;
   let best = entry;
   let trailOpen = true;
   let fixedOpen = true;
-  for (let i = h1Start; i <= h1End && (fixedOpen || trailOpen); i++) {
+  let runOpen = true; // "dejar correr": solo con el stop inicial, hasta que salte o se acabe el tiempo
+  for (let i = h1Start; i <= h1End && (fixedOpen || trailOpen || runOpen); i++) {
     const b = h1[i];
     const adverse = dir > 0 ? (entry - b.l) / risk : (b.h - entry) / risk;
     const favorable = dir > 0 ? (b.h - entry) / risk : (entry - b.l) / risk;
     res.mae = Math.max(res.mae, adverse);
     res.mfe = Math.max(res.mfe, favorable);
+    if (runOpen) {
+      const hitStop = dir > 0 ? b.l <= stop : b.h >= stop;
+      if (hitStop) runOpen = false;
+      else if (favorable > res.mfe_run) { res.mfe_run = favorable; res.mfe_run_bar = Math.floor((i - h1Start) / 4); }
+    }
     if (fixedOpen) {
       const hitStop = dir > 0 ? b.l <= stop : b.h >= stop; // conservador: stop antes que objetivo en la misma vela
       if (hitStop) { res.stopped = i; fixedOpen = false; }
       else {
-        for (const t of [1, 2, 3]) if (res.tp[t] === null && favorable >= t) res.tp[t] = i;
-        if (res.tp[3] !== null) fixedOpen = false;
+        for (const t of TARGETS) if (res.tp[t] === null && favorable >= t) res.tp[t] = i;
+        if (res.tp[TARGETS[TARGETS.length - 1]] !== null) fixedOpen = false;
       }
     }
     if (trailOpen) {
@@ -133,7 +142,11 @@ function simulate(h1, h1Start, h1End, dir, entry, stop, atr, spread) {
   const cost = spread / risk; // el spread se paga una vez, en R
   const hit = (t) => res.tp[t] !== null && (res.stopped === null || res.tp[t] < res.stopped);
   const rFixed = (t) => (res.stopped !== null && !hit(t) ? -1 : hit(t) ? t : res.time_r) - cost;
-  return { r1: rFixed(1), r2: rFixed(2), r3: rFixed(3), hit1: hit(1), hit2: hit(2), r_trail: res.trail_r - cost, r_time: res.time_r - cost, mfe: res.mfe, mae: res.mae };
+  return {
+    r1: rFixed(1), r2: rFixed(2), r3: rFixed(3), hit1: hit(1), hit2: hit(2), r_trail: res.trail_r - cost, r_time: res.time_r - cost, mfe: res.mfe, mae: res.mae,
+    r_by_target: Object.fromEntries(TARGETS.map((t) => [t, Math.round(rFixed(t) * 100) / 100])), hit_by_target: Object.fromEntries(TARGETS.map((t) => [t, hit(t)])),
+    mfe_run: Math.round(res.mfe_run * 100) / 100, mfe_run_bar: res.mfe_run_bar,
+  };
 }
 
 // ---------- Patrones (todos evaluados al cierre de la vela H4 i, en la dirección dir) ----------
