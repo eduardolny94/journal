@@ -129,3 +129,18 @@ además del nivel (n=21): mediana 2,1R y el objetivo 2R lo alcanza el 57 % (+0,6
 
 Regla práctica: stop 35 pips; objetivo de referencia 1,5R–2R (50–70 pips); si se quiere más, mitad en 1,5R y el
 resto con trailing a 2 ATR, y todo cerrado a los 5 días.
+
+### Tamaño del stop frente al objetivo (barrido + nivel A/B, n=121, 02-10-2026)
+
+| Stop | 1R | 1,5R | 2R | 3R | solo stop, 5 días |
+|---|---|---|---|---|---|
+| 25 pips | 60 % · +0,13R | 52 % · +0,24R | **47 % · +0,36R** | 32 % · +0,31R | +0,55R (14 pips) |
+| 35 pips | 60 % · +0,16R | 52 % · +0,29R | 40 % · +0,26R | 24 % · +0,13R | +0,44R (15 pips) |
+| 40 pips | 60 % · +0,18R | 47 % · +0,19R | 34 % · +0,12R | 23 % · +0,16R | +0,31R (12 pips) |
+| 50 pips | 55 % · +0,11R | 40 % · +0,07R | 29 % · +0,04R | 21 % · +0,13R | +0,19R (10 pips) |
+| 60 pips | 51 % · +0,07R | 37 % · +0,09R | 26 % · +0,07R | 21 % · +0,17R | +0,18R (11 pips) |
+
+Ampliar el stop **no sube el acierto**: a 1R se queda en 60 % de 25 a 40 pips y cae a partir de 50. Las operaciones
+que van 25–35 pips en contra ya han fallado y suelen seguir cayendo; darles 40 o 50 no las rescata y solo aleja el
+objetivo en pips. El stop pequeño (25–35) es el que mejor paga en este patrón, porque su stop natural está pegado al
+extremo de la vela de barrido. Con fuerza ≥ 2 además del nivel (n=38): 25–35 pips dan 74–76 % a 1R y 61–68 % a 1,5R.
