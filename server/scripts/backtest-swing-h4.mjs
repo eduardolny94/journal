@@ -55,6 +55,12 @@ function ema(values, n) {
   });
   return out;
 }
+function sma(values, n) {
+  const out = new Array(values.length).fill(null);
+  let s = 0;
+  for (let i = 0; i < values.length; i++) { s += values[i]; if (i >= n) s -= values[i - n]; if (i >= n - 1) out[i] = s / n; }
+  return out;
+}
 function atrSeries(bars, n) {
   const out = new Array(bars.length).fill(null);
   let a = null;
@@ -203,7 +209,7 @@ for (const sym of SYMBOLS) {
   const h4 = toH4(h1);
   const pip = pairPip(sym);
   const closes = h4.map((b) => b.c);
-  const ind = { ema20: ema(closes, 20), ema50: ema(closes, 50), atr: atrSeries(h4, ATR_N) };
+  const ind = { ema20: ema(closes, 20), ema50: ema(closes, 50), atr: atrSeries(h4, ATR_N), ema8: ema(closes, 8), sma18: sma(closes, 18), ema200: ema(closes, 200) };
   const biasList = biasBySym[sym] || [];
   // Tendencia diaria de 20 días (cierre del día anterior frente a 20 días antes), point-in-time.
   const dayClose = new Map();
@@ -237,7 +243,11 @@ for (const sym of SYMBOLS) {
           sym, date: h4[i].date, hour: h4[i].hour, pattern: name, dir, session: SESSION_OK(h4[i].hour),
           bias_level: bias ? bias.level : null, bias_aligned: bias ? bias.sign === dir : null, bias_against: bias ? bias.sign === -dir && bias.level >= 2 : null,
           tier: cv ? cv.tier_test : null, oos: cv ? bias.date >= conv.split : null, p5: cv ? cv.p5_test : null,
-          trend_aligned: trendD === dir, risk_pips: risk / pip, ...sim,
+          trend_aligned: trendD === dir, risk_pips: risk / pip,
+          // Contexto de medias "C4L": EMA 8 sobre/bajo la media 18, y precio frente a la EMA 200, en el sentido de la operación.
+          ma_aligned: ind.ema8[i] !== null && ind.sma18[i] !== null ? (dir > 0 ? ind.ema8[i] > ind.sma18[i] : ind.ema8[i] < ind.sma18[i]) : null,
+          ema200_aligned: ind.ema200[i] !== null ? (dir > 0 ? h4[i].c > ind.ema200[i] : h4[i].c < ind.ema200[i]) : null,
+          ...sim,
         });
         openUntil[key] = h1End;
       }

@@ -64,3 +64,37 @@ Tres conclusiones:
 - Las velas H4 se agregan desde H1 de MT5 (día de Nueva York); en TradingView con velas alineadas a otra hora las
   señales pueden diferir ligeramente.
 - Se mide contra precios, no contra ejecución real: deslizamiento y noticias pueden empeorarlo.
+
+## Cruce de medias "C4L" (EMA 8 / MA 18 / EMA 200), medido el 02-10-2026
+
+Regla propuesta por el usuario: en H4, comprar cuando la EMA 8 (azul) cruza por encima de la media 18 (roja) y
+vender cuando cruza por debajo; la EMA 200 (morada) como contexto. Script: `server/scripts/backtest-cruce-emas.mjs`
+(10 pares, 5 años, spread descontado, R = stop de referencia a 2 ATR).
+
+| Variante | n | gana | R por operación | factor de beneficio |
+|---|---|---|---|---|
+| Cruce 8/18, siempre en mercado | 4.834 | 31,6 % | −0,08R | 0,87 |
+| + stop a 2 ATR | 4.835 | 30,9 % | −0,05R | 0,91 |
+| Solo a favor de la EMA 200 | 2.491 | 31,8 % | −0,09R | 0,88 |
+| EMA 200 + stop | 2.492 | 31,1 % | −0,06R | 0,93 |
+| Con separación ≥ 0,15 ATR al cruzar + EMA 200 + stop | 761 | 33,6 % | −0,05R | 0,97 |
+| Cruce confirmado por la vela siguiente + EMA 200 + stop | 1.385 | 33,1 % | −0,05R | 0,98 |
+| Solo con nivel A/B del radar a favor | 197 | 34,5 % | −0,02R | 1,08 |
+
+- **Pierde en 9 de 10 pares** en todas las variantes. Es el perfil clásico del cruce de medias: las ganadoras duran
+  29 velas y ganan 1,33R de media, las perdedoras duran 9 y pierden 0,73R, pero solo gana una de cada tres y el
+  serrucho más el spread se comen el resto.
+- **El único par positivo es USDJPY** con la EMA 200 (+0,15R, factor 1,28, n=237), y por año: 2022 +0,58R, 2023
+  +0,22R, 2024 +0,14R, **2025 −0,09R, 2026 −0,10R**. Era la tendencia del yen de 2022-2024, no el sistema.
+- Con el radar: EURJPY +0,39R (n=40, positivo los 4 años) y GBPJPY +0,15R (n=54); los pares con dólar, negativos
+  con n < 15. No alcanza para una regla.
+- **Pares más tendenciales en H4** (ratio de eficiencia a 20 velas): USDJPY 25,7 %, USDCHF 24,2 %, EURJPY 24,1 %,
+  GBPJPY 24,1 %, USDCAD 24,0 % … AUDUSD 22,5 %. Las diferencias son mínimas: en H4 ningún par "tiende" lo bastante
+  para que un cruce de medias pague el spread.
+- **Como filtro de la entrada que sí funciona (barrido con nivel A/B)**: con la EMA 8 *por debajo* de la media 18
+  (es decir, tras la caída que forma el barrido) +0,38R (n=68); con la EMA 8 por encima +0,17R (n=53). El barrido es
+  una entrada de vuelta, no de continuación: pedirle el cruce a favor la empeora. Para el retroceso a la EMA 20 sí
+  ayuda (+0,28R con 8/18 a favor frente a −0,17R en contra), pero ese patrón sigue siendo peor que el barrido.
+
+Conclusión: el cruce 8/18 sirve para leer la dirección en el gráfico, no para disparar entradas. La dirección la
+pone el radar (nivel A/B) y la entrada medida es el barrido y recuperación.
