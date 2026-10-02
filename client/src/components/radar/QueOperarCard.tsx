@@ -23,7 +23,7 @@ export default function QueOperarCard({ data, pairs, favorites }: { data: QueOpe
   return (
     <Card
       title={<span className="flex items-center gap-2"><Crosshair className="h-4 w-4 text-accent" /> Qué operar hoy</span>}
-      subtitle={`${data.strongest.map((c) => `${flagOf(c.code)} ${c.code} fuerte`).join(', ')} · ${data.weakest.map((c) => `${flagOf(c.code)} ${c.code} débil`).join(', ')}. ${data.total_a} pares en nivel A, ${data.total_b} en B.`}
+      subtitle={`${data.strongest.map((c) => `${flagOf(c.code)} ${c.code} fuerte`).join(', ')} · ${data.weakest.map((c) => `${flagOf(c.code)} ${c.code} débil`).join(', ')}. Solo pares con fuerza ≥ 3/5 y nivel A o B: ${data.total_a} en A, ${data.total_b} en B.`}
       actions={favorites.length ? (
         <label className="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} className="h-3.5 w-3.5 accent-accent" /> solo mis favoritos</label>
       ) : undefined}
@@ -49,7 +49,7 @@ export default function QueOperarCard({ data, pairs, favorites }: { data: QueOpe
             </li>
           );
         })}
-        {list.length === 0 && <li className="px-4 py-5 text-sm text-gray-500">{onlyMine ? 'Ninguno de tus favoritos está hoy en nivel A o B. Quita el filtro para ver el resto.' : 'Hoy ningún par llega a nivel B: no hay nada que operar según lo medido. Es una respuesta válida.'}</li>}
+        {list.length === 0 && <li className="px-4 py-5 text-sm text-gray-500">{onlyMine ? 'Ninguno de tus favoritos tiene hoy fuerza ≥ 3/5 con nivel A o B. Quita el filtro para ver el resto.' : 'Hoy ningún par junta fuerza ≥ 3/5 con nivel A o B: no hay nada que operar según lo medido. Es una respuesta válida.'}</li>}
       </ul>
       <p className="flex items-start gap-1.5 border-t border-border px-3 py-2 text-[11px] text-gray-500"><Info className="mt-0.5 h-3 w-3 shrink-0" /> El nivel sale de un modelo con todas las condiciones medidas (fuerza y novedad del sesgo, tendencia, vela de ayer, extensión, régimen, COT, datos próximos, sorpresas, valor), ajustado con 3 años y validado en el último tercio. Nivel A y B son las señales que históricamente acertaron más; C se oculta. No es garantía: es lo que pasó.</p>
     </Card>

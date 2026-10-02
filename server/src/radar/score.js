@@ -576,13 +576,17 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   };
 }
 
-/** Ranking "qué operar": pares con nivel A o B, ordenados por probabilidad a 5 días y liquidez, sin dato fuerte en 2 h. */
+/** Fuerza mínima (0–5) para entrar en "qué operar": 3/5, es decir, sesgo claro con sus confluencias. */
+export const MIN_TRADEABLE_LEVEL = 3;
+
+/** Ranking "qué operar": pares con fuerza ≥ 3/5 y nivel A o B, ordenados por probabilidad a 5 días y liquidez, sin dato fuerte en 2 h. */
 function rankTradeable(pairs, currencies, now) {
   const sorted = [...currencies].sort((a, b) => b.score - a.score);
   const strongest = sorted.slice(0, 2).map((c) => ({ code: c.code, score: c.score }));
   const weakest = sorted.slice(-2).reverse().map((c) => ({ code: c.code, score: c.score }));
+  // Solo pares con fuerza ≥ 3/5 (|diff| ≥ 5) y nivel A o B: convicción medida y sesgo claro, no cualquier inclinación.
   const list = pairs
-    .filter((p) => p.conviction && p.conviction.tier !== 'C' && Math.abs(p.diff) >= 2)
+    .filter((p) => p.conviction && p.conviction.tier !== 'C' && Math.min(5, Math.round(Math.abs(p.diff) / 2)) >= MIN_TRADEABLE_LEVEL)
     .filter((p) => !p.warnings.some((w) => w.kind === 'noticia_en_2h' || w.kind === 'precios_stale'))
     .map((p) => ({
       symbol: p.symbol, bias: p.bias, diff: p.diff, strength: p.strength, tier: p.conviction.tier, p5: p.conviction.p5, p20: p.conviction.p20,
@@ -591,7 +595,7 @@ function rankTradeable(pairs, currencies, now) {
       pros: p.conviction.pros, cons: p.conviction.cons, atr_pips: p.conviction.atr_pips, warnings: p.warnings.map((w) => w.kind),
     }))
     .sort((a, b) => b.rank_score - a.rank_score);
-  return { as_of: new Date(now).toISOString(), strongest, weakest, best: list.slice(0, 6), total_a: list.filter((x) => x.tier === 'A').length, total_b: list.filter((x) => x.tier === 'B').length };
+  return { as_of: new Date(now).toISOString(), strongest, weakest, best: list.slice(0, 6), total_a: list.filter((x) => x.tier === 'A').length, total_b: list.filter((x) => x.tier === 'B').length, min_level: MIN_TRADEABLE_LEVEL };
 }
 
 // ---------- Mercado y sentimiento ----------

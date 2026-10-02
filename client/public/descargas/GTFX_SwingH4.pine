@@ -1,0 +1,107 @@
+//@version=6
+// GTFX Swing H4 · Global Traders FX
+// Señal técnica medida con el radar del journal (docs/ESTRATEGIA-SWING-H4.md):
+//   - Dirección: la pone el radar (nivel A o B del par en "Qué operar hoy"). Aquí se elige a mano en "Dirección".
+//   - Entrada "barrido y recuperación": la vela H4 rompe el mínimo (máximo) de las 6 velas anteriores y cierra de
+//     vuelta por encima (debajo) de ese nivel, a favor. Entrada al cierre de esa vela.
+//   - Stop: extremo de la vela ± 0,1 ATR(14). Objetivo: 2R. Alternativa: trailing a 2 ATR del mejor cierre.
+//   - Salida por tiempo: 30 velas H4 (5 días) si no ha tocado stop ni objetivo.
+// Medido (10 pares, 2023-2026, solo con nivel A/B del radar a favor): 43 % al objetivo 2R, +0,29R por operación,
+// positivo los cuatro años; último año fuera de muestra 51 %, +0,53R (n=39). Sin el radar, la misma vela no tiene
+// ventaja (−0,06R en 5 años). Con fuerza 2–3 del radar además del nivel: +0,8R (n=37).
+indicator("GTFX Swing H4", shorttitle = "GTFX H4", overlay = true, max_labels_count = 200)
+
+// ---------- Parámetros ----------
+dirInput  = input.string("Ambas", "Dirección del radar (nivel A o B)", options = ["Ambas", "Solo largos", "Solo cortos"], tooltip = "Pon la dirección que marca el radar para el par. 'Ambas' solo sirve para revisar el histórico.")
+lookback  = input.int(6, "Velas previas para el barrido", minval = 3, maxval = 20)
+atrLen    = input.int(14, "ATR", minval = 5)
+stopPad   = input.float(0.1, "Margen del stop (× ATR)", minval = 0, step = 0.05)
+targetR   = input.float(2.0, "Objetivo (R)", minval = 0.5, step = 0.5)
+trailAtr  = input.float(2.0, "Trailing (× ATR desde el mejor cierre)", minval = 0.5, step = 0.5)
+maxBars   = input.int(30, "Salida por tiempo (velas)", minval = 5)
+showTrail = input.bool(true, "Dibujar trailing")
+
+atr       = ta.atr(atrLen)
+priorLow  = ta.lowest(low, lookback)[1]
+priorHigh = ta.highest(high, lookback)[1]
+
+allowLong  = dirInput != "Solo cortos"
+allowShort = dirInput != "Solo largos"
+
+// Vela de barrido y recuperación (se evalúa al cierre de la vela).
+sweepLong  = allowLong  and low  < priorLow  and close > priorLow  and close > open
+sweepShort = allowShort and high > priorHigh and close < priorHigh and close < open
+
+// ---------- Gestión de una señal activa (una a la vez) ----------
+var int   dir      = 0
+var float entry    = na
+var float stop     = na
+var float target   = na
+var float trail    = na
+var float best     = na
+var int   barsOpen = 0
+string closeReason = na
+
+if dir != 0
+    barsOpen += 1
+    hitStop   = dir > 0 ? low <= stop : high >= stop
+    hitTarget = dir > 0 ? high >= target : low <= target
+    if hitStop
+        closeReason := "stop"
+    else if hitTarget
+        closeReason := "objetivo " + str.tostring(targetR, "#.#") + "R"
+    else
+        best := dir > 0 ? math.max(best, close) : math.min(best, close)
+        newTrail = dir > 0 ? best - trailAtr * atr : best + trailAtr * atr
+        trail := dir > 0 ? math.max(trail, newTrail) : math.min(trail, newTrail)
+        if barsOpen >= maxBars
+            closeReason := "tiempo"
+
+if not na(closeReason)
+    label.new(bar_index, dir > 0 ? high : low, closeReason, style = dir > 0 ? label.style_label_down : label.style_label_up, color = color.new(color.gray, 20), textcolor = color.white, size = size.small)
+    dir := 0
+    entry := na
+    stop := na
+    target := na
+    trail := na
+    best := na
+    barsOpen := 0
+
+if dir == 0 and na(closeReason) and barstate.isconfirmed
+    if sweepLong
+        dir := 1
+        entry := close
+        stop := low - stopPad * atr
+        target := entry + targetR * (entry - stop)
+        trail := stop
+        best := close
+        barsOpen := 0
+        label.new(bar_index, low, "LARGO\nstop " + str.tostring(stop, format.mintick) + "\nobjetivo " + str.tostring(target, format.mintick), style = label.style_label_up, color = color.new(color.teal, 10), textcolor = color.white, size = size.small)
+    else if sweepShort
+        dir := -1
+        entry := close
+        stop := high + stopPad * atr
+        target := entry - targetR * (stop - entry)
+        trail := stop
+        best := close
+        barsOpen := 0
+        label.new(bar_index, high, "CORTO\nstop " + str.tostring(stop, format.mintick) + "\nobjetivo " + str.tostring(target, format.mintick), style = label.style_label_down, color = color.new(color.red, 10), textcolor = color.white, size = size.small)
+
+// ---------- Dibujo ----------
+plot(dir != 0 ? entry : na, "Entrada", color = color.new(color.white, 30), style = plot.style_linebr, linewidth = 1)
+plot(dir != 0 ? stop : na, "Stop", color = color.new(color.red, 0), style = plot.style_linebr, linewidth = 2)
+plot(dir != 0 ? target : na, "Objetivo", color = color.new(color.teal, 0), style = plot.style_linebr, linewidth = 2)
+plot(showTrail and dir != 0 ? trail : na, "Trailing 2 ATR", color = color.new(color.orange, 20), style = plot.style_linebr, linewidth = 1)
+plotshape(sweepLong, "Barrido alcista", shape.triangleup, location.belowbar, color.new(color.teal, 0), size = size.tiny)
+plotshape(sweepShort, "Barrido bajista", shape.triangledown, location.abovebar, color.new(color.red, 0), size = size.tiny)
+
+// ---------- Avisos ----------
+alertcondition(sweepLong, "GTFX H4 largo", "GTFX Swing H4: barrido y recuperación alcista en {{ticker}}. Comprueba que el radar tenga nivel A o B alcista.")
+alertcondition(sweepShort, "GTFX H4 corto", "GTFX Swing H4: barrido y recuperación bajista en {{ticker}}. Comprueba que el radar tenga nivel A o B bajista.")
+
+var table info = table.new(position.top_right, 1, 3, bgcolor = color.new(color.black, 40))
+if barstate.islast
+    notH4 = timeframe.period != "240"
+    table.cell(info, 0, 0, "GTFX Swing H4 · " + dirInput, text_color = color.white, text_size = size.small)
+    table.cell(info, 0, 1, dir == 0 ? "Sin señal activa" : (dir > 0 ? "Largo" : "Corto") + " · vela " + str.tostring(barsOpen) + "/" + str.tostring(maxBars), text_color = color.white, text_size = size.small)
+    table.cell(info, 0, 2, notH4 ? "⚠ Medido en H4: cambia el gráfico a 4 horas" : "Riesgo sugerido: 0,5 % por operación", text_color = notH4 ? color.orange : color.gray, text_size = size.small)
