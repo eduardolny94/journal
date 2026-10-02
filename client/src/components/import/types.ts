@@ -1,7 +1,7 @@
 // Tipos y constantes compartidos por el asistente de importación de CSV.
 import type { AccountStatus } from '../../store/session';
 
-export type ImportSource = 'tradovate' | 'projectx' | 'ninjatrader' | 'mt5' | 'rithmic' | 'generic';
+export type ImportSource = 'tradovate' | 'projectx' | 'ninjatrader' | 'mt5' | 'rithmic' | 'tradingview' | 'generic';
 
 export const SOURCE_OPTIONS: Array<{ value: ImportSource; label: string }> = [
   { value: 'tradovate', label: 'Tradovate' },
@@ -9,6 +9,7 @@ export const SOURCE_OPTIONS: Array<{ value: ImportSource; label: string }> = [
   { value: 'ninjatrader', label: 'NinjaTrader 8' },
   { value: 'rithmic', label: 'Rithmic R|Trader Pro' },
   { value: 'mt5', label: 'MetaTrader 5' },
+  { value: 'tradingview', label: 'TradingView (Plus500 y otros brókers)' },
   { value: 'generic', label: 'Genérico (mapeo manual)' },
 ];
 

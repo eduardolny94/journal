@@ -14,7 +14,7 @@
     "seed": "node scripts/seed.js",
     "test:tradingDay": "node scripts/test-tradingDay.js",
     "smoke": "node scripts/smoke.mjs",
-    "test": "node scripts/test-tradingDay.js && node scripts/test-ciclo.mjs && node scripts/smoke.mjs"
+    "test": "node scripts/test-tradingDay.js && node scripts/test-ciclo.mjs && node scripts/test-import-tradingview.mjs && node scripts/smoke.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

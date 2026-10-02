@@ -85,6 +85,24 @@ export const EXPORT_GUIDES: GuideEntry[] = [
     ],
   },
   {
+    source: 'tradingview',
+    title: 'TradingView (Plus500 Futures y otros brókers conectados)',
+    steps: [
+      'Con el bróker conectado en TradingView, abre el panel de trading (abajo) → pestaña «History» y elige el rango de fechas.',
+      'Pulsa el engranaje del panel → «Export…» (o el icono de descarga) y guarda el CSV.',
+      'Súbelo aquí: se reconoce por las columnas Symbol, Side, Qty, Fill Price, Status, Placing Time y Closing Time.',
+    ],
+    notes: [
+      'Solo se usan las órdenes con estado «Filled»; las canceladas, rechazadas o pendientes se ignoran.',
+      'Las compras y ventas se emparejan FIFO por contrato y el P&L se calcula con el valor por punto (MES, MNQ, MCL, MGC, M6E…); la comisión se descuenta.',
+      'El símbolo del bróker se reduce a su raíz (PLUS500:MESZ2026 → MES). Las horas van en la zona horaria de tu gráfico: elígela al importar.',
+    ],
+    links: [
+      { label: 'TradingView: panel de trading y pestaña History', href: 'https://www.tradingview.com/support/solutions/43000474096/' },
+      { label: 'Plus500 Futures', href: 'https://futures.plus500.com/' },
+    ],
+  },
+  {
     source: 'mt5',
     title: 'MetaTrader 5',
     steps: [

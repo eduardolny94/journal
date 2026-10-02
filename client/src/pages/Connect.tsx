@@ -142,6 +142,24 @@ const GUIDES: Record<Platform, PlatformGuide> = {
     nativeNote: 'La Open API de cTrader permite cerrar posiciones, pero no bloquear la cuenta.',
     sync: { level: 'proximamente', text: 'cTrader Open API (OAuth) permitirá leer tus operaciones automáticamente.' },
   },
+  tradingview: {
+    importSteps: [
+      'En TradingView, con el bróker conectado (Plus500 Futures u otro), abre el panel de trading de abajo → pestaña «History».',
+      'Elige el rango de fechas, pulsa el engranaje del panel → «Export…» y guarda el CSV.',
+      'Súbelo en Importar: el journal reconoce el formato, se queda solo con las órdenes ejecutadas («Filled») y empareja compras y ventas por contrato.',
+      'Comprueba la zona horaria que te propone: TradingView exporta las horas en la de tu gráfico.',
+    ],
+    nativeTitle: 'Límite diario en Plus500 Futures',
+    nativeSteps: [
+      'Plus500 Futures no tiene límite diario de pérdida configurable por el cliente: el del journal es tu límite.',
+      'Sí puedes fijar el stop en cada orden desde el panel de TradingView; hazlo siempre en el momento de entrar.',
+    ],
+    nativeNote: 'Ni TradingView ni Plus500 bloquean la cuenta al tocar una pérdida; el bloqueo del journal es un compromiso contigo.',
+    sync: {
+      level: 'no-disponible',
+      text: 'Plus500 no ofrece API a clientes y TradingView no exporta las ejecuciones a otras apps. Importar el CSV lleva dos minutos; con el histórico cargado, el radar y el dashboard trabajan igual que con una cuenta sincronizada.',
+    },
+  },
   otro: {
     importSteps: ['Exporta tus operaciones a CSV desde tu plataforma.', 'En Importar elige «Genérico» y asigna las columnas.'],
     nativeTitle: 'Límite en tu plataforma',

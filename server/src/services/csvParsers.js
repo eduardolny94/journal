@@ -20,7 +20,7 @@ import { baseSymbol, pointValueFor } from './importers/contracts.js';
 
 export const MAX_ROWS = 5000;
 export const MAX_COLUMNS = 200;
-export const SOURCES = ['tradovate', 'projectx', 'ninjatrader', 'mt5', 'rithmic', 'generic'];
+export const SOURCES = ['tradovate', 'projectx', 'ninjatrader', 'mt5', 'rithmic', 'tradingview', 'generic'];
 export const SOURCE_LABELS = {
   tradovate: 'Tradovate',
   projectx: 'TopstepX / ProjectX',
@@ -392,6 +392,10 @@ export function detectSource(columns) {
   if (has('instrument', 'action', 'quantity', 'price', 'time')) return { source: 'ninjatrader', variant: 'executions' };
   if (has('deal', 'direction', 'symbol') && any('profit')) return { source: 'mt5', variant: 'deals' };
   if (has('position', 'symbol', 'type', 'volume', 'profit') && any('time2', 'closetime')) return { source: 'mt5', variant: 'positions' };
+  // TradingView (panel de trading → History → exportar): una fila por orden, con hora de colocación y de cierre.
+  if (has('symbol', 'side') && any('placingtime', 'closingtime') && any('fillprice', 'lastfillprice', 'avgfillprice')) {
+    return { source: 'tradingview', variant: 'orders' };
+  }
   if (has('symbol') && any('buysell', 'side', 'bs') && any('avgfillprice', 'fillprice') && any('qtyfilled', 'fillqty', 'filledqty', 'qty', 'quantity')) {
     return { source: 'rithmic', variant: 'orders' };
   }
@@ -846,6 +850,25 @@ function ninjaExecutionFill(raw, ctx) {
   return { symbol: ctx.symbol(ctx.get(raw, 'instrument')), side, qty: Math.abs(qty), price, time, timeMs: new Date(time).getTime(), fee, id: id || null };
 }
 
+/** TradingView (History exportado): solo órdenes ejecutadas («Filled»); el símbolo del bróker se reduce a su raíz. */
+function tradingviewFill(raw, ctx) {
+  const status = cleanText(ctx.get(raw, 'status'), 20).toLowerCase();
+  if (status && !/^(filled|executed|ejecutada|completada)/.test(status)) return null;
+  const sideRaw = ctx.get(raw, 'side');
+  const side = parseFillSide(sideRaw);
+  if (!side) throw new Error(`Lado desconocido «${cleanText(sideRaw, 20)}» (se espera Buy/Sell).`);
+  const qty = ctx.num(ctx.get(raw, 'qty', 'quantity', 'filledqty', 'fillqty'), 'Qty');
+  if (!qty) return null;
+  const price = ctx.num(ctx.get(raw, 'fillprice', 'lastfillprice', 'avgfillprice'), 'Fill Price');
+  if (price === null) return null; // orden sin ejecución (cancelada, pendiente)
+  const time = ctx.date(ctx.get(raw, 'closingtime', 'filltime', 'placingtime', 'time'), 'Closing Time');
+  const fee = Math.abs(ctx.num(ctx.get(raw, 'commission', 'commissions', 'fees'), 'Commission') ?? 0);
+  const id = cleanText(ctx.get(raw, 'orderid', 'id'), 40);
+  // "MESZ2026" → "MESZ26"; "MES1!" → "MES"; "PLUS500:MESZ2026" → sin prefijo de bróker.
+  let sym = String(ctx.get(raw, 'symbol') ?? '').trim().toUpperCase().replace(/^[A-Z0-9_]+:/, '').replace(/\d!$/, '').replace(/([FGHJKMNQUVXZ])20(\d\d)$/, '$1$2');
+  return { symbol: ctx.symbol(sym), side, qty: Math.abs(qty), price, time, timeMs: new Date(time).getTime(), fee, id: id || null };
+}
+
 function mt5DealFill(raw, ctx) {
   const type = String(ctx.get(raw, 'type') ?? '').trim().toLowerCase();
   const symbolRaw = ctx.get(raw, 'symbol');
@@ -956,6 +979,9 @@ export function normalizeRows(rows, { source, variant = null, mapping = {}, time
       break;
     case 'rithmic':
       result = viaFills(rows, ctx, rithmicFill, 'rithmic');
+      break;
+    case 'tradingview':
+      result = viaFills(rows, ctx, tradingviewFill, 'tradingview');
       break;
     case 'generic': {
       const missing = ['symbol', 'entry_time', 'exit_time'].filter((f) => !mapping[f]);

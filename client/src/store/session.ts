@@ -9,7 +9,7 @@ export interface User {
   created_at?: string;
 }
 
-export type Platform = 'tradovate' | 'projectx' | 'rithmic' | 'ninjatrader' | 'mt5' | 'mt4' | 'ctrader' | 'otro';
+export type Platform = 'tradovate' | 'projectx' | 'rithmic' | 'ninjatrader' | 'mt5' | 'mt4' | 'ctrader' | 'tradingview' | 'otro';
 export type AccountType = 'evaluacion' | 'financiada' | 'personal';
 
 export interface AccountStatus {

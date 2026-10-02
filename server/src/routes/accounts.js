@@ -8,7 +8,7 @@ import { OUTCOMES } from '../services/finanzas.js';
 
 const router = Router();
 
-export const PLATFORMS = ['tradovate', 'projectx', 'rithmic', 'ninjatrader', 'mt5', 'mt4', 'ctrader', 'otro'];
+export const PLATFORMS = ['tradovate', 'projectx', 'rithmic', 'ninjatrader', 'mt5', 'mt4', 'ctrader', 'tradingview', 'otro'];
 export const ACCOUNT_TYPES = ['evaluacion', 'financiada', 'personal'];
 
 class HttpError extends Error {

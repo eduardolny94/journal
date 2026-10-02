@@ -18,6 +18,7 @@ export const PLATFORM_OPTIONS: Array<{ value: Platform; label: string }> = [
   { value: 'mt5', label: 'MetaTrader 5' },
   { value: 'mt4', label: 'MetaTrader 4' },
   { value: 'ctrader', label: 'cTrader' },
+  { value: 'tradingview', label: 'TradingView (Plus500 y otros brókers)' },
   { value: 'otro', label: 'Otra' },
 ];
 
