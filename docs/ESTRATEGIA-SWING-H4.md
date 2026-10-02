@@ -205,3 +205,29 @@ Campos `d_aligned`, `d_cross_recent`, `w_aligned` en `backtest-swing-h4.mjs` (d�
 
 Indicador: opción "Exigir cruce diario a favor" en `GTFX_SwingH4.pine` (día cerrado anterior, sin repintar) y la
 lectura del diario en la tabla.
+
+## Cómo llegar a 1:2 con el mejor acierto (medido el 02-10-2026)
+
+Dos palancas medidas: la selección (nivel A/B + diario 8/18 a favor + fuerza) y la **entrada en el retroceso al 50 %
+de la vela de barrido** (orden limitada válida 3 velas, mismo stop; patrón `sweep_retest`). La limitada se llena el
+65 % de las veces, acerca el objetivo en pips y deja el stop en unos 20 pips.
+
+| Selección | Entrada al cierre: 2R | Entrada en el 50 %: 2R | 3R con el 50 % | n (cierre / 50 %) |
+|---|---|---|---|---|
+| Nivel A/B | 43 % · +0,29R | 52 % · +0,47R | 38 % · +0,43R | 121 / 79 |
+| A/B + diario a favor | 47 % · +0,42R | 54 % · +0,53R | 44 % · +0,65R | 55 / 39 |
+| A/B + diario + semanal | 51 % · +0,58R | **60 % · +0,71R** | 50 % · +0,91R | 35 / 30 |
+| A/B + fuerza ≥ 2 | 55 % · +0,74R | 60 % · +0,70R | 52 % · +0,98R | 38 / 25 |
+| A/B + fuerza ≥ 2 + diario | 63 % · +0,95R | 67 % · +0,90R | 61 % · +1,35R | 24 / 18 |
+| A/B + diario, sin la vela de las 16:00 | 54 % · +0,60R | 58 % · +0,65R | 45 % · +0,71R | 41 / 31 |
+
+- La entrada en el 50 % sube el acierto a 2R entre 5 y 9 puntos en todas las filas y, sobre todo, arregla el año
+  malo: 2025 pasa de −0,32R (22 % a 2R) a +0,21R (43 %) con A/B + diario.
+- Regla recomendada para 1:2: nivel A/B, diario 8/18 a favor, barrido en H4, limitada en el 50 % de la vela (3 velas
+  de validez), stop en el extremo ± 0,1 ATR, objetivo 2R. Si además hay fuerza ≥ 2 o el semanal acompaña, el 3R es
+  alcanzable la mitad de las veces.
+- Muestras de 18–39 operaciones por fila: la dirección del efecto es consistente en todas las combinaciones, pero
+  los porcentajes exactos se moverán. Medir en el journal.
+
+Indicador: modo "Entrada: Retroceso 50 %" (orden limitada dibujada, se cancela si toca el stop antes de llenarse,
+aviso al llenarse) en `GTFX_SwingH4.pine`.

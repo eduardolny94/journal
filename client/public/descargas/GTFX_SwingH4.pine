@@ -2,25 +2,26 @@
 // GTFX Swing H4 · Global Traders FX
 // Señal técnica medida con el radar del journal (docs/ESTRATEGIA-SWING-H4.md):
 //   - Dirección: la pone el radar (nivel A o B del par en "Qué operar hoy"). Aquí se elige a mano en "Dirección".
+//   - Contexto: cruce 8/18 en diario a favor (opcional, medido: alarga el recorrido).
 //   - Entrada "barrido y recuperación": la vela H4 rompe el mínimo (máximo) de las 6 velas anteriores y cierra de
-//     vuelta por encima (debajo) de ese nivel, a favor. Entrada al cierre de esa vela.
+//     vuelta por encima (debajo) de ese nivel, a favor. Dos modos: al cierre de esa vela, o con orden limitada en el
+//     50 % de la vela durante las 3 velas siguientes (medido: sube el acierto a 2R del 47 % al 54 % con el diario a favor).
 //   - Stop: extremo de la vela ± 0,1 ATR(14). Objetivo: 2R. Alternativa: trailing a 2 ATR del mejor cierre.
 //   - Salida por tiempo: 30 velas H4 (5 días) si no ha tocado stop ni objetivo.
-// Medido (10 pares, 2023-2026, solo con nivel A/B del radar a favor): 43 % al objetivo 2R, +0,29R por operación,
-// positivo los cuatro años; último año fuera de muestra 51 %, +0,53R (n=39). Sin el radar, la misma vela no tiene
-// ventaja (−0,06R en 5 años). Con fuerza 2–3 del radar además del nivel: +0,8R (n=37).
 indicator("GTFX Swing H4", shorttitle = "GTFX H4", overlay = true, max_labels_count = 200)
 
 // ---------- Parámetros ----------
 dirInput  = input.string("Ambas", "Dirección del radar (nivel A o B)", options = ["Ambas", "Solo largos", "Solo cortos"], tooltip = "Pon la dirección que marca el radar para el par. 'Ambas' solo sirve para revisar el histórico.")
+entryMode = input.string("Retroceso 50 %", "Entrada", options = ["Retroceso 50 %", "Cierre de la vela"], tooltip = "Retroceso 50 %: orden limitada en la mitad de la vela de barrido, válida 3 velas; se llena el 65 % de las veces y sube el acierto a 2R. Cierre de la vela: entrada inmediata.")
+reqDaily  = input.bool(true, "Exigir cruce diario a favor (EMA 8 sobre MA 18 en D1)", tooltip = "Medido: con el diario a favor el barrido con nivel A/B llega a 2R el 47 % y a 3R el 36 %; con el diario en contra, 39 % y 23 %. Usa el día cerrado anterior (no repinta).")
 lookback  = input.int(6, "Velas previas para el barrido", minval = 3, maxval = 20)
 atrLen    = input.int(14, "ATR", minval = 5)
 stopPad   = input.float(0.1, "Margen del stop (× ATR)", minval = 0, step = 0.05)
 targetR   = input.float(2.0, "Objetivo (R)", minval = 0.5, step = 0.5)
 trailAtr  = input.float(2.0, "Trailing (× ATR desde el mejor cierre)", minval = 0.5, step = 0.5)
 maxBars   = input.int(30, "Salida por tiempo (velas)", minval = 5)
+fillBars  = input.int(3, "Validez de la orden limitada (velas)", minval = 1, maxval = 10)
 showTrail = input.bool(true, "Dibujar trailing")
-reqDaily  = input.bool(true, "Exigir cruce diario a favor (EMA 8 sobre MA 18 en D1)", tooltip = "Medido: con el diario a favor el barrido con nivel A/B llega a 2R el 47 % y a 3R el 36 % (+0,5R); con el diario en contra, 39 % y 23 %. Usa el día cerrado anterior (no repinta).")
 
 atr       = ta.atr(atrLen)
 priorLow  = ta.lowest(low, lookback)[1]
@@ -38,17 +39,24 @@ allowShort = dirInput != "Solo largos" and (not reqDaily or dailyDown)
 // Vela de barrido y recuperación (se evalúa al cierre de la vela).
 sweepLong  = allowLong  and low  < priorLow  and close > priorLow  and close > open
 sweepShort = allowShort and high > priorHigh and close < priorHigh and close < open
+retest     = entryMode == "Retroceso 50 %"
 
-// ---------- Gestión de una señal activa (una a la vez) ----------
-var int   dir      = 0
-var float entry    = na
-var float stop     = na
-var float target   = na
-var float trail    = na
-var float best     = na
-var int   barsOpen = 0
-string closeReason = na
+// ---------- Estado: una orden pendiente y una posición, como mucho ----------
+var int   pendDir   = 0
+var float pendEntry = na
+var float pendStop  = na
+var int   pendLeft  = 0
+var int   dir       = 0
+var float entry     = na
+var float stop      = na
+var float target    = na
+var float trail     = na
+var float best      = na
+var int   barsOpen  = 0
+string closeReason  = na
+string openNote     = na
 
+// 1) Gestión de la posición abierta.
 if dir != 0
     barsOpen += 1
     hitStop   = dir > 0 ? low <= stop : high >= stop
@@ -74,27 +82,56 @@ if not na(closeReason)
     best := na
     barsOpen := 0
 
-if dir == 0 and na(closeReason) and barstate.isconfirmed
-    if sweepLong
-        dir := 1
-        entry := close
-        stop := low - stopPad * atr
-        target := entry + targetR * (entry - stop)
+// 2) Orden limitada pendiente: se cancela si toca el stop antes de llenarse, se llena si toca el precio.
+if pendDir != 0 and dir == 0
+    stopFirst = pendDir > 0 ? low <= pendStop : high >= pendStop
+    filled    = pendDir > 0 ? low <= pendEntry : high >= pendEntry
+    if stopFirst
+        label.new(bar_index, pendDir > 0 ? low : high, "orden cancelada", style = pendDir > 0 ? label.style_label_up : label.style_label_down, color = color.new(color.gray, 50), textcolor = color.white, size = size.tiny)
+        pendDir := 0
+    else if filled
+        dir := pendDir
+        entry := pendEntry
+        stop := pendStop
+        target := dir > 0 ? entry + targetR * (entry - stop) : entry - targetR * (stop - entry)
         trail := stop
         best := close
         barsOpen := 0
-        label.new(bar_index, low, "LARGO\nstop " + str.tostring(stop, format.mintick) + "\nobjetivo " + str.tostring(target, format.mintick), style = label.style_label_up, color = color.new(color.teal, 10), textcolor = color.white, size = size.small)
-    else if sweepShort
-        dir := -1
-        entry := close
-        stop := high + stopPad * atr
-        target := entry - targetR * (stop - entry)
-        trail := stop
-        best := close
-        barsOpen := 0
-        label.new(bar_index, high, "CORTO\nstop " + str.tostring(stop, format.mintick) + "\nobjetivo " + str.tostring(target, format.mintick), style = label.style_label_down, color = color.new(color.red, 10), textcolor = color.white, size = size.small)
+        pendDir := 0
+        openNote := "LLENADA"
+    else
+        pendLeft -= 1
+        if pendLeft <= 0
+            pendDir := 0
+
+// 3) Nueva señal al cierre de la vela (si no hay posición ni orden pendiente).
+if dir == 0 and pendDir == 0 and na(closeReason) and barstate.isconfirmed
+    if sweepLong or sweepShort
+        sDir   = sweepLong ? 1 : -1
+        sStop  = sDir > 0 ? low - stopPad * atr : high + stopPad * atr
+        sEntry = retest ? (sDir > 0 ? (close + low) / 2 : (close + high) / 2) : close
+        if retest
+            pendDir := sDir
+            pendEntry := sEntry
+            pendStop := sStop
+            pendLeft := fillBars
+            label.new(bar_index, sDir > 0 ? low : high, (sDir > 0 ? "LARGO limitada " : "CORTO limitada ") + str.tostring(sEntry, format.mintick) + "\nstop " + str.tostring(sStop, format.mintick), style = sDir > 0 ? label.style_label_up : label.style_label_down, color = color.new(sDir > 0 ? color.teal : color.red, 40), textcolor = color.white, size = size.small)
+        else
+            dir := sDir
+            entry := sEntry
+            stop := sStop
+            target := dir > 0 ? entry + targetR * (entry - stop) : entry - targetR * (stop - entry)
+            trail := stop
+            best := close
+            barsOpen := 0
+            label.new(bar_index, sDir > 0 ? low : high, (sDir > 0 ? "LARGO" : "CORTO") + "\nstop " + str.tostring(stop, format.mintick) + "\nobjetivo " + str.tostring(target, format.mintick), style = sDir > 0 ? label.style_label_up : label.style_label_down, color = color.new(sDir > 0 ? color.teal : color.red, 10), textcolor = color.white, size = size.small)
+
+if openNote == "LLENADA"
+    label.new(bar_index, dir > 0 ? low : high, "entrada " + str.tostring(entry, format.mintick) + "\nobjetivo " + str.tostring(target, format.mintick), style = dir > 0 ? label.style_label_up : label.style_label_down, color = color.new(dir > 0 ? color.teal : color.red, 10), textcolor = color.white, size = size.small)
 
 // ---------- Dibujo ----------
+plot(pendDir != 0 ? pendEntry : na, "Orden limitada", color = color.new(color.yellow, 20), style = plot.style_linebr, linewidth = 1)
+plot(pendDir != 0 ? pendStop : na, "Stop de la orden", color = color.new(color.red, 50), style = plot.style_linebr, linewidth = 1)
 plot(dir != 0 ? entry : na, "Entrada", color = color.new(color.white, 30), style = plot.style_linebr, linewidth = 1)
 plot(dir != 0 ? stop : na, "Stop", color = color.new(color.red, 0), style = plot.style_linebr, linewidth = 2)
 plot(dir != 0 ? target : na, "Objetivo", color = color.new(color.teal, 0), style = plot.style_linebr, linewidth = 2)
@@ -105,11 +142,12 @@ plotshape(sweepShort, "Barrido bajista", shape.triangledown, location.abovebar, 
 // ---------- Avisos ----------
 alertcondition(sweepLong, "GTFX H4 largo", "GTFX Swing H4: barrido y recuperación alcista en {{ticker}}. Comprueba que el radar tenga nivel A o B alcista.")
 alertcondition(sweepShort, "GTFX H4 corto", "GTFX Swing H4: barrido y recuperación bajista en {{ticker}}. Comprueba que el radar tenga nivel A o B bajista.")
+alertcondition(openNote == "LLENADA", "GTFX H4 orden llenada", "GTFX Swing H4: la orden limitada se ha llenado en {{ticker}}.")
 
 var table info = table.new(position.top_right, 1, 4, bgcolor = color.new(color.black, 40))
 if barstate.islast
     notH4 = timeframe.period != "240"
-    table.cell(info, 0, 0, "GTFX Swing H4 · " + dirInput, text_color = color.white, text_size = size.small)
+    table.cell(info, 0, 0, "GTFX Swing H4 · " + dirInput + " · " + entryMode, text_color = color.white, text_size = size.small)
     table.cell(info, 0, 1, "Diario 8/18: " + (dailyUp ? "alcista" : dailyDown ? "bajista" : "—") + (reqDaily ? " (exigido)" : ""), text_color = dailyUp ? color.teal : dailyDown ? color.red : color.gray, text_size = size.small)
-    table.cell(info, 0, 2, dir == 0 ? "Sin señal activa" : (dir > 0 ? "Largo" : "Corto") + " · vela " + str.tostring(barsOpen) + "/" + str.tostring(maxBars), text_color = color.white, text_size = size.small)
+    table.cell(info, 0, 2, dir != 0 ? (dir > 0 ? "Largo" : "Corto") + " · vela " + str.tostring(barsOpen) + "/" + str.tostring(maxBars) : pendDir != 0 ? "Orden limitada pendiente · " + str.tostring(pendLeft) + " velas" : "Sin señal activa", text_color = color.white, text_size = size.small)
     table.cell(info, 0, 3, notH4 ? "⚠ Medido en H4: cambia el gráfico a 4 horas" : "Riesgo sugerido: 0,5 % por operación", text_color = notH4 ? color.orange : color.gray, text_size = size.small)

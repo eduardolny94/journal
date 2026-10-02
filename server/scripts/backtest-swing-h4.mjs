@@ -206,6 +206,18 @@ const PATTERNS = {
     }
     return null;
   },
+  // 2b. Barrido y recuperación con entrada en el retroceso al 50 % de la vela (orden limitada, 3 velas de validez), mismo stop.
+  sweep_retest: (h4, i, ind, dir) => {
+    const b = h4[i];
+    if (dir > 0) {
+      const sl = swingLow(h4, i, 6);
+      if (!(b.l < sl && b.c > sl && b.c > b.o)) return null;
+      return { entry: (b.c + b.l) / 2, stop: b.l - 0.1 * ind.atr[i], limit: true, fill_bars: 3 };
+    }
+    const sh = swingHigh(h4, i, 6);
+    if (!(b.h > sh && b.c < sh && b.c < b.o)) return null;
+    return { entry: (b.c + b.h) / 2, stop: b.h + 0.1 * ind.atr[i], limit: true, fill_bars: 3 };
+  },
   // 5. Cruce EMA 8 / media 18 con stop en el último pivote de estructura (alto para cortos, bajo para largos; 2 velas a cada lado).
   cruce_pivote: (h4, i, ind, dir) => {
     const sig = crossSignal(ind, i);
@@ -285,9 +297,14 @@ for (const sym of SYMBOLS) {
         const risk = Math.abs(sig.entry - sig.stop);
         if (!FIXED_STOP_PIPS && risk < 0.3 * ind.atr[i]) continue;
         let h1Start = h4[i].last + 1; // entrada al cierre de la vela i: la simulación empieza en la H1 siguiente
-        if (sig.limit) { // orden limitada: se ejecuta en la H1 de la vela i que toca el precio de entrada
+        if (sig.limit) { // orden limitada: se ejecuta en la primera H1 que toca el precio (en la vela i, o en las fill_bars siguientes)
           h1Start = -1;
-          for (let k = h4[i].first; k <= h4[i].last; k++) if (dir > 0 ? h1[k].l <= sig.entry : h1[k].h >= sig.entry) { h1Start = k; break; }
+          const from = sig.fill_bars ? h4[i].last + 1 : h4[i].first;
+          const to = sig.fill_bars ? h4[Math.min(h4.length - 1, i + sig.fill_bars)].last : h4[i].last;
+          for (let k = from; k <= to; k++) {
+            if (dir > 0 ? h1[k].l <= sig.stop : h1[k].h >= sig.stop) break; // el stop se toca antes de llenarse: orden cancelada
+            if (dir > 0 ? h1[k].l <= sig.entry : h1[k].h >= sig.entry) { h1Start = k; break; }
+          }
           if (h1Start < 0) continue;
         }
         const h1End = Math.min(h1.length - 1, h4[Math.min(h4.length - 1, i + MAX_BARS)].last);
