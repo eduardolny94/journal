@@ -11,14 +11,14 @@ export const FEATURE_NAMES = [
   'taylor', 'descontado', 'real', 'tot',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 2;
+export const FEATURE_VERSION = 3;
 /**
- * Condiciones candidatas: se calculan y se miden en cada backtest, pero no entran en el modelo activo hasta que
- * mejoren el nivel A fuera de muestra en todos los cortes temporales (ver docs/CONVICCION.md, fase 2).
+ * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
+ * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.
  */
-export const CANDIDATE_FEATURES = ['taylor', 'descontado', 'real', 'tot'];
-export const ACTIVE_FEATURES = FEATURE_NAMES.filter((n) => !CANDIDATE_FEATURES.includes(n));
-const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
+export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot'].includes(n));
+export const CANDIDATE_FEATURES = FEATURE_NAMES.filter((n) => !BASE_FEATURES.includes(n));
+export const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
 /** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
 export const LAMBDA = 2;
 export const TIER_A = 0.6;
@@ -207,7 +207,7 @@ function fin(b) { return { n: b.n, hit_rate: b.n ? Math.round((1000 * b.hits) / 
  * Construye el modelo de convicción para un horizonte con validación walk-forward.
  * @param {Array} rows [{ date, sym, x, signed_pips: {h: pips}, r: {h: pips/ATR} }]
  */
-export function buildConvictionModel(rows, { horizon, splitIndexFraction = 2 / 3, lambda = LAMBDA, mask = indexesOf(ACTIVE_FEATURES), candidates = false } = {}) {
+export function buildConvictionModel(rows, { horizon, splitIndexFraction = 2 / 3, lambda = LAMBDA, mask = indexesOf(BASE_FEATURES), candidates = false } = {}) {
   // `mask`: índices de condiciones que entran en el modelo; el resto se anula (peso 0) sin cambiar la forma del vector,
   // así `predictProb` y `explain` funcionan con el vector completo. `null` = todas.
   const xOf = mask ? (r) => r.x.map((v, i) => (mask.includes(i) ? v : 0)) : (r) => r.x;
@@ -243,8 +243,9 @@ export function buildConvictionModel(rows, { horizon, splitIndexFraction = 2 / 3
       const m = buildConvictionModel(rows, { horizon, lambda, candidates: false, ...opts });
       return m ? { A: m.test.tiers.A, B: m.test.tiers.B, from: m.test.from } : null;
     };
+    const activeNames = mask ? FEATURE_NAMES.filter((_, i) => mask.includes(i)) : FEATURE_NAMES;
     candidatos = { todas: oos({ mask: null }) };
-    for (const c of CANDIDATE_FEATURES) candidatos[`con_${c}`] = oos({ mask: indexesOf([...ACTIVE_FEATURES, c]) });
+    for (const c of FEATURE_NAMES) if (!activeNames.includes(c)) candidatos[`con_${c}`] = oos({ mask: indexesOf([...activeNames, c]) });
     robustez = { corte_1_2: oos({ mask, splitIndexFraction: 0.5 }), corte_1_3: oos({ mask, splitIndexFraction: 1 / 3 }) };
   }
   return {

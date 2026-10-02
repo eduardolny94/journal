@@ -12,7 +12,8 @@ import { eventsBetween, latestActual } from './sources/calendar.js';
 import { atr, round } from './indicators.js';
 import { setMeta, getMetaJson } from './store.js';
 import { calibrateLogit } from './quant.js';
-import { signalFeatures, buildConvictionModel } from './conviction.js';
+import { signalFeatures, buildConvictionModel, indexesOf } from './conviction.js';
+import { runCycle } from './cycle.js';
 import { surpriseOf } from './sources/calendar.js';
 import { SYNTHETIC_CROSS_PAIRS, pairDigits as digitsOfPair } from './constants.js';
 import { legsOf, synthDaily } from './synthetic.js';
@@ -423,10 +424,14 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     log(`calibración logística: ${e.message}`);
   }
 
-  // Capa de convicción (walk-forward) a 1, 5 y 20 días.
+  // Ciclo de mejora: mide candidatos y decide el conjunto activo de condiciones (cycle.js); después, la capa de
+  // convicción (walk-forward) a 1, 5 y 20 días con ese conjunto.
   let conviction = null;
+  let ciclo = null;
   try {
-    conviction = { h1: buildConvictionModel(convRows, { horizon: 1, candidates: true }), h5: buildConvictionModel(convRows, { horizon: 5, candidates: true }), h20: buildConvictionModel(convRows, { horizon: 20, candidates: true }) };
+    ciclo = runCycle(convRows, getMetaJson(db, 'ciclo_mejora', null), { now, log });
+    const mask = indexesOf(ciclo.active);
+    conviction = { h1: buildConvictionModel(convRows, { horizon: 1, mask, candidates: true }), h5: buildConvictionModel(convRows, { horizon: 5, mask, candidates: true }), h20: buildConvictionModel(convRows, { horizon: 20, mask, candidates: true }) };
     for (const [k, m] of Object.entries(conviction)) if (m) log(`convicción ${k}: fuera de muestra A ${m.test.tiers.A.hit_rate}% (n=${m.test.tiers.A.n}, ${m.test.tiers.A.avg_r}R) · B ${m.test.tiers.B.hit_rate}% (n=${m.test.tiers.B.n}) · C ${m.test.tiers.C.hit_rate}% (n=${m.test.tiers.C.n}) · todo ${m.test.all.hit_rate}%`);
   } catch (e) {
     log(`convicción: ${e.message}`);
@@ -437,6 +442,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     duration_ms: Date.now() - t0,
     calibration_logit: calibrationLogit,
     conviction,
+    ciclo: ciclo ? { active: ciclo.active, changes: ciclo.changes, evaluation: ciclo.evaluation, history: ciclo.history.slice(-10), last_run: ciclo.last_run } : null,
     from: usable[0],
     to: lastMeasured,
     days: usable.length,
@@ -465,6 +471,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
   };
   setMeta(db, 'backtest', report, now);
   setMeta(db, 'regime_weights', regimeWeights, now);
+  if (ciclo) setMeta(db, 'ciclo_mejora', { active: ciclo.active, pending: ciclo.pending, history: ciclo.history, last_run: ciclo.last_run, evaluation: ciclo.evaluation }, now);
   try {
     const ins = db.prepare('INSERT OR REPLACE INTO radar_daily_bias (date, symbol, diff, regime) VALUES (?, ?, ?, ?)');
     db.exec('BEGIN');

@@ -2,6 +2,8 @@
 // Devuelve hechos (fechas, recuentos, errores) y una valoración simple por bloque: ok | aviso | error.
 import { engineStatus } from '../radar/engine.js';
 import { lastBacktest } from '../radar/backtest.js';
+import { getMetaJson } from '../radar/store.js';
+import { BASE_FEATURES } from '../radar/conviction.js';
 import { mailerInfo } from './mailer.js';
 import { lastJobRun } from './subscriptionJobs.js';
 
@@ -75,6 +77,22 @@ export function diagnostics(db) {
     { key: 'noticias', label: 'Noticias', value: `${news.n || 0} titulares · última ${String(news.last || '').slice(0, 16) || '—'}`, last: news.last || null, status: (news.n || 0) > 0 ? level(ageHours(news.last), 12, 72) : 'aviso' },
   ];
 
+  // ---- Ciclo de mejora (condiciones de la capa de convicción)
+  const cm = getMetaJson(db, 'ciclo_mejora', null);
+  const cicloActive = cm && Array.isArray(cm.active) ? cm.active : [];
+  const ciclo = {
+    last_run: cm ? cm.last_run : null,
+    active: cicloActive,
+    base_count: BASE_FEATURES.length,
+    adopted: cicloActive.filter((n) => !BASE_FEATURES.includes(n)),
+    candidates: cm && cm.evaluation ? cm.evaluation.candidates : [],
+    retirements: cm && cm.evaluation ? cm.evaluation.retirements : [],
+    reference: cm && cm.evaluation ? cm.evaluation.reference : [],
+    history: cm && Array.isArray(cm.history) ? cm.history.slice(-10).reverse() : [],
+    status: cm ? level(ageHours(cm.last_run), 24 * 9, 24 * 21) : 'aviso',
+  };
+  datos.push({ key: 'ciclo', label: 'Ciclo de mejora (condiciones de convicción)', value: cm ? `${cicloActive.length} condiciones activas (${ciclo.adopted.length} adoptadas por el ciclo) · ${ciclo.candidates.length} candidatas medidas · ${ciclo.history.length} cambios registrados` : 'todavía no se ha ejecutado', last: ciclo.last_run, status: ciclo.status });
+
   // ---- Usuarios, cuentas y sincronización
   const users = q(db, 'SELECT COUNT(*) n, SUM(is_disabled = 1) disabled, MAX(last_login_at) last_login FROM users');
   const accounts = q(db, "SELECT COUNT(*) n, SUM(sync_token_hash IS NOT NULL) with_sync, MAX(sync_last_at) last_sync, SUM(platform = 'mt5') mt5 FROM accounts");
@@ -103,6 +121,7 @@ export function diagnostics(db) {
     servidor,
     fuentes,
     datos,
+    ciclo,
     usuarios: {
       users: users.n || 0, disabled: users.disabled || 0, last_login: users.last_login || null,
       accounts: accounts.n || 0, accounts_mt5: accounts.mt5 || 0, accounts_with_sync: accounts.with_sync || 0, last_sync: accounts.last_sync || null,
