@@ -13,6 +13,9 @@ const db = new DatabaseSync('data/journal.db', { readOnly: true });
 const SYMBOLS = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZDUSD', 'EURJPY', 'GBPJPY', 'EURGBP'];
 const SPREAD_PIPS = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURJPY: 1.6, GBPJPY: 2.2, EURGBP: 1.4 };
 const FAST = 8, SLOW = 18, TREND = 200, ATR_N = 14, STOP_ATR = 2;
+// --stop-pips 25 → stop fijo en pips para todas las variantes con stop (y referencia de R para las que no lo tienen).
+const argStop = process.argv.indexOf('--stop-pips');
+const FIXED_STOP_PIPS = argStop >= 0 ? Number(process.argv[argStop + 1]) : null;
 
 function loadH1(sym) {
   const rows = readFileSync(path.join(DATA, `${sym}_PERIOD_H1.csv`), 'utf8').trim().split(/\r?\n/).slice(1);
@@ -148,7 +151,7 @@ for (const sym of SYMBOLS) {
       if (!p && signal !== 0) {
         if (cfg.ema200 && (trend[i] === null || (signal > 0 ? h4[i].c <= trend[i] : h4[i].c >= trend[i]))) continue;
         if (cfg.radar && radarDir !== signal) continue;
-        const risk = STOP_ATR * atr[i];
+        const risk = FIXED_STOP_PIPS ? FIXED_STOP_PIPS * pip : STOP_ATR * atr[i];
         pos[v] = { dir: signal, i, date: h4[i].date, entry: h4[i].c, stop: signal > 0 ? h4[i].c - risk : h4[i].c + risk, risk_pips: risk / pip, radar: radarDir === signal ? (bias.level >= 2 ? 'A/B+fuerza2' : 'A/B') : 'no' };
       }
     }
@@ -168,7 +171,7 @@ function stats(list) {
 }
 const fmt = (s) => (s.n ? `n=${String(s.n).padStart(4)} · gana ${String(s.win).padStart(4)} % · ${s.pips >= 0 ? '+' : ''}${s.pips} pips/op · ${s.r >= 0 ? '+' : ''}${s.r}R/op · factor ${s.pf ?? '∞'} · total ${s.total_r >= 0 ? '+' : ''}${s.total_r}R · peor caída ${s.dd_r}R · ${s.bars} velas/op` : 'sin operaciones');
 
-console.log(`Operaciones simuladas: ${trades.length} · 10 pares · 2021-09 → 2026-09 (las variantes con radar, desde 2023-10)\n`);
+console.log(`Operaciones simuladas: ${trades.length} · 10 pares · 2021-09 → 2026-09 (las variantes con radar, desde 2023-10) · stop ${FIXED_STOP_PIPS ? `fijo de ${FIXED_STOP_PIPS} pips` : '2 ATR(H4)'}\n`);
 for (const [v, cfg] of Object.entries(VARIANTS)) {
   const list = trades.filter((t) => t.variant === v);
   console.log(`=== ${cfg.label} ===\n  todo:   ${fmt(stats(list))}`);

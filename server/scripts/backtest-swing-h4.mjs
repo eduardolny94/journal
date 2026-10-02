@@ -14,6 +14,9 @@ const SYMBOLS = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZ
 const SPREAD_PIPS = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURJPY: 1.6, GBPJPY: 2.2, EURGBP: 1.4 };
 const MAX_BARS = 30; // salida por tiempo: 30 velas H4 (5 días de trading)
 const ATR_N = 14;
+// --stop-pips 25 → stop fijo en pips en todos los patrones (en vez del stop por estructura/ATR).
+const argStop = process.argv.indexOf('--stop-pips');
+const FIXED_STOP_PIPS = argStop >= 0 ? Number(process.argv[argStop + 1]) : null;
 
 function loadH1(sym) {
   const rows = readFileSync(path.join(DATA, `${sym}_PERIOD_H1.csv`), 'utf8').trim().split(/\r?\n/).slice(1);
@@ -228,8 +231,9 @@ for (const sym of SYMBOLS) {
         if (h4[i].last <= (openUntil[key] ?? -1)) continue;
         const sig = fn(h4, i, ind, dir);
         if (!sig) continue;
+        if (FIXED_STOP_PIPS) sig.stop = dir > 0 ? sig.entry - FIXED_STOP_PIPS * pip : sig.entry + FIXED_STOP_PIPS * pip;
         const risk = Math.abs(sig.entry - sig.stop);
-        if (risk < 0.3 * ind.atr[i]) continue;
+        if (!FIXED_STOP_PIPS && risk < 0.3 * ind.atr[i]) continue;
         let h1Start = h4[i].last + 1; // entrada al cierre de la vela i: la simulación empieza en la H1 siguiente
         if (sig.limit) { // orden limitada: se ejecuta en la H1 de la vela i que toca el precio de entrada
           h1Start = -1;
@@ -265,7 +269,7 @@ function stats(list) {
 const fmt = (s) => (s.n ? `n=${String(s.n).padStart(5)} · 1R ${String(s.win1).padStart(4)} % · 2R ${String(s.win2).padStart(4)} % · esperanza 1R ${s.exp1 >= 0 ? '+' : ''}${s.exp1} · 2R ${s.exp2 >= 0 ? '+' : ''}${s.exp2} · 3R ${s.exp3 >= 0 ? '+' : ''}${s.exp3} · trailing ${s.exp_trail >= 0 ? '+' : ''}${s.exp_trail} · tiempo ${s.exp_time >= 0 ? '+' : ''}${s.exp_time} · riesgo ${s.risk} pips` : 'sin operaciones');
 
 const withBias = records.filter((r) => r.bias_level !== null);
-console.log(`Señales: ${records.length} (5 años, 10 pares) · con sesgo disponible: ${withBias.length} (${withBias[0] ? withBias.reduce((a, r) => (r.date < a ? r.date : a), '9') : ''} → ${withBias.reduce((a, r) => (r.date > a ? r.date : a), '0')})\n`);
+console.log(`Stop: ${FIXED_STOP_PIPS ? `fijo de ${FIXED_STOP_PIPS} pips` : 'por estructura/ATR'}\nSeñales: ${records.length} (5 años, 10 pares) · con sesgo disponible: ${withBias.length} (${withBias[0] ? withBias.reduce((a, r) => (r.date < a ? r.date : a), '9') : ''} → ${withBias.reduce((a, r) => (r.date > a ? r.date : a), '0')})\n`);
 const FILTERS = [
   ['técnica sola (5 años, ambas direcciones)', (r) => true, records],
   ['técnica sola (3 años con sesgo, ambas direcciones)', (r) => true, withBias],
