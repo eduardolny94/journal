@@ -150,6 +150,12 @@ function simulate(h1, h1Start, h1End, dir, entry, stop, atr, spread) {
 }
 
 // ---------- Patrones (todos evaluados al cierre de la vela H4 i, en la dirección dir) ----------
+/** Cruce de la EMA 8 con la media 18 al cierre de la vela i: 1 (azul sobre roja), −1 (roja sobre azul), 0 sin cruce. */
+function crossSignal(ind, i) {
+  const f0 = ind.ema8[i - 1], s0 = ind.sma18[i - 1], f1 = ind.ema8[i], s1 = ind.sma18[i];
+  if (f0 === null || s0 === null || f1 === null || s1 === null) return 0;
+  return f0 <= s0 && f1 > s1 ? 1 : f0 >= s0 && f1 < s1 ? -1 : 0;
+}
 function swingLow(h4, i, n) { let v = Infinity; for (let k = i - n; k < i; k++) v = Math.min(v, h4[k].l); return v; }
 function swingHigh(h4, i, n) { let v = -Infinity; for (let k = i - n; k < i; k++) v = Math.max(v, h4[k].h); return v; }
 
@@ -199,6 +205,22 @@ const PATTERNS = {
       }
     }
     return null;
+  },
+  // 5. Cruce EMA 8 / media 18 con stop en el último pivote de estructura (alto para cortos, bajo para largos; 2 velas a cada lado).
+  cruce_pivote: (h4, i, ind, dir) => {
+    const sig = crossSignal(ind, i);
+    if (sig !== dir) return null;
+    for (let j = i - 3; j >= i - 30 && j >= 2; j--) {
+      if (dir > 0 && h4[j].l < h4[j - 1].l && h4[j].l < h4[j - 2].l && h4[j].l < h4[j + 1].l && h4[j].l < h4[j + 2].l) return { entry: h4[i].c, stop: h4[j].l - 0.1 * ind.atr[i] };
+      if (dir < 0 && h4[j].h > h4[j - 1].h && h4[j].h > h4[j - 2].h && h4[j].h > h4[j + 1].h && h4[j].h > h4[j + 2].h) return { entry: h4[i].c, stop: h4[j].h + 0.1 * ind.atr[i] };
+    }
+    return null;
+  },
+  // 6. Mismo cruce con el stop en el extremo de las 10 velas anteriores.
+  cruce_max10: (h4, i, ind, dir) => {
+    const sig = crossSignal(ind, i);
+    if (sig !== dir) return null;
+    return { entry: h4[i].c, stop: dir > 0 ? swingLow(h4, i, 10) - 0.1 * ind.atr[i] : swingHigh(h4, i, 10) + 0.1 * ind.atr[i] };
   },
   // 0. Referencia: solo el sesgo, sin patrón. Entrada al cierre de la primera H4 del día (04:00 servidor), stop a 1,5 ATR.
   sesgo_solo: (h4, i, ind, dir) => {

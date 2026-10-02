@@ -151,3 +151,29 @@ barrido se desarrolle. Por tamaño natural del stop (estructura): las velas de b
 mejores (67 % a 1R, +0,48R a 2R, 22,6 pips por operación, n=33); las muy pequeñas (≤ 25 pips) rinden 3,5 pips. Por hora
 de cierre de la vela (servidor): 16:00 (mañana de Londres) +0,02R con n=33, el resto entre +0,16R y +0,66R; candidato
 a filtro cuando haya más datos, no regla.
+
+## Entrada en el cruce 8/18 con stop en el último alto/bajo de estructura (medido el 02-10-2026)
+
+Propuesta del usuario: entrar en cuanto la EMA 8 cruza la media 18 y poner el stop en el último pivote (alto para
+cortos, bajo para largos), como en las cajas de posición de TradingView. Patrones `cruce_pivote` (último pivote
+confirmado con 2 velas a cada lado, hasta 30 velas atrás) y `cruce_max10` (extremo de las 10 velas anteriores) en
+`backtest-swing-h4.mjs`; stop medio 90–105 pips.
+
+| Filtro (cruce + pivote) | 1R | 1,5R | 2R | 3R | n |
+|---|---|---|---|---|---|
+| Técnica sola, 5 años | 41 % · −0,03R | 26 % · −0,05R | 16 % · −0,05R | 8 % · −0,04R | 2.993 |
+| EMA 200 a favor | 39 % · −0,06R | 25 % · −0,06R | 16 % · −0,07R | 7 % · −0,05R | 1.497 |
+| Sesgo ≥ 2 del radar | 38 % · −0,09R | 25 % · −0,11R | 16 % · −0,12R | 8 % · −0,11R | 203 |
+| **Nivel A/B a favor** | **58 % · +0,25R** | **38 % · +0,30R** | 27 % · +0,30R | 11 % · +0,31R | 107 |
+| Nivel A/B + EMA 200 | 53 % · +0,29R | 29 % · +0,37R | 22 % · +0,37R | 13 % · +0,42R | 45 |
+| En contra del nivel A/B | 43 % · −0,01R | 25 % · −0,06R | 16 % · −0,04R | 10 % · −0,04R | 122 |
+
+- Igual que con el barrido: el cruce solo no tiene ventaja; con nivel A/B la tiene, y en contra del nivel pierde.
+- Con nivel A/B y objetivo 1,5R: positivo los cuatro años (+0,16R, +0,38R, +0,45R, +0,18R), factor 1,76, peor
+  racha 5. La llevan los cruces con yen (EURJPY, GBPJPY, USDJPY: 75 de 107, stops de 110–145 pips); en los pares
+  con dólar, negativo con muestras de 3–9.
+- Recorrido máximo a favor: mediana 1,1R (60 pips), uno de cada cuatro 2,1R, uno de cada diez 3,1R, máximo 6R; el
+  máximo tarda 11 velas de mediana (el barrido, 3). Objetivos de 4R o más: menos del 7 % los alcanza.
+- Solo 7 de las 107 señales coinciden en día y par con un barrido: son entradas complementarias, no la misma.
+- En R rinde lo mismo que el barrido (+0,30R frente a +0,29R a 2R), con un stop 2,5 veces mayor: en pips por
+  operación gana más (31 frente a 13), pero con riesgo fijo por operación da igual.
