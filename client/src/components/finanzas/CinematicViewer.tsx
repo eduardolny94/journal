@@ -8,6 +8,7 @@ import { Award, Banknote, Calendar, ChevronLeft, ChevronRight, ExternalLink, Fil
 import { cn } from '../../lib/cn';
 import { fmtDate, fmtMoney } from '../../lib/format';
 import { isPdf, type AccountDocument } from '../../lib/finanzas';
+import SmokeCanvas from './SmokeCanvas';
 
 export type ViewerKind = 'fondeo' | 'payout' | 'otro';
 
@@ -61,6 +62,7 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
   }, [open, hasPrev, hasNext, index, onClose, onNavigate]);
 
   const tint = useMemo(() => (item?.kind === 'payout' ? 'rgba(34,211,111,0.35)' : item?.kind === 'fondeo' ? 'rgba(22,245,122,0.32)' : 'rgba(245,180,0,0.25)'), [item?.kind]);
+  const smokeTint = useMemo<[number, number, number]>(() => (item?.kind === 'otro' ? [255, 215, 140] : [140, 255, 190]), [item?.kind]);
 
   if (!open || !item) return null;
   const pdf = isPdf(item.doc);
@@ -73,12 +75,13 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
         {pdf ? (
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(22,245,122,0.28),#050806_65%)]" />
         ) : (
-          <img src={item.doc.path} alt="" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-3xl saturate-150" />
+          <img src={item.doc.path} alt="" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl saturate-150" />
         )}
-        <div className="absolute inset-0 bg-black/35" />
-        <div className="smoke smoke-a" style={{ ['--smoke-tint' as string]: tint }} />
-        <div className="smoke smoke-b" />
-        <div className="smoke smoke-c" style={{ ['--smoke-tint' as string]: tint }} />
+        <div className="absolute inset-0 bg-black/45" />
+        {/* Humo real: partículas en canvas, mezcladas en modo pantalla sobre el telón. */}
+        <SmokeCanvas tint={smokeTint} className="mix-blend-screen opacity-90" />
+        {/* Sombra suave abajo para que el importe y los datos se lean sobre el humo. */}
+        <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
       </div>
       {/* Desenfoque solo en la parte baja (máscara), sin oscurecer con degradados */}
       <div className="viewer-blur-mask pointer-events-none absolute inset-0 z-[1]" aria-hidden />
@@ -124,7 +127,7 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
       {/* Datos abajo */}
       <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-6 px-4 pb-8 sm:px-6 md:flex-row md:items-end md:px-12 md:pb-14">
         <div className="min-w-0 flex-1">
-          <div className="animate-blur-fade-up mb-4 flex flex-wrap items-center gap-3 text-xs text-white/85 sm:gap-6 sm:text-sm md:mb-6" style={rise(300)}>
+          <div className="animate-blur-fade-up mb-4 flex flex-wrap items-center gap-3 text-xs text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)] sm:gap-6 sm:text-sm md:mb-6" style={rise(300)}>
             {item.meta.map((m, i) => {
               const Icon = ICONS[m.icon];
               return (
@@ -134,7 +137,7 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
               );
             })}
           </div>
-          <h1 className={cn('animate-blur-fade-up mb-2 text-3xl font-normal tracking-[-0.04em] sm:text-5xl md:mb-4 md:text-6xl', item.kind === 'payout' && 'text-profit')} style={rise(400)}>
+          <h1 className={cn('animate-blur-fade-up mb-2 text-3xl font-normal tracking-[-0.04em] drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)] sm:text-5xl md:mb-4 md:text-6xl', item.kind === 'payout' && 'text-profit')} style={rise(400)}>
             {item.title}
           </h1>
           {item.subtitle && (

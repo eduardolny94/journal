@@ -1,10 +1,11 @@
-// Pestaña «Fondeos» de Finanzas: una tarjeta por cuenta fondeada con su certificado, de qué evaluación viene y
-// cuánto ha pagado. Filtro por cuenta; cada documento se abre en el visor cinematográfico.
+// Pestaña «Fondeos» de Finanzas: un carrusel con una tarjeta por cuenta fondeada (certificado, de qué evaluación
+// viene, fechas y payouts), filtrable por cuenta. Cada certificado se abre en el visor cinematográfico.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Award, Banknote, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { StatCard } from '../ui/Card';
+import { Carousel } from '../ui/Carousel';
 import { EmptyState } from '../ui/EmptyState';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -12,7 +13,7 @@ import { Select } from '../ui/Select';
 import { PageSpinner } from '../ui/Spinner';
 import { cn } from '../../lib/cn';
 import { fmtDate, fmtMoney } from '../../lib/format';
-import { OUTCOME_LABELS, deleteDocument, fetchFondeos, uploadDocument, type AccountDocument, type FondeoItem, type FondeosResumen } from '../../lib/finanzas';
+import { OUTCOME_LABELS, deleteDocument, fetchFondeos, uploadDocument, isPdf, type AccountDocument, type FondeoItem, type FondeosResumen } from '../../lib/finanzas';
 import CertificateCard from './CertificateCard';
 import CinematicViewer, { viewerItemFor, type ViewerItem } from './CinematicViewer';
 import DocumentUploader from './DocumentUploader';
@@ -50,7 +51,7 @@ export default function FondeosPanel({ onChanged, onShowPayouts, reloadKey = 0 }
   const fondeos = useMemo(() => (data?.fondeos ?? []).filter((f) => !accountFilter || String(f.account_id) === accountFilter), [data, accountFilter]);
 
   function openDoc(doc: AccountDocument) {
-    // El visor navega entre todos los certificados de la lista filtrada (← →).
+    // El visor navega entre todos los certificados visibles (← →).
     const items: ViewerItem[] = [];
     for (const g of fondeos) for (const d of g.certificados) items.push(viewerItemFor(d, 'fondeo', { account: g, origen: g.origen, funded_at: g.funded_at }));
     const index = Math.max(0, items.findIndex((it) => it.doc.id === doc.id));
@@ -109,50 +110,20 @@ export default function FondeosPanel({ onChanged, onShowPayouts, reloadKey = 0 }
       )}
 
       {fondeos.length > 0 && (
-        <section className="bg-spotlight relative overflow-hidden rounded-2xl border border-border bg-[#05080699] p-4 sm:p-6">
+        <section className="bg-spotlight relative overflow-hidden rounded-2xl border border-border bg-[#05080699] p-3 sm:p-5">
           <div className="bg-brand-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden />
-          <div className="relative space-y-6">
-            {fondeos.map((f, gi) => (
-              <article key={f.account_id} className={cn('rounded-xl border border-border/70 bg-panel/60 p-4', f.is_archived && 'opacity-80')}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Award className="h-4 w-4 text-accent" aria-hidden />
-                  <span className="font-semibold text-white">{f.name}</span>
-                  {f.firm && <span className="text-sm text-gray-400">{f.firm}</span>}
-                  {f.size > 0 && <span className="text-sm text-accent-soft tnum">{fmtMoney(f.size, f.currency, { sign: false })}</span>}
-                  <Badge variant={f.outcome === 'quemada' ? 'loss' : f.outcome === 'cerrada' ? 'outline' : 'accent'}>{f.outcome === 'activa' ? 'Fondeada · activa' : OUTCOME_LABELS[f.outcome] ?? f.outcome}</Badge>
-                  {f.is_archived && <Badge variant="outline">Archivada</Badge>}
-                  {f.profit_split ? <span className="text-xs text-gray-500">split {f.profit_split} %</span> : null}
-                  <span className="ml-auto flex items-center gap-2">
-                    {f.n_payouts > 0 && onShowPayouts && (
-                      <button type="button" onClick={() => onShowPayouts(f.account_id)} className="inline-flex items-center gap-1 rounded-full border border-profit/40 bg-profit/10 px-2.5 py-1 text-xs text-profit hover:bg-profit/20">
-                        <Banknote className="h-3.5 w-3.5" aria-hidden /> {f.n_payouts} payout{f.n_payouts === 1 ? '' : 's'} · {fmtMoney(f.total_payouts, f.currency, { sign: false })}
-                      </button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => setUploadFor(f.account_id)} leftIcon={<Upload className="h-3.5 w-3.5" />}>Subir certificado</Button>
-                  </span>
-                </div>
-
-                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                  <Fact label="Evaluación de origen" value={f.origen ? `${f.origen.name}${f.origen.size ? ` · ${fmtMoney(f.origen.size, f.currency, { sign: false })}` : ''}` : 'misma cuenta'} />
-                  <Fact label="Comprada" value={f.origen?.purchased_at ? fmtDate(f.origen.purchased_at) : f.purchased_at ? fmtDate(f.purchased_at) : '—'} />
-                  <Fact label="Fondeada" value={f.funded_at ? `${fmtDate(f.funded_at)}${f.dias_hasta_fondeo !== null ? ` · ${f.dias_hasta_fondeo} días` : ''}` : '—'} glow />
-                  <Fact label={f.outcome === 'quemada' ? 'Quemada' : f.outcome === 'cerrada' ? 'Cerrada' : 'Estado'} value={f.ended_at ? fmtDate(f.ended_at) : f.outcome === 'activa' ? 'operando' : OUTCOME_LABELS[f.outcome] ?? '—'} loss={f.outcome === 'quemada'} />
-                </dl>
-
-                {f.certificados.length > 0 ? (
-                  <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                    {f.certificados.map((d, i) => (
-                      <CertificateCard key={d.id} doc={d} variant="fondeo" index={gi * 3 + i} account={f} footnote={f.origen ? `Viene de «${f.origen.name}»` : undefined} onOpen={openDoc} onDelete={setDeleteTarget} />
-                    ))}
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => setUploadFor(f.account_id)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-warn/40 bg-warn/5 px-4 py-6 text-sm text-warn hover:bg-warn/10">
-                    <AlertTriangle className="h-4 w-4" aria-hidden /> Esta cuenta fondeada no tiene certificado. Pulsa para subirlo.
-                  </button>
-                )}
-              </article>
-            ))}
+          <div className="relative mb-3 flex items-end justify-between gap-3 px-1">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Fondeos</p>
+              <h3 className="text-lg font-semibold tracking-tight text-white">Tus cuentas fondeadas</h3>
+            </div>
+            <p className="text-xs text-white/40 tnum">{fondeos.length} cuenta{fondeos.length === 1 ? '' : 's'} · desliza o usa las flechas</p>
           </div>
+          <Carousel ariaLabel="Cuentas fondeadas" className="relative" itemClassName="w-[300px] sm:w-[360px]">
+            {fondeos.map((f, i) => (
+              <FondeoCard key={f.account_id} f={f} index={i} onOpen={openDoc} onDelete={setDeleteTarget} onUpload={() => setUploadFor(f.account_id)} onShowPayouts={onShowPayouts} />
+            ))}
+          </Carousel>
         </section>
       )}
 
@@ -186,11 +157,61 @@ export default function FondeosPanel({ onChanged, onShowPayouts, reloadKey = 0 }
   );
 }
 
+/** Tarjeta de una cuenta fondeada dentro del carrusel: certificado arriba, datos de la cuenta y su origen debajo. */
+function FondeoCard({ f, index, onOpen, onDelete, onUpload, onShowPayouts }: { f: FondeoItem; index: number; onOpen: (d: AccountDocument) => void; onDelete: (d: AccountDocument) => void; onUpload: () => void; onShowPayouts?: (id: number) => void }) {
+  const [hero, ...rest] = f.certificados;
+  return (
+    <div className={cn('flex h-full flex-col gap-3', f.is_archived && 'opacity-80')}>
+      {hero ? (
+        <CertificateCard doc={hero} variant="fondeo" index={index} account={f} footnote={f.origen ? `Viene de «${f.origen.name}»` : undefined} onOpen={onOpen} onDelete={onDelete} />
+      ) : (
+        <button type="button" onClick={onUpload} className="animate-rise flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-warn/40 bg-warn/5 px-4 text-center text-sm text-warn hover:bg-warn/10" style={{ ['--rise-delay' as string]: `${index * 90}ms` }}>
+          <AlertTriangle className="h-5 w-5" aria-hidden />
+          <span className="font-semibold text-white">{f.name}</span>
+          <span>Sin certificado · pulsa para subirlo</span>
+        </button>
+      )}
+      {rest.length > 0 && (
+        <div className="flex gap-2">
+          {rest.map((d) => (
+            <button key={d.id} type="button" onClick={() => onOpen(d)} className="h-12 w-16 overflow-hidden rounded-md border border-accent/40 glow-accent" title={d.title || d.original_name} aria-label={`Ver ${d.title || d.original_name}`}>
+              {isPdf(d) ? <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-accent">PDF</span> : <img src={d.path} alt="" className="h-full w-full object-cover" />}
+            </button>
+          ))}
+          <button type="button" onClick={onUpload} className="h-12 w-16 rounded-md border border-dashed border-border text-[10px] text-gray-500 hover:border-accent hover:text-accent" title="Añadir otro certificado">+ otro</button>
+        </div>
+      )}
+      <dl className="grid grid-cols-2 gap-2 text-xs">
+        <Fact label="Origen" value={f.origen ? f.origen.name : 'misma cuenta'} />
+        <Fact label="Comprada" value={f.origen?.purchased_at ? fmtDate(f.origen.purchased_at) : f.purchased_at ? fmtDate(f.purchased_at) : '—'} />
+        <Fact label="Fondeada" value={f.funded_at ? `${fmtDate(f.funded_at)}${f.dias_hasta_fondeo !== null ? ` · ${f.dias_hasta_fondeo} d` : ''}` : '—'} glow />
+        <Fact label={f.outcome === 'quemada' ? 'Quemada' : f.outcome === 'cerrada' ? 'Cerrada' : 'Estado'} value={f.ended_at ? fmtDate(f.ended_at) : f.outcome === 'activa' ? 'operando' : OUTCOME_LABELS[f.outcome] ?? '—'} loss={f.outcome === 'quemada'} />
+      </dl>
+      <div className="mt-auto flex flex-wrap items-center gap-2">
+        {f.is_archived && <Badge variant="outline">Archivada</Badge>}
+        {f.profit_split ? <span className="text-[11px] text-gray-500">split {f.profit_split} %</span> : null}
+        {f.n_payouts > 0 ? (
+          <button type="button" onClick={() => onShowPayouts?.(f.account_id)} className="ml-auto inline-flex items-center gap-1 rounded-full border border-profit/40 bg-profit/10 px-2.5 py-1 text-xs text-profit hover:bg-profit/20">
+            <Banknote className="h-3.5 w-3.5" aria-hidden /> {f.n_payouts} payout{f.n_payouts === 1 ? '' : 's'} · {fmtMoney(f.total_payouts, f.currency, { sign: false })}
+          </button>
+        ) : (
+          <span className="ml-auto text-[11px] text-gray-600">sin payouts aún</span>
+        )}
+        {hero && (
+          <button type="button" onClick={onUpload} className="rounded p-1 text-gray-500 hover:text-accent" title="Añadir otro certificado" aria-label="Añadir otro certificado">
+            <Upload className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Fact({ label, value, glow, loss }: { label: string; value: string; glow?: boolean; loss?: boolean }) {
   return (
-    <div className={cn('rounded-md border px-3 py-2', loss ? 'border-loss/40 bg-loss/5' : glow ? 'border-accent/40 bg-accent/5' : 'border-border bg-bg/40')}>
+    <div className={cn('rounded-md border px-2.5 py-1.5', loss ? 'border-loss/40 bg-loss/5' : glow ? 'border-accent/40 bg-accent/5' : 'border-border bg-bg/40')}>
       <dt className={cn('text-[10px] uppercase tracking-wider', loss ? 'text-loss' : glow ? 'text-accent-soft' : 'text-gray-500')}>{label}</dt>
-      <dd className="mt-0.5 truncate text-sm text-gray-100 tnum" title={value}>{value}</dd>
+      <dd className="mt-0.5 truncate text-xs text-gray-100 tnum" title={value}>{value}</dd>
     </div>
   );
 }

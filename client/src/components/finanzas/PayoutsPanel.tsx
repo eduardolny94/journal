@@ -1,9 +1,10 @@
-// Pestaña «Payouts» de Finanzas: cada retiro con su comprobante, filtrable por cuenta. Los comprobantes se abren en
-// el visor cinematográfico; donde falte uno se sube desde la propia fila.
+// Pestaña «Payouts» de Finanzas: un carrusel con una tarjeta por payout (comprobante, importe, cuenta), filtrable por
+// cuenta. Los comprobantes se abren en el visor cinematográfico; donde falte uno se sube desde la propia tarjeta.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Banknote, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { StatCard } from '../ui/Card';
+import { Carousel } from '../ui/Carousel';
 import { EmptyState } from '../ui/EmptyState';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -11,7 +12,7 @@ import { Select } from '../ui/Select';
 import { PageSpinner } from '../ui/Spinner';
 import { cn } from '../../lib/cn';
 import { fmtDate, fmtMoney } from '../../lib/format';
-import { deleteDocument, fetchFondeos, uploadDocument, type AccountDocument, type FondeosResumen, type PayoutItem } from '../../lib/finanzas';
+import { deleteDocument, fetchFondeos, uploadDocument, isPdf, type AccountDocument, type FondeosResumen, type PayoutItem } from '../../lib/finanzas';
 import CertificateCard from './CertificateCard';
 import CinematicViewer, { viewerItemFor, type ViewerItem } from './CinematicViewer';
 import DocumentUploader from './DocumentUploader';
@@ -22,6 +23,10 @@ export interface PayoutsPanelProps {
   /** Cuenta preseleccionada en el filtro (desde Fondeos). */
   accountId?: number | null;
   reloadKey?: number;
+}
+
+function accountOf(p: PayoutItem) {
+  return p.account_id ? { name: p.account_name || `Cuenta ${p.account_id}`, firm: p.account_firm, size: p.account_size, currency: p.account_currency || p.currency } : null;
 }
 
 export default function PayoutsPanel({ onChanged, onNewPayout, accountId = null, reloadKey = 0 }: PayoutsPanelProps) {
@@ -63,10 +68,6 @@ export default function PayoutsPanel({ onChanged, onNewPayout, accountId = null,
     const mayor = payouts.reduce((m, p) => Math.max(m, Number(p.amount) || 0), 0);
     return { total, n: payouts.length, medio: payouts.length ? total / payouts.length : null, mayor, ultimo: payouts[0]?.occurred_at ?? null, sinComprobante: payouts.filter((p) => !p.comprobantes.length).length };
   }, [payouts]);
-
-  function accountOf(p: PayoutItem) {
-    return p.account_id ? { name: p.account_name || `Cuenta ${p.account_id}`, firm: p.account_firm, size: p.account_size, currency: p.account_currency || p.currency } : null;
-  }
 
   function openDoc(doc: AccountDocument) {
     const items: ViewerItem[] = [];
@@ -113,7 +114,7 @@ export default function PayoutsPanel({ onChanged, onNewPayout, accountId = null,
         <StatCard label="Total cobrado" value={fmtMoney(stats.total, currency, { sign: false })} valueClassName="text-profit text-glow-profit" hint={`${stats.n} payout${stats.n === 1 ? '' : 's'}${stats.medio !== null ? ` · medio ${fmtMoney(stats.medio, currency, { sign: false })}` : ''}`} icon={<Banknote className="h-5 w-5 text-profit" aria-hidden />} />
         <StatCard label="Mayor payout" value={stats.n ? fmtMoney(stats.mayor, currency, { sign: false }) : '—'} />
         <StatCard label="Último payout" value={stats.ultimo ? fmtDate(stats.ultimo) : '—'} />
-        <StatCard label="Sin comprobante" value={stats.sinComprobante} valueClassName={stats.sinComprobante ? 'text-warn' : undefined} hint={stats.sinComprobante ? 'súbelos desde su fila' : 'todo documentado'} icon={<AlertTriangle className={cn('h-5 w-5', stats.sinComprobante ? 'text-warn' : 'text-gray-600')} aria-hidden />} />
+        <StatCard label="Sin comprobante" value={stats.sinComprobante} valueClassName={stats.sinComprobante ? 'text-warn' : undefined} hint={stats.sinComprobante ? 'súbelos desde su tarjeta' : 'todo documentado'} icon={<AlertTriangle className={cn('h-5 w-5', stats.sinComprobante ? 'text-warn' : 'text-gray-600')} aria-hidden />} />
       </div>
 
       {all.length === 0 && (
@@ -126,35 +127,20 @@ export default function PayoutsPanel({ onChanged, onNewPayout, accountId = null,
       )}
 
       {payouts.length > 0 && (
-        <section className="bg-spotlight relative overflow-hidden rounded-2xl border border-border bg-[#05080699] p-4 sm:p-6">
+        <section className="bg-spotlight relative overflow-hidden rounded-2xl border border-border bg-[#05080699] p-3 sm:p-5">
           <div className="bg-brand-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden />
-          <ul className="relative space-y-3">
-            {payouts.map((p, i) => {
-              const acc = accountOf(p);
-              return (
-                <li key={p.id} className="rounded-xl border border-border/70 bg-panel/60 p-3 sm:p-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-2xl font-semibold tracking-tight text-profit text-glow-profit tnum">+{fmtMoney(p.amount, p.currency, { sign: false })}</span>
-                    <span className="text-sm text-gray-400 tnum">{fmtDate(p.occurred_at)}</span>
-                    {acc ? <span className="text-sm text-gray-300">{acc.name}{acc.firm ? <span className="text-gray-500"> · {acc.firm}</span> : null}</span> : <span className="text-sm text-gray-600">sin cuenta</span>}
-                    {p.gross_amount ? <span className="text-xs text-gray-500 tnum">bruto {fmtMoney(p.gross_amount, p.currency, { sign: false })}</span> : null}
-                    {p.fee_amount ? <span className="text-xs text-gray-500 tnum">comisión {fmtMoney(p.fee_amount, p.currency, { sign: false })}</span> : null}
-                    {p.note ? <span className="truncate text-xs text-gray-500" title={p.note}>{p.note}</span> : null}
-                    {!p.comprobantes.length && (
-                      <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setUploadFor(p.id)} leftIcon={<Upload className="h-3.5 w-3.5" />}>Subir comprobante</Button>
-                    )}
-                  </div>
-                  {p.comprobantes.length > 0 && (
-                    <div className="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                      {p.comprobantes.map((d, j) => (
-                        <CertificateCard key={d.id} doc={d} variant="payout" index={i + j} account={acc} payout={p} onOpen={openDoc} onDelete={setDeleteTarget} />
-                      ))}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="relative mb-3 flex items-end justify-between gap-3 px-1">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Payouts</p>
+              <h3 className="text-lg font-semibold tracking-tight text-white">Lo que has cobrado</h3>
+            </div>
+            <p className="text-xs text-white/40 tnum">{payouts.length} payout{payouts.length === 1 ? '' : 's'} · desliza o usa las flechas</p>
+          </div>
+          <Carousel ariaLabel="Payouts" className="relative" itemClassName="w-[300px] sm:w-[340px]">
+            {payouts.map((p, i) => (
+              <PayoutCard key={p.id} p={p} index={i} onOpen={openDoc} onDelete={setDeleteTarget} onUpload={() => setUploadFor(p.id)} />
+            ))}
+          </Carousel>
         </section>
       )}
 
@@ -179,6 +165,44 @@ export default function PayoutsPanel({ onChanged, onNewPayout, accountId = null,
           </>
         }
       />
+    </div>
+  );
+}
+
+/** Tarjeta de un payout dentro del carrusel: comprobante arriba (o hueco para subirlo) y el detalle del retiro. */
+function PayoutCard({ p, index, onOpen, onDelete, onUpload }: { p: PayoutItem; index: number; onOpen: (d: AccountDocument) => void; onDelete: (d: AccountDocument) => void; onUpload: () => void }) {
+  const acc = accountOf(p);
+  const [hero, ...rest] = p.comprobantes;
+  return (
+    <div className="flex h-full flex-col gap-3">
+      {hero ? (
+        <CertificateCard doc={hero} variant="payout" index={index} account={acc} payout={p} footnote={p.note || undefined} onOpen={onOpen} onDelete={onDelete} />
+      ) : (
+        <button type="button" onClick={onUpload} className="animate-rise flex aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-warn/40 bg-warn/5 px-4 text-center hover:bg-warn/10" style={{ ['--rise-delay' as string]: `${index * 90}ms` }}>
+          <span className="text-2xl font-semibold tracking-tight text-profit text-glow-profit tnum">+{fmtMoney(p.amount, p.currency, { sign: false })}</span>
+          <span className="text-xs text-gray-300">{fmtDate(p.occurred_at)}{acc ? ` · ${acc.name}` : ''}</span>
+          <span className="mt-1 inline-flex items-center gap-1 text-sm text-warn"><AlertTriangle className="h-4 w-4" aria-hidden /> Sin comprobante · pulsa para subirlo</span>
+        </button>
+      )}
+      {rest.length > 0 && (
+        <div className="flex gap-2">
+          {rest.map((d) => (
+            <button key={d.id} type="button" onClick={() => onOpen(d)} className="h-12 w-16 overflow-hidden rounded-md border border-profit/40 glow-profit" title={d.title || d.original_name} aria-label={`Ver ${d.title || d.original_name}`}>
+              {isPdf(d) ? <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-profit">PDF</span> : <img src={d.path} alt="" className="h-full w-full object-cover" />}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500 tnum">
+        {p.gross_amount ? <span>bruto {fmtMoney(p.gross_amount, p.currency, { sign: false })}</span> : null}
+        {p.fee_amount ? <span>comisión {fmtMoney(p.fee_amount, p.currency, { sign: false })}</span> : null}
+        {acc?.size ? <span>cuenta {fmtMoney(acc.size, acc.currency || p.currency, { sign: false })}</span> : null}
+        {hero && (
+          <button type="button" onClick={onUpload} className="ml-auto rounded p-1 text-gray-500 hover:text-profit" title="Añadir otro comprobante" aria-label="Añadir otro comprobante">
+            <Upload className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
