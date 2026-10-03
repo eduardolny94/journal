@@ -2,7 +2,8 @@
 // cielo con el resplandor verde de la marca. El color sale de la propia imagen del documento (Apex azul, Lucid gris…):
 // se leen sus píxeles, se busca el tono dominante, se elige el planeta más parecido (Tierra para azules y verdes,
 // Venus para amarillos y naranjas, Marte para rojos) y se afina el matiz con un filtro para que coincida con la firma.
-// Si el clip no puede reproducirse (o el usuario prefiere menos movimiento) se usa el recorte fijo del planeta.
+// El giro es suave, así que se mantiene incluso con «reducir movimiento»; si el navegador no deja reproducir el clip
+// (ahorro de batería, bloqueo de autoplay) se usa el recorte fijo del planeta.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { cn } from '../../lib/cn';
 
@@ -123,7 +124,7 @@ export default function PlanetBackdrop({ imageSrc, fallback = BRAND, onColor, cl
   const [color, setColor] = useState<RGB>(fallback);
   const [videoOk, setVideoOk] = useState(true);
   const starsRef = useRef<HTMLCanvasElement>(null);
-  const reduced = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!imageSrc) { setColor(fallback); return; }
@@ -147,16 +148,33 @@ export default function PlanetBackdrop({ imageSrc, fallback = BRAND, onColor, cl
   }, [color]);
 
   const planet = useMemo(() => planetFor(color), [color]);
+
+  // Arrancar el clip de forma explícita (el visor se abre tras un clic, así que el autoplay silencioso está permitido);
+  // si el navegador lo rechaza, pasamos al recorte fijo en vez de quedarnos con el póster quieto.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    let alive = true;
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.catch === 'function') p.catch(() => { if (alive && document.visibilityState === 'visible') setVideoOk(false); });
+    };
+    tryPlay();
+    const onVis = () => { if (document.visibilityState === 'visible') tryPlay(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVis); };
+  }, [planet.key, videoOk]);
   const rgba = (a: number) => `rgba(${color.join(',')},${a})`;
   const media: CSSProperties = { filter: planet.filter };
 
   return (
     <div className={cn('absolute inset-0 overflow-hidden bg-black', className)} aria-hidden>
       <canvas ref={starsRef} className="absolute inset-0 h-full w-full" />
-      {videoOk && !reduced ? (
+      {videoOk ? (
         // El clip llena la pantalla, como en la referencia; se mezcla en «pantalla» para que su negro deje ver las estrellas.
         <video
           key={planet.key}
+          ref={videoRef}
           className="absolute inset-0 h-full w-full object-cover mix-blend-screen"
           style={media}
           autoPlay
