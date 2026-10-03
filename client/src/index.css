@@ -97,7 +97,10 @@
   to { background-position: -200% 0; }
 }
 .planet-spin {
-  animation: planetSpin 110s linear infinite;
+  animation: planetSpin 120s linear infinite;
+}
+.planet-spin-clouds {
+  animation: planetSpin 75s linear infinite;
 }
 
 /* Desenfoque solo en la parte baja de la pantalla (máscara), sin oscurecer. */
