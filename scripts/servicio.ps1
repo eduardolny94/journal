@@ -1,4 +1,4 @@
-# Lanzador del servicio Global Traders FX (API + cliente compilado) para la tarea programada de Windows.
+﻿# Lanzador del servicio Global Traders FX (API + cliente compilado) para la tarea programada de Windows.
 # Mantiene el servidor vivo: si el proceso muere, lo vuelve a arrancar a los 10 segundos.
 # Registro: trading-journal\server\data\servicio.log
 $ErrorActionPreference = 'Continue'
@@ -6,6 +6,8 @@ $root = Split-Path -Parent $PSScriptRoot
 $serverDir = Join-Path $root 'server'
 $log = Join-Path $serverDir 'data\servicio.log'
 $node = 'C:\Program Files\nodejs\node.exe'
+$local = Join-Path $root '.node\node.exe'
+if (-not (Test-Path $node)) { $node = $local }
 if (-not (Test-Path $node)) { $node = (Get-Command node -ErrorAction SilentlyContinue).Source }
 $env:API_PORT = '3200'
 $env:PORT = '3200'
@@ -19,7 +21,7 @@ if (-not (Test-Path (Join-Path $serverDir 'data'))) { New-Item -ItemType Directo
 # Rotación simple del registro (máx. ~2 MB)
 if ((Test-Path $log) -and ((Get-Item $log).Length -gt 2MB)) { Move-Item $log ($log + '.old') -Force }
 
-Log "Servicio iniciado (node: $node)"
+Log "Servicio iniciado (node: [$node] existe=$(Test-Path $node) usuario=$env:USERNAME ps=$($PSVersionTable.PSVersion))"
 while ($true) {
   $listening = netstat -ano | Select-String 'LISTENING' | Select-String ':3200 '
   if ($listening) {
@@ -33,3 +35,7 @@ while ($true) {
   Log ("El servidor terminó con código {0}; reinicio en 10 s" -f $p.ExitCode)
   Start-Sleep -Seconds 10
 }
+
+
+
+

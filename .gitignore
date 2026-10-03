@@ -11,3 +11,5 @@ server/data/*.json
 server/data/*.log
 .claude/
 README.tmp
+
+.node/
