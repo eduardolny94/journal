@@ -7,7 +7,6 @@ import {
   LogOut,
   Menu,
   Radar as RadarIcon,
-  Upload,
   Wallet,
   X,
   PiggyBank,
@@ -28,7 +27,7 @@ const NAV = [
   { to: '/cuentas', label: 'Cuentas', icon: Wallet },
   { to: '/finanzas', label: 'Finanzas', icon: PiggyBank },
   { to: '/diario', label: 'Diario', icon: BookOpen },
-  { to: '/importar', label: 'Importar', icon: Upload },
+  // Importar ya no va en el menú: se llega desde Operaciones («Importar CSV») y desde Cuentas → Conectar.
   { to: '/suscripcion', label: 'Mi suscripción', icon: CreditCard },
 ];
 

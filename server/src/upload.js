@@ -25,35 +25,52 @@ function userDir(userId) {
   return dir;
 }
 
-const storage = multer.diskStorage({
-  destination(req, _file, cb) {
-    try {
-      if (!req.user?.id) return cb(new Error('No autenticado.'));
-      cb(null, userDir(req.user.id));
-    } catch (err) {
-      cb(err);
+/**
+ * Crea un multer con su lista de tipos permitidos y sus límites. Los archivos van siempre a
+ * uploads/<userId>/<aleatorio>.<ext>; la extensión sale del tipo MIME, nunca del nombre del cliente.
+ */
+function makeUploader({ allowed, maxFileSize, maxFiles, formatMessage }) {
+  const storage = multer.diskStorage({
+    destination(req, _file, cb) {
+      try {
+        if (!req.user?.id) return cb(new Error('No autenticado.'));
+        cb(null, userDir(req.user.id));
+      } catch (err) {
+        cb(err);
+      }
+    },
+    filename(_req, file, cb) {
+      const ext = allowed[file.mimetype] || 'bin';
+      const name = crypto.randomBytes(18).toString('hex'); // 36 chars
+      cb(null, `${name}.${ext}`);
+    },
+  });
+  function fileFilter(_req, file, cb) {
+    if (!allowed[file.mimetype]) {
+      const err = new Error(formatMessage);
+      err.status = 400;
+      return cb(err);
     }
-  },
-  filename(_req, file, cb) {
-    const ext = ALLOWED[file.mimetype] || 'bin';
-    const name = crypto.randomBytes(18).toString('hex'); // 36 chars
-    cb(null, `${name}.${ext}`);
-  },
-});
-
-function fileFilter(_req, file, cb) {
-  if (!ALLOWED[file.mimetype]) {
-    const err = new Error('Formato no permitido. Solo se aceptan imágenes JPG, PNG, WEBP o GIF.');
-    err.status = 400;
-    return cb(err);
+    cb(null, true);
   }
-  cb(null, true);
+  return multer({ storage, fileFilter, limits: { fileSize: maxFileSize, files: maxFiles } });
 }
 
-export const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES },
+export const upload = makeUploader({
+  allowed: ALLOWED,
+  maxFileSize: MAX_FILE_SIZE,
+  maxFiles: MAX_FILES,
+  formatMessage: 'Formato no permitido. Solo se aceptan imágenes JPG, PNG, WEBP o GIF.',
+});
+
+// Documentos (certificados de cuenta fondeada, comprobantes de payout): imagen o PDF, 10 MB, uno por petición.
+export const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+const ALLOWED_DOCUMENTS = { ...ALLOWED, 'application/pdf': 'pdf' };
+export const uploadDocument = makeUploader({
+  allowed: ALLOWED_DOCUMENTS,
+  maxFileSize: MAX_DOCUMENT_SIZE,
+  maxFiles: 1,
+  formatMessage: 'Formato no permitido. Sube una imagen (JPG, PNG, WEBP o GIF) o un PDF.',
 });
 
 /**
@@ -64,6 +81,18 @@ export const upload = multer({
  */
 export function publicPathFor(file, userId) {
   return `/uploads/${userId}/${file.filename}`;
+}
+
+/**
+ * Borra un archivo subido comprobando antes que pertenece al usuario (la ruta debe salir de la base de datos,
+ * nunca del cliente) y que está dentro de uploads/.
+ */
+export function removeOwnedUpload(publicPath, userId) {
+  if (typeof publicPath !== 'string' || !publicPath.startsWith(`/uploads/${userId}/`)) return Promise.resolve(false);
+  const abs = path.resolve(UPLOADS_DIR, publicPath.slice('/uploads/'.length));
+  const rel = path.relative(UPLOADS_DIR, abs);
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return Promise.resolve(false);
+  return removeUploadedFile(publicPath);
 }
 
 /** Borra físicamente un archivo a partir de su ruta pública (ignora errores). */

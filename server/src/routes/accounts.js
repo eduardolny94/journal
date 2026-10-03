@@ -5,6 +5,7 @@ import { createSyncToken, revokeSyncToken, stripSyncSecrets } from '../services/
 import { evaluateAccountRisk, listLockEvents, LOCK_REASON_LABELS } from '../services/risk.js';
 import { currentTradingDay, nextResetIso } from '../services/tradingDay.js';
 import { OUTCOMES } from '../services/finanzas.js';
+import { removeOwnedUpload } from '../upload.js';
 
 const router = Router();
 
@@ -244,11 +245,14 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-router.delete('/:id', (req, res, next) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const db = getDb();
     const account = getOwnedAccount(db, req.user.id, req.params.id);
+    // Los documentos (certificados, comprobantes) caen en cascada; sus archivos se borran a partir de las rutas de la DB.
+    const docs = db.prepare('SELECT path FROM account_documents WHERE account_id = ? AND user_id = ?').all(account.id, req.user.id);
     db.prepare('DELETE FROM accounts WHERE id = ? AND user_id = ?').run(account.id, req.user.id);
+    await Promise.all(docs.map((d) => removeOwnedUpload(d.path, req.user.id)));
     res.json({ ok: true, id: account.id });
   } catch (err) {
     next(err);

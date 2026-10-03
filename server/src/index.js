@@ -21,6 +21,7 @@ import statsRoutes from './routes/stats.js';
 import importRoutes from './routes/import.js';
 import radarRoutes from './routes/radar.js';
 import finanzasRoutes from './routes/finanzas.js';
+import documentosRoutes from './routes/documentos.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscription.js';
 import syncRoutes from './routes/sync.js';
@@ -135,6 +136,8 @@ app.use('/api/notes', requireAuth, subscriptionGate, notesRoutes);
 app.use('/api/stats', requireAuth, subscriptionGate, statsRoutes);
 app.use('/api/import', requireAuth, subscriptionGate, importRoutes);
 app.use('/api/finanzas', requireAuth, subscriptionGate, finanzasRoutes);
+// Certificados de cuenta fondeada y comprobantes de payout (/api/finanzas/documentos, /api/finanzas/fondeos).
+app.use('/api/finanzas', requireAuth, subscriptionGate, documentosRoutes);
 app.use('/api/radar', requireAuth, subscriptionGate, requireRadarAccess, radarRoutes);
 
 // Radar de divisas: descargas y cálculo en segundo plano (no bloquea el arranque).
@@ -154,8 +157,8 @@ try {
   console.warn('[radar] no se pudo iniciar el motor:', err.message);
 }
 
-// Imágenes subidas: privadas. Solo el dueño (carpeta /uploads/<userId>/) puede verlas.
-const IMAGE_FILE_RE = /^[a-f0-9]{16,64}\.(jpe?g|png|webp|gif)$/i;
+// Imágenes y documentos subidos: privados. Solo el dueño (carpeta /uploads/<userId>/) puede verlos.
+const IMAGE_FILE_RE = /^[a-f0-9]{16,64}\.(jpe?g|png|webp|gif|pdf)$/i;
 app.get('/uploads/:userId/:file', requireAuth, (req, res) => {
   const { userId, file } = req.params;
   if (String(req.user.id) !== userId || !IMAGE_FILE_RE.test(file)) {

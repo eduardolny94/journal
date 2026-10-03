@@ -8,7 +8,11 @@ import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { fmtMoney } from '../../lib/format';
 import type { Account } from '../../store/session';
-import { EXPENSE_KINDS, INCOME_KINDS, KIND_LABELS, createTransaction, isExpense, updateTransaction, type Transaction, type TxKind } from '../../lib/finanzas';
+import {
+  EXPENSE_KINDS, INCOME_KINDS, KIND_LABELS, createTransaction, deleteDocument, isExpense, listDocuments, updateTransaction, uploadDocument,
+  type AccountDocument, type Transaction, type TxKind,
+} from '../../lib/finanzas';
+import DocumentUploader from './DocumentUploader';
 
 interface FormState {
   kind: TxKind;
@@ -40,11 +44,13 @@ export interface TransactionFormProps {
   onClose: () => void;
   accounts: Account[];
   tx?: Transaction | null;
+  /** Tipo preseleccionado al crear (p. ej. «retiro» desde Fondeos y payouts). */
+  initialKind?: TxKind;
   currency: string;
   onSaved: (tx: Transaction) => void;
 }
 
-export default function TransactionForm({ open, onClose, accounts, tx, currency, onSaved }: TransactionFormProps) {
+export default function TransactionForm({ open, onClose, accounts, tx, initialKind = 'evaluacion', currency, onSaved }: TransactionFormProps) {
   const splitOf = (accountId: string): string => {
     const acc = accounts.find((a) => String(a.id) === accountId);
     return acc && acc.profit_split ? String(acc.profit_split) : '100';
@@ -66,21 +72,43 @@ export default function TransactionForm({ open, onClose, accounts, tx, currency,
       };
     }
     const first = accounts.find((a) => !a.is_archived) ?? accounts[0];
-    return { kind: 'evaluacion', account_id: first ? String(first.id) : '', occurred_at: today(), amount: '', gross_amount: '', split: first ? splitOf(String(first.id)) : '100', fee_amount: '', recurring: false, note: '' };
+    return { kind: initialKind, account_id: first ? String(first.id) : '', occurred_at: today(), amount: '', gross_amount: '', split: first ? splitOf(String(first.id)) : '100', fee_amount: '', recurring: false, note: '' };
   };
   const [form, setForm] = useState<FormState>(initial);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Comprobante del payout: el pendiente de subir y los ya subidos (al editar un retiro).
+  const [doc, setDoc] = useState<File | null>(null);
+  const [existingDocs, setExistingDocs] = useState<AccountDocument[]>([]);
+  // Si el movimiento se guardó pero el comprobante falló, el siguiente envío actualiza en vez de duplicar.
+  const [savedTx, setSavedTx] = useState<Transaction | null>(null);
 
   useEffect(() => {
     if (open) {
       setForm(initial());
       setErrors({});
       setServerError(null);
+      setDoc(null);
+      setSavedTx(null);
+      setExistingDocs([]);
+      if (tx && tx.kind === 'retiro') {
+        const ctrl = new AbortController();
+        listDocuments({ transaction_id: tx.id }, ctrl.signal).then(setExistingDocs).catch(() => {});
+        return () => ctrl.abort();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, tx]);
+
+  async function removeExistingDoc(d: AccountDocument) {
+    try {
+      await deleteDocument(d.id);
+      setExistingDocs((list) => list.filter((x) => x.id !== d.id));
+    } catch (err) {
+      setServerError((err as Error).message || 'No se pudo eliminar el comprobante.');
+    }
+  }
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
   const isPayout = form.kind === 'retiro';
@@ -149,7 +177,18 @@ export default function TransactionForm({ open, onClose, accounts, tx, currency,
         recurring: expense && form.recurring,
         note: form.note.trim(),
       };
-      const saved = tx ? await updateTransaction(tx.id, payload) : await createTransaction(payload);
+      const existing = tx ?? savedTx;
+      const saved = existing ? await updateTransaction(existing.id, payload) : await createTransaction(payload);
+      setSavedTx(saved);
+      if (isPayout && doc) {
+        try {
+          await uploadDocument(doc, { kind: 'comprobante_payout', transaction_id: saved.id });
+        } catch (err) {
+          onSaved(saved);
+          setServerError(`El retiro se guardó, pero el comprobante no se pudo subir: ${(err as Error).message || 'error desconocido'}. Vuelve a intentarlo.`);
+          return;
+        }
+      }
       onSaved(saved);
       onClose();
     } catch (err) {
@@ -204,6 +243,11 @@ export default function TransactionForm({ open, onClose, accounts, tx, currency,
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input label="Neto recibido *" type="number" min={0} step="any" value={form.amount} onChange={(e) => set('amount', e.target.value)} error={errors.amount} rightAddon={currency} />
               {computedNet !== null && <p className="self-end pb-2 text-xs text-gray-500">Calculado: {fmtMoney(computedNet, currency, { sign: false })}</p>}
+            </div>
+            <div className="mt-3">
+              <p className="mb-1 text-xs font-medium text-gray-300">Comprobante del payout</p>
+              <DocumentUploader value={doc} onChange={setDoc} prompt="Arrastra la captura o el PDF del pago" existing={existingDocs} onDeleteExisting={removeExistingDoc} disabled={saving} />
+              <p className="mt-1 text-xs text-gray-500">Opcional. Se verá en la pestaña «Fondeos y payouts».</p>
             </div>
           </div>
         )}

@@ -1,14 +1,15 @@
 // Formulario (en Modal) para crear o editar una cuenta: datos básicos, zona horaria,
 // hora de reset y reglas de riesgo.
 import { useEffect, useState, type FormEvent } from 'react';
-import { Save } from 'lucide-react';
+import { Award, Save } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Account, AccountType, Platform } from '../store/session';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { Select } from './ui/Select';
-import { OUTCOME_OPTIONS, type Outcome } from '../lib/finanzas';
+import { OUTCOME_OPTIONS, deleteDocument, listDocuments, uploadDocument, type AccountDocument, type Outcome } from '../lib/finanzas';
+import DocumentUploader from './finanzas/DocumentUploader';
 
 export const PLATFORM_OPTIONS: Array<{ value: Platform; label: string }> = [
   { value: 'tradovate', label: 'Tradovate' },
@@ -135,16 +136,40 @@ export default function AccountForm({ open, onClose, account, onSaved }: Account
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Certificado de cuenta fondeada: el pendiente de subir y los ya subidos (al editar).
+  const [cert, setCert] = useState<File | null>(null);
+  const [existingCerts, setExistingCerts] = useState<AccountDocument[]>([]);
+  // Si la cuenta se guardó pero el certificado falló, el siguiente envío actualiza en vez de duplicar.
+  const [savedAccount, setSavedAccount] = useState<Account | null>(null);
 
   useEffect(() => {
     if (open) {
       setForm(fromAccount(account));
       setErrors({});
       setServerError(null);
+      setCert(null);
+      setSavedAccount(null);
+      setExistingCerts([]);
+      if (account) {
+        const ctrl = new AbortController();
+        listDocuments({ account_id: account.id, kind: 'certificado_fondeo' }, ctrl.signal).then(setExistingCerts).catch(() => {});
+        return () => ctrl.abort();
+      }
     }
   }, [open, account]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
+  // La cuenta cuenta como fondeada si está superada, tiene fecha de fondeo o ya es de tipo financiada.
+  const fundedLike = form.outcome === 'superada' || !!form.funded_at || form.account_type === 'financiada';
+
+  async function removeExistingCert(d: AccountDocument) {
+    try {
+      await deleteDocument(d.id);
+      setExistingCerts((list) => list.filter((x) => x.id !== d.id));
+    } catch (err) {
+      setServerError((err as Error).message || 'No se pudo eliminar el certificado.');
+    }
+  }
 
   function validate(): boolean {
     const e: Partial<Record<keyof FormState, string>> = {};
@@ -197,9 +222,20 @@ export default function AccountForm({ open, onClose, account, onSaved }: Account
         profit_split: numOrNull(form.profit_split),
         ...(account ? {} : { purchase_price: numOrNull(form.purchase_price) }),
       };
-      const saved = account
-        ? await api<Account>(`/accounts/${account.id}`, { method: 'PUT', body: payload })
+      const existing = account ?? savedAccount;
+      const saved = existing
+        ? await api<Account>(`/accounts/${existing.id}`, { method: 'PUT', body: payload })
         : await api<Account>('/accounts', { method: 'POST', body: payload });
+      setSavedAccount(saved);
+      if (fundedLike && cert) {
+        try {
+          await uploadDocument(cert, { kind: 'certificado_fondeo', account_id: saved.id });
+        } catch (err) {
+          onSaved(saved);
+          setServerError(`La cuenta se guardó, pero el certificado no se pudo subir: ${(err as Error).message || 'error desconocido'}. Vuelve a intentarlo.`);
+          return;
+        }
+      }
       onSaved(saved);
       onClose();
     } catch (err) {
@@ -297,6 +333,14 @@ export default function AccountForm({ open, onClose, account, onSaved }: Account
             <Input label="Fecha de cierre o quema" type="date" value={form.ended_at} onChange={(e) => set('ended_at', e.target.value)} />
           </div>
         </section>
+
+        {fundedLike && (
+          <section className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-3 glow-accent">
+            <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-accent-soft"><Award className="h-4 w-4" aria-hidden /> Certificado de cuenta fondeada</h4>
+            <p className="text-xs text-gray-400">La captura o el PDF que te envía la prop firm al pasar la evaluación. Se guarda en Finanzas → Fondeos y payouts.</p>
+            <DocumentUploader value={cert} onChange={setCert} prompt="Arrastra el certificado" existing={existingCerts} onDeleteExisting={removeExistingCert} disabled={saving} />
+          </section>
+        )}
 
         <section className="space-y-3">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Día de trading</h4>

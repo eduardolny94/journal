@@ -432,6 +432,89 @@ try {
     await api('DELETE', `/accounts/${created.data.id}`);
   });
 
+  await test('documentos: certificado de fondeo y comprobante de payout (subida, vista fondeos, aislamiento, borrado)', async () => {
+    const acc = await api('POST', '/accounts', { name: 'Fondeada docs', firm: 'Lucid', platform: 'tradovate', account_type: 'evaluacion', size: 50000, purchased_at: '2026-07-01' });
+    assert(acc.status === 201, `cuenta ${acc.status}`);
+    const accId = acc.data.id;
+    await api('PUT', `/accounts/${accId}`, { outcome: 'superada', funded_at: '2026-07-20' });
+    const payout = await api('POST', '/finanzas/movimientos', { kind: 'retiro', amount: 1800, gross_amount: 2000, occurred_at: '2026-08-15', account_id: accId });
+    assert(payout.status === 201, `retiro ${payout.status}`);
+    const gasto = await api('POST', '/finanzas/movimientos', { kind: 'datos', amount: 20, occurred_at: '2026-08-15', account_id: accId });
+
+    // Certificado (PNG) en la cuenta
+    const f1 = new FormData();
+    f1.append('file', new Blob([PNG_1x1], { type: 'image/png' }), 'certificado.png');
+    f1.append('kind', 'certificado_fondeo');
+    f1.append('account_id', String(accId));
+    f1.append('title', 'Certificado Lucid 50K');
+    const c1 = await api('POST', '/finanzas/documentos', undefined, { form: f1 });
+    assert(c1.status === 201 && c1.data.kind === 'certificado_fondeo' && c1.data.account_id === accId, `certificado ${c1.status} ${JSON.stringify(c1.data)}`);
+    assert(/^\/uploads\/\d+\/[a-f0-9]+\.png$/.test(c1.data.path) && c1.data.title === 'Certificado Lucid 50K', `ruta/título ${JSON.stringify(c1.data)}`);
+
+    // Comprobante (PDF) en el retiro: hereda la cuenta
+    const f2 = new FormData();
+    f2.append('file', new Blob([Buffer.from('%PDF-1.4\n%smoke\n')], { type: 'application/pdf' }), 'payout.pdf');
+    f2.append('kind', 'comprobante_payout');
+    f2.append('transaction_id', String(payout.data.id));
+    const c2 = await api('POST', '/finanzas/documentos', undefined, { form: f2 });
+    assert(c2.status === 201 && c2.data.account_id === accId && c2.data.transaction_id === payout.data.id && c2.data.path.endsWith('.pdf'), `comprobante ${c2.status} ${JSON.stringify(c2.data)}`);
+
+    // El archivo se sirve solo al dueño
+    const served = await fetch(`${BASE}${c1.data.path}`, { headers: { Authorization: `Bearer ${token}` } });
+    assert(served.status === 200, `servir ${served.status}`);
+    const servedOther = await fetch(`${BASE}${c1.data.path}`, { headers: { Authorization: `Bearer ${user2Token}` } });
+    assert(servedOther.status === 404, `otro usuario debería recibir 404, llegó ${servedOther.status}`);
+
+    // Rechazos: formato, comprobante en un gasto, cuenta ajena
+    const bad = new FormData();
+    bad.append('file', new Blob([Buffer.from('texto')], { type: 'text/plain' }), 'malo.txt');
+    bad.append('kind', 'certificado_fondeo');
+    bad.append('account_id', String(accId));
+    const b1 = await api('POST', '/finanzas/documentos', undefined, { form: bad });
+    assert(b1.status === 400, `txt debería dar 400, dio ${b1.status}`);
+    const f3 = new FormData();
+    f3.append('file', new Blob([PNG_1x1], { type: 'image/png' }), 'x.png');
+    f3.append('kind', 'comprobante_payout');
+    f3.append('transaction_id', String(gasto.data.id));
+    const b2 = await api('POST', '/finanzas/documentos', undefined, { form: f3 });
+    assert(b2.status === 400, `comprobante en gasto debería dar 400, dio ${b2.status}`);
+    const f4 = new FormData();
+    f4.append('file', new Blob([PNG_1x1], { type: 'image/png' }), 'x.png');
+    f4.append('kind', 'certificado_fondeo');
+    f4.append('account_id', String(accId));
+    const b3 = await api('POST', '/finanzas/documentos', undefined, { form: f4, token: user2Token });
+    assert(b3.status === 404, `cuenta ajena debería dar 404, dio ${b3.status}`);
+
+    // Vista «Fondeos y payouts»
+    const fo = await api('GET', '/finanzas/fondeos');
+    assert(fo.status === 200, `fondeos ${fo.status}`);
+    const cu = fo.data.cuentas.find((c) => c.account_id === accId);
+    assert(cu && cu.fondeada && cu.certificados.length === 1 && cu.n_payouts === 1 && cu.total_payouts === 1800, `cuenta en fondeos ${JSON.stringify(cu)}`);
+    assert(cu.payouts[0].comprobantes.length === 1 && cu.payouts[0].comprobantes[0].id === c2.data.id, 'comprobante colgado del payout');
+    assert(fo.data.totals.cuentas_fondeadas >= 1 && fo.data.totals.total_payouts >= 1800 && fo.data.totals.certificados >= 1, `totales fondeos ${JSON.stringify(fo.data.totals)}`);
+    const foOther = await api('GET', '/finanzas/fondeos', undefined, { token: user2Token });
+    assert(foOther.data.cuentas.length === 0 && foOther.data.totals.n_payouts === 0, 'otro usuario no debería ver fondeos');
+
+    // Listado, edición de título y borrado (otro usuario -> 404)
+    const list = await api('GET', `/finanzas/documentos?account_id=${accId}`);
+    assert(list.status === 200 && list.data.length === 2, `listado ${list.status} ${list.data.length}`);
+    const up = await api('PUT', `/finanzas/documentos/${c1.data.id}`, { title: 'Nuevo título' });
+    assert(up.status === 200 && up.data.title === 'Nuevo título', 'edición de título');
+    const delOther = await api('DELETE', `/finanzas/documentos/${c1.data.id}`, undefined, { token: user2Token });
+    assert(delOther.status === 404, `borrado ajeno debería dar 404, dio ${delOther.status}`);
+    const del = await api('DELETE', `/finanzas/documentos/${c1.data.id}`);
+    assert(del.status === 200, `delete ${del.status}`);
+    const gone = await fetch(`${BASE}${c1.data.path}`, { headers: { Authorization: `Bearer ${token}` } });
+    assert(gone.status === 404, `archivo borrado debería dar 404, llegó ${gone.status}`);
+    // Borrar el retiro arrastra su comprobante (fila y archivo)
+    await api('DELETE', `/finanzas/movimientos/${payout.data.id}`);
+    const after = await api('GET', `/finanzas/documentos?account_id=${accId}`);
+    assert(after.data.length === 0, `tras borrar el retiro quedan ${after.data.length} documentos`);
+    const gone2 = await fetch(`${BASE}${c2.data.path}`, { headers: { Authorization: `Bearer ${token}` } });
+    assert(gone2.status === 404, `comprobante borrado debería dar 404, llegó ${gone2.status}`);
+    await api('DELETE', `/accounts/${accId}`);
+  });
+
   let user2Id = null;
   await test('admin: el primer usuario es administrador y el segundo no', async () => {
     const me1 = await api('GET', '/auth/me');

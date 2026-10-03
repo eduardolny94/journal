@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
 import { KINDS, KIND_LABELS, EXPENSE_KINDS, INCOME_KINDS, isExpense, listTransactions, summarize } from '../services/finanzas.js';
+import { removeOwnedUpload } from '../upload.js';
 
 const router = Router();
 
@@ -119,11 +120,14 @@ router.put('/movimientos/:id', (req, res, next) => {
 });
 
 // DELETE /api/finanzas/movimientos/:id
-router.delete('/movimientos/:id', (req, res, next) => {
+router.delete('/movimientos/:id', async (req, res, next) => {
   try {
     const db = getDb();
     const row = getOwnedTx(db, req.user.id, req.params.id);
+    // Los comprobantes del movimiento caen en cascada; sus archivos se borran a partir de las rutas de la DB.
+    const docs = db.prepare('SELECT path FROM account_documents WHERE transaction_id = ? AND user_id = ?').all(row.id, req.user.id);
     db.prepare('DELETE FROM account_transactions WHERE id = ? AND user_id = ?').run(row.id, req.user.id);
+    await Promise.all(docs.map((d) => removeOwnedUpload(d.path, req.user.id)));
     res.json({ ok: true, id: row.id });
   } catch (err) {
     next(err);

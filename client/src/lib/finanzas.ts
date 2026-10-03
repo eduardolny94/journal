@@ -134,6 +134,110 @@ export function deleteTransaction(id: number): Promise<{ ok: boolean }> {
   return api<{ ok: boolean }>(`/finanzas/movimientos/${id}`, { method: 'DELETE' });
 }
 
+// ----- Documentos: certificados de cuenta fondeada y comprobantes de payout -----
+
+export type DocKind = 'certificado_fondeo' | 'comprobante_payout' | 'otro';
+export const DOC_KIND_LABELS: Record<DocKind, string> = {
+  certificado_fondeo: 'Certificado de cuenta fondeada',
+  comprobante_payout: 'Comprobante de payout',
+  otro: 'Otro documento',
+};
+export const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+export const DOC_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf';
+export const DOC_ALLOWED_TYPES = new Set(DOC_ACCEPT.split(','));
+
+export interface AccountDocument {
+  id: number;
+  user_id: number;
+  account_id: number | null;
+  transaction_id: number | null;
+  kind: DocKind;
+  path: string;
+  original_name: string;
+  mime: string;
+  size: number;
+  title: string;
+  created_at: string;
+  account_name?: string | null;
+  account_firm?: string | null;
+  account_currency?: string | null;
+  transaction_kind?: TxKind | null;
+  transaction_amount?: number | null;
+  transaction_gross?: number | null;
+  transaction_at?: string | null;
+  transaction_currency?: string | null;
+}
+
+export function isPdf(doc: Pick<AccountDocument, 'mime' | 'path'>): boolean {
+  return doc.mime === 'application/pdf' || /\.pdf$/i.test(doc.path);
+}
+
+export interface PayoutWithDocs extends Transaction {
+  comprobantes: AccountDocument[];
+}
+export interface FondeoAccount {
+  account_id: number;
+  name: string;
+  firm: string;
+  size: number;
+  currency: string;
+  account_type: string;
+  outcome: Outcome;
+  is_archived: boolean;
+  purchased_at: string | null;
+  funded_at: string | null;
+  ended_at: string | null;
+  profit_split: number | null;
+  fondeada: boolean;
+  certificados: AccountDocument[];
+  otros: AccountDocument[];
+  payouts: PayoutWithDocs[];
+  n_payouts: number;
+  total_payouts: number;
+  bruto_payouts: number;
+  ultimo_payout_at: string | null;
+}
+export interface FondeosResumen {
+  currency: string;
+  totals: {
+    cuentas_fondeadas: number;
+    cuentas_con_payouts: number;
+    n_payouts: number;
+    total_payouts: number;
+    payout_medio: number | null;
+    mayor_payout: number | null;
+    ultimo_payout_at: string | null;
+    certificados: number;
+    comprobantes: number;
+    payouts_sin_comprobante: number;
+    fondeadas_sin_certificado: number;
+  };
+  cuentas: FondeoAccount[];
+  payouts_sin_cuenta: PayoutWithDocs[];
+}
+
+export function fetchFondeos(signal?: AbortSignal): Promise<FondeosResumen> {
+  return api<FondeosResumen>('/finanzas/fondeos', { signal });
+}
+export function listDocuments(params: { account_id?: number | null; transaction_id?: number | null; kind?: DocKind | null } = {}, signal?: AbortSignal): Promise<AccountDocument[]> {
+  return api<AccountDocument[]>(`/finanzas/documentos${qs({ account_id: params.account_id ?? null, transaction_id: params.transaction_id ?? null, kind: params.kind ?? null })}`, { signal });
+}
+export function uploadDocument(file: File, target: { kind: DocKind; account_id?: number | null; transaction_id?: number | null; title?: string }): Promise<AccountDocument> {
+  const fd = new FormData();
+  fd.append('file', file, file.name || 'documento');
+  fd.append('kind', target.kind);
+  if (target.account_id) fd.append('account_id', String(target.account_id));
+  if (target.transaction_id) fd.append('transaction_id', String(target.transaction_id));
+  if (target.title) fd.append('title', target.title.slice(0, 120));
+  return api<AccountDocument>('/finanzas/documentos', { method: 'POST', formData: fd });
+}
+export function updateDocument(id: number, input: { title: string }): Promise<AccountDocument> {
+  return api<AccountDocument>(`/finanzas/documentos/${id}`, { method: 'PUT', body: input });
+}
+export function deleteDocument(id: number): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>(`/finanzas/documentos/${id}`, { method: 'DELETE' });
+}
+
 /** Rango rápido para la página de Finanzas. */
 export type FinRange = 'todo' | 'anio' | '12m' | '90d';
 export const FIN_RANGES: Array<{ value: FinRange; label: string }> = [

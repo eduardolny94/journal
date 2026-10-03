@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Hash, ListOrdered, Percent, Plus, RotateCcw, Sigma, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Hash, ListOrdered, Percent, Plus, RotateCcw, Sigma, TrendingUp, Upload } from 'lucide-react';
 import { api, qs } from '../lib/api';
 import { cn } from '../lib/cn';
 import { fmtMoney, fmtNum, pnlClass } from '../lib/format';
@@ -210,7 +210,11 @@ export default function Trades() {
           <h2 className="text-lg font-semibold text-gray-100">Operaciones</h2>
           <p className="text-xs text-gray-400">{selectedAccount ? `${selectedAccount.name}${selectedAccount.firm ? ` · ${selectedAccount.firm}` : ''}` : 'Todas las cuentas'}</p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="secondary" onClick={() => navigate(selectedAccount ? `/importar?account=${selectedAccount.id}` : '/importar')} leftIcon={<Upload className="h-4 w-4" />} title="Importar operaciones desde el CSV de tu plataforma">
+            <span className="hidden sm:inline">Importar CSV</span>
+            <span className="sm:hidden">CSV</span>
+          </Button>
           <Button onClick={() => navigate('/operaciones/nueva')} leftIcon={<Plus className="h-4 w-4" />}>
             Nueva operación
           </Button>

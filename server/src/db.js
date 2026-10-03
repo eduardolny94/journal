@@ -295,6 +295,24 @@ CREATE TABLE IF NOT EXISTS account_transactions (
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_account_tx_user_date ON account_transactions(user_id, occurred_at);
+-- Documentos de la cuenta: certificado de cuenta fondeada (cuelga de la cuenta) y comprobante de payout
+-- (cuelga del movimiento de retiro). Archivos privados en uploads/<userId>/ igual que las capturas.
+CREATE TABLE IF NOT EXISTS account_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+  transaction_id INTEGER REFERENCES account_transactions(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK(kind IN ('certificado_fondeo','comprobante_payout','otro')),
+  path TEXT NOT NULL,
+  original_name TEXT DEFAULT '',
+  mime TEXT DEFAULT '',
+  size INTEGER DEFAULT 0,
+  title TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_account_documents_user ON account_documents(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_account_documents_account ON account_documents(account_id);
+CREATE INDEX IF NOT EXISTS idx_account_documents_tx ON account_documents(transaction_id);
 -- Cierres diarios por par (5 años, Yahoo): base de las fórmulas de valor y tendencia (quant.js).
 CREATE TABLE IF NOT EXISTS radar_daily_prices (
   symbol TEXT NOT NULL,

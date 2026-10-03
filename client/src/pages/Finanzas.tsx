@@ -1,8 +1,10 @@
 // Página «Finanzas»: dinero real del trader de prop firms. Invertido en cuentas, retirado, resultado y ROI;
 // lecturas automáticas; flujo de caja mensual; desglose por firma y por cuenta; libro de movimientos.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Info, Pencil, PiggyBank, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { AlertTriangle, Award, CheckCircle2, Info, LayoutList, Pencil, PiggyBank, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import CashflowChart from '../components/finanzas/CashflowChart';
+import FondeosPanel from '../components/finanzas/FondeosPanel';
 import TransactionForm from '../components/finanzas/TransactionForm';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -20,6 +22,12 @@ import {
 import { useSession } from '../store/session';
 
 const KIND_FILTER_OPTIONS = [{ value: '', label: 'Todos los tipos' }, ...(Object.keys(KIND_LABELS) as TxKind[]).map((k) => ({ value: k, label: KIND_LABELS[k] }))];
+
+type Tab = 'resumen' | 'fondeos';
+const TABS: Array<{ key: Tab; label: string; icon: typeof LayoutList }> = [
+  { key: 'resumen', label: 'Resumen', icon: LayoutList },
+  { key: 'fondeos', label: 'Fondeos y payouts', icon: Award },
+];
 
 function pct(v: number | null | undefined, decimals = 0): string {
   return v === null || v === undefined ? '—' : `${v >= 0 ? '+' : ''}${fmtNum(v, decimals)} %`;
@@ -39,8 +47,17 @@ export default function Finanzas() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [busy, setBusy] = useState(false);
+  const [initialKind, setInitialKind] = useState<TxKind>('evaluacion');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: Tab = searchParams.get('tab') === 'fondeos' ? 'fondeos' : 'resumen';
+  const setTab = (t: Tab) => setSearchParams(t === 'resumen' ? {} : { tab: t }, { replace: true });
   const from = useMemo(() => finRangeFrom(range), [range]);
   const reload = useCallback(() => setReloadKey((n) => n + 1), []);
+  const openForm = (kind: TxKind = 'evaluacion', tx: Transaction | null = null) => {
+    setInitialKind(kind);
+    setEditing(tx);
+    setFormOpen(true);
+  };
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -92,23 +109,47 @@ export default function Finanzas() {
           <p className="text-xs text-gray-400">Tu dinero real: lo que pagas por cuentas y lo que cobras. Lo que ganas dentro de una cuenta es de la prop firm hasta que lo retiras.</p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Select value={range} onChange={(e) => setRange(e.target.value as FinRange)} options={FIN_RANGES} />
-          <Button variant="secondary" size="sm" onClick={reload} loading={loading} leftIcon={<RefreshCw className="h-3.5 w-3.5" />} title="Actualizar"><span className="hidden sm:inline">Actualizar</span></Button>
-          <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }} leftIcon={<Plus className="h-4 w-4" />}>Nuevo movimiento</Button>
+          {tab === 'resumen' && (
+            <>
+              <Select value={range} onChange={(e) => setRange(e.target.value as FinRange)} options={FIN_RANGES} />
+              <Button variant="secondary" size="sm" onClick={reload} loading={loading} leftIcon={<RefreshCw className="h-3.5 w-3.5" />} title="Actualizar"><span className="hidden sm:inline">Actualizar</span></Button>
+              <Button size="sm" onClick={() => openForm()} leftIcon={<Plus className="h-4 w-4" />}>Nuevo movimiento</Button>
+            </>
+          )}
         </div>
+      </div>
+
+      <div className="inline-flex rounded-md border border-border bg-panel p-0.5" role="tablist" aria-label="Secciones de Finanzas">
+        {TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors',
+              tab === key ? 'bg-accent/15 text-accent-soft shadow-[0_0_18px_-6px_rgba(22,245,122,0.6)]' : 'text-gray-400 hover:text-gray-100',
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+          </button>
+        ))}
       </div>
 
       {error && <div className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss" role="alert">{error}</div>}
 
-      {summary && summary.movimientos === 0 && txs.length === 0 && (
+      {tab === 'fondeos' && <FondeosPanel reloadKey={reloadKey} onChanged={reload} onNewPayout={() => openForm('retiro')} />}
+
+      {tab === 'resumen' && summary && summary.movimientos === 0 && txs.length === 0 && (
         <EmptyState
           title="Aún no hay movimientos"
           description="Registra lo que pagaste por cada evaluación, los resets, los datos de mercado y cada retiro. Con eso verás cuánto llevas invertido, cuánto has recuperado y tu ROI real por firma y por cuenta."
-          action={<Button onClick={() => { setEditing(null); setFormOpen(true); }} leftIcon={<Plus className="h-4 w-4" />}>Registrar el primer movimiento</Button>}
+          action={<Button onClick={() => openForm()} leftIcon={<Plus className="h-4 w-4" />}>Registrar el primer movimiento</Button>}
         />
       )}
 
-      {summary && t && (
+      {tab === 'resumen' && summary && t && (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Invertido en cuentas" value={fmtMoney(t.gastado, currency, { sign: false })} hint={`${t.evaluaciones_compradas} evaluaciones · ${t.resets} resets${t.gasto_fijo_mensual ? ` · fijos ${fmtMoney(t.gasto_fijo_mensual, currency, { sign: false })}/mes` : ''}`} />
@@ -233,7 +274,7 @@ export default function Finanzas() {
         </>
       )}
 
-      {(txs.length > 0 || (summary && summary.movimientos > 0)) && (
+      {tab === 'resumen' && (txs.length > 0 || (summary && summary.movimientos > 0)) && (
         <Card
           title="Movimientos"
           subtitle={`${filteredForAccount.length} de ${txs.length} en el periodo`}
@@ -270,7 +311,7 @@ export default function Finanzas() {
                     <td className={cn('px-3 py-2 text-right tnum font-semibold', isExpense(x.kind) ? 'text-loss' : 'text-profit')}>{isExpense(x.kind) ? '−' : '+'}{fmtMoney(x.amount, x.currency, { sign: false })}</td>
                     <td className="px-3 py-2 text-right">
                       <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => { setEditing(x); setFormOpen(true); }} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => openForm(x.kind, x)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(x)} title="Eliminar"><Trash2 className="h-3.5 w-3.5 text-loss" /></Button>
                       </div>
                     </td>
@@ -285,7 +326,7 @@ export default function Finanzas() {
         </Card>
       )}
 
-      <TransactionForm open={formOpen} onClose={() => setFormOpen(false)} accounts={accounts} tx={editing} currency={currency} onSaved={() => reload()} />
+      <TransactionForm open={formOpen} onClose={() => setFormOpen(false)} accounts={accounts} tx={editing} initialKind={initialKind} currency={currency} onSaved={() => reload()} />
 
       <Modal
         open={!!deleteTarget}

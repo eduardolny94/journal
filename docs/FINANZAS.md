@@ -21,10 +21,29 @@ Idea: el P&L del journal es dinero de la prop firm hasta que lo retiras. Lo que 
 - **Dashboard**: tarjeta "Dinero real" con invertido, cobrado, resultado y ROI.
 - **Cuentas**: sección "Economía de la cuenta" en el formulario; estado y reparto en la tarjeta.
 
+## Fondeos y payouts (certificados y comprobantes) · 2026-10-03
+
+Pestaña **Fondeos y payouts** dentro de Finanzas: la historia de cada cuenta (compra → fondeo → payouts → cierre o quema)
+con sus documentos en una galería iluminada sobre fondo oscuro.
+
+- **Certificado de cuenta fondeada**: cuelga de la cuenta. Se sube desde Cuentas → Editar (aparece al poner la cuenta en
+  estado «Superada», con fecha de fondeo o de tipo financiada) o desde la pestaña con «Subir certificado».
+- **Comprobante de payout**: cuelga del movimiento de tipo `retiro`. Se sube desde el formulario del retiro o desde la
+  pestaña con «Subir comprobante». El importe del payout ya suma en el Resumen; el comprobante solo lo documenta.
+- Imagen (JPG, PNG, WEBP, GIF) o PDF, máx. 10 MB, uno por subida. Archivos privados en `uploads/<userId>/` como las
+  capturas: solo el dueño los ve. Los PDF se abren en una pestaña nueva (la CSP no permite incrustarlos).
+- Borrar la cuenta borra sus documentos; borrar el retiro borra su comprobante (fila y archivo).
+- Avisos en la pestaña: cuentas fondeadas sin certificado y payouts sin comprobante.
+- Las cuentas archivadas sí aparecen: esta vista es histórica (a diferencia del Dashboard, que solo cuenta las activas).
+
 ## API
 
 - `GET /api/finanzas/movimientos?from&to&account_id&kind`, `POST`, `PUT /:id`, `DELETE /:id`.
 - `GET /api/finanzas/resumen?from&to`.
+- `GET /api/finanzas/documentos?account_id&transaction_id&kind`, `POST` (multipart: `file`, `kind`, `account_id` o
+  `transaction_id`, `title`), `PUT /:id` (título), `DELETE /:id`. Tipos: `certificado_fondeo`, `comprobante_payout`, `otro`.
+- `GET /api/finanzas/fondeos`: totales (cuentas fondeadas, total y nº de payouts, mayor y último payout, documentos
+  subidos y faltantes) y por cuenta: fechas, estado, certificados, payouts con sus comprobantes.
 - Tipos: gastos `evaluacion`, `reset`, `activacion`, `datos`, `plataforma`, `otro_gasto`; ingresos `retiro`, `reembolso`, `otro_ingreso`.
 - Datos de ejemplo para el usuario demo: `node scripts/seed-finanzas.mjs` (servidor en marcha).
 
