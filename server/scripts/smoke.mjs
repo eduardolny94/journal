@@ -123,6 +123,26 @@ try {
     token = r.data.token;
   });
 
+  await test('registro con el campo trampa relleno (bot) -> 400', async () => {
+    const r = await api('POST', '/auth/register', { email: `bot_${stamp}@test.com`, password: 'Prueba1234', name: 'Bot', website: 'http://spam.example' }, { token: null });
+    assert(r.status === 400, `status ${r.status}`);
+  });
+
+  await test('web pública: robots.txt, sitemap y 404 real para rutas inexistentes', async () => {
+    const unknown = await fetch(`${BASE}/esta-ruta-no-existe`);
+    assert(unknown.status === 404, `ruta inexistente debería dar 404, dio ${unknown.status}`);
+    const robots = await fetch(`${BASE}/robots.txt`);
+    const sitemap = await fetch(`${BASE}/sitemap.xml`);
+    // Sin cliente compilado (CI) no hay estáticos: entonces solo se comprueba el 404.
+    if (robots.status === 200) {
+      const txt = await robots.text();
+      assert(/Disallow: \/api\//.test(txt) && /Sitemap:/.test(txt), 'robots.txt incompleto');
+      assert(sitemap.status === 200 && /<urlset/.test(await sitemap.text()), 'sitemap.xml ausente o inválido');
+      const login = await fetch(`${BASE}/login`);
+      assert(login.status === 200 && (login.headers.get('cache-control') || '').includes('no-cache'), 'index.html debería servirse con no-cache');
+    }
+  });
+
   await test('registro duplicado -> 409', async () => {
     const r = await api('POST', '/auth/register', { email: email1, password: 'Prueba1234', name: 'Otro' }, { token: null });
     assert(r.status === 409, `status ${r.status}`);

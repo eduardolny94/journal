@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CalendarDays, Lock, Mail, ShieldCheck, TrendingUp } from 'lucide-react';
+import { ArrowRight, CalendarDays, Lock, Mail, ShieldCheck, TrendingUp } from 'lucide-react';
 import { api } from '../lib/api';
 import { useSession, type User } from '../store/session';
+import { usePageTitle } from '../lib/usePageTitle';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import BrandLogo, { BrandMark } from '../components/BrandLogo';
@@ -21,6 +22,7 @@ const HIGHLIGHTS = [
 ];
 
 export default function Login() {
+  usePageTitle('Iniciar sesión');
   const navigate = useNavigate();
   const setSession = useSession((s) => s.setSession);
   const [email, setEmail] = useState('');
@@ -78,6 +80,13 @@ export default function Login() {
               </li>
             ))}
           </ul>
+          {/* Llamada a la acción clara para quien llega por primera vez */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Link to="/registro">
+              <Button size="lg" rightIcon={<ArrowRight className="h-4 w-4" />}>Empieza tu prueba gratuita</Button>
+            </Link>
+            <span className="text-xs text-gray-400">Sin tarjeta. Cancela cuando quieras.</span>
+          </div>
         </div>
       </section>
 
@@ -138,6 +147,10 @@ export default function Login() {
               Demo: <span className="text-gray-400">demo@journal.com</span> / <span className="text-gray-400">demo1234</span>
             </p>
           )}
+          <nav aria-label="Legal" className="mt-6 flex justify-center gap-4 text-xs text-gray-500">
+            <Link to="/privacidad" className="hover:text-gray-200">Privacidad</Link>
+            <Link to="/terminos" className="hover:text-gray-200">Términos</Link>
+          </nav>
         </div>
       </section>
     </div>

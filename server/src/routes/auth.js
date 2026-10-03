@@ -28,6 +28,16 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.' },
 });
 
+// Registro: además del límite general, como mucho 10 altas por IP y hora (protege contra registros masivos).
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
+  message: { error: 'Demasiados registros desde esta conexión. Inténtalo más tarde.' },
+});
+
 function publicUser(row) {
   return { id: row.id, email: row.email, name: row.name, created_at: row.created_at };
 }
@@ -95,8 +105,12 @@ router.get('/registration', (_req, res) => {
   res.json({ open, invite_required: open && !!String(process.env.INVITE_CODE || '').trim() });
 });
 
-router.post('/register', authLimiter, async (req, res, next) => {
+router.post('/register', authLimiter, registerLimiter, async (req, res, next) => {
   try {
+    // Campo trampa (honeypot): el formulario lo lleva oculto; una persona nunca lo rellena, un bot sí.
+    if (typeof req.body?.website === 'string' && req.body.website.trim()) {
+      return res.status(400).json({ error: 'Registro no válido.' });
+    }
     const gateError = registrationGate(req.body);
     if (gateError) return res.status(403).json({ error: gateError });
     const { email, password, name } = req.body || {};

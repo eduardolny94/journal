@@ -59,9 +59,13 @@ export function BrandMark({ size = 40, className }: { size?: number; className?:
   );
 }
 
-export default function BrandLogo({ className, size = 40, markOnly = false, image = '/logo.png' }: BrandLogoProps) {
+// Logo oficial opcional: pon el archivo en client/public/logo.png y cambia esto a '/logo.png'. Vacío = escudo SVG
+// sin petición de red (antes se pedía siempre y daba un 404 en cada página).
+const OFFICIAL_LOGO = '';
+
+export default function BrandLogo({ className, size = 40, markOnly = false, image = OFFICIAL_LOGO }: BrandLogoProps) {
   const textScale = size / 40;
-  // Si existe client/public/logo.png (logo oficial) se usa; si no, el escudo SVG.
+  // Si hay imagen oficial se usa; si falla al cargar, el escudo SVG.
   const [imgOk, setImgOk] = useState(true);
   return (
     <span className={cn('inline-flex items-center gap-3 select-none', className)}>

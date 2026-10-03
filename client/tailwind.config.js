@@ -14,6 +14,9 @@ export default {
         loss: '#ff4d5e',
         accent: { DEFAULT: '#16f57a', dark: '#0fbf5e', soft: '#7dffb5' },
         warn: '#f5b400',
+        // Contraste: los grises 500/600 de Tailwind no llegan a 4,5:1 sobre el fondo (#060a08) en texto pequeño.
+        // Se aclaran un punto (500 ≈ 6,3:1, 600 ≈ 4,6:1) sin tocar el resto de la escala.
+        gray: { 500: '#8b94a3', 600: '#6e7786' },
       },
       fontFamily: {
         sans: [

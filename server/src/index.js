@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { rateLimit } from 'express-rate-limit';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,6 +61,17 @@ const app = express();
 app.disable('x-powered-by');
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
 
+// Forzar HTTPS en producción: Railway (y cualquier proxy) termina el TLS y nos avisa con X-Forwarded-Proto.
+// Helmet añade HSTS (un año) en las respuestas que ya llegan por HTTPS.
+if (isProd) {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] === 'http') {
+      return res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+    }
+    next();
+  });
+}
+
 // Cabeceras de seguridad (CSP pensada para el cliente compilado servido desde client/dist).
 app.use(
   helmet({
@@ -67,11 +79,12 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         // TradingView: widget oficial de gráficos (script + iframes) usado en el Radar.
-        scriptSrc: ["'self'", 'https://s3.tradingview.com'],
+        // Google Analytics 4: solo se carga si el cliente se compiló con VITE_GA4_ID y el visitante lo aceptó.
+        scriptSrc: ["'self'", 'https://s3.tradingview.com', 'https://www.googletagmanager.com'],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://s3.tradingview.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://s3.tradingview.com', 'https://www.googletagmanager.com', 'https://*.google-analytics.com'],
         fontSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", 'https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'],
         frameSrc: ['https://www.tradingview-widget.com', 'https://s.tradingview.com', 'https://www.tradingview.com'],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
@@ -90,6 +103,8 @@ if (extraOrigins.length) {
 }
 
 app.use(cookieParser());
+// Respuestas comprimidas (gzip/brotli según el navegador): JSON de la API y HTML/JS/CSS del cliente.
+app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
 // Límite global de peticiones por IP.
@@ -183,16 +198,35 @@ app.use('/descargas', (req, res, next) => {
   }
   next();
 });
-app.use(express.static(clientDist, { index: 'index.html' }));
+// Caché: los archivos de /assets llevan hash en el nombre (inmutables, un año); el resto de estáticos una hora;
+// index.html nunca se cachea para que un despliegue nuevo llegue al momento.
+app.use(
+  express.static(clientDist, {
+    index: false,
+    maxAge: '1h',
+    setHeaders(res, filePath) {
+      if (/[\\/]assets[\\/]/.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  }),
+);
 
-// 404 JSON para /api y /uploads; para el resto, index.html del cliente si existe (SPA)
+// Rutas del cliente (react-router). Lo que no esté aquí responde 404 (el cliente muestra su página 404).
+const CLIENT_ROUTES = /^\/(?:$|login$|registro$|privacidad$|terminos$|operaciones(?:\/.*)?$|cuentas(?:\/.*)?$|finanzas$|diario$|importar$|suscripcion$|radar(?:\/.*)?$|admin(?:\/.*)?$)/;
+const indexHtml = path.join(clientDist, 'index.html');
+function sendIndex(res, status) {
+  res.status(status);
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(indexHtml, (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: 'Recurso no encontrado.' });
+  });
+}
+
+// 404 JSON para /api y /uploads; para el resto, index.html del cliente (SPA) con 200 si la ruta existe y 404 si no.
 app.use((req, res) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
     return res.status(404).json({ error: 'Recurso no encontrado.' });
   }
-  res.sendFile(path.join(clientDist, 'index.html'), (err) => {
-    if (err) res.status(404).json({ error: 'Recurso no encontrado.' });
-  });
+  sendIndex(res, CLIENT_ROUTES.test(req.path) ? 200 : 404);
 });
 
 // Manejador de errores central (mensajes en español)

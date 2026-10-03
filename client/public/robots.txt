@@ -1,0 +1,20 @@
+# Global Traders FX · journal privado. Solo las páginas públicas son indexables.
+User-agent: *
+Allow: /$
+Allow: /login
+Allow: /registro
+Allow: /privacidad
+Allow: /terminos
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /descargas/
+Disallow: /operaciones
+Disallow: /cuentas
+Disallow: /finanzas
+Disallow: /diario
+Disallow: /importar
+Disallow: /suscripcion
+Disallow: /radar
+Disallow: /admin
+
+Sitemap: https://journal.cesarzorrilla.com/sitemap.xml

@@ -63,7 +63,7 @@ export const EXPORT_GUIDES: GuideEntry[] = [
     ],
     links: [
       { label: 'NinjaTrader 8: Trade Performance', href: 'https://ninjatrader.com/support/helpGuides/nt8/trade_performance.htm' },
-      { label: 'Foro NT: descargar informes de Trade Performance', href: 'https://forum.ninjatrader.com/forum/ninjatrader-8/platform-technical-support-aa/1322205-downloading-trade-performance-reports' },
+      { label: 'Foro de NinjaTrader (soporte de la plataforma)', href: 'https://forum.ninjatrader.com/' },
     ],
   },
   {
@@ -98,7 +98,7 @@ export const EXPORT_GUIDES: GuideEntry[] = [
       'El símbolo del bróker se reduce a su raíz (PLUS500:MESZ2026 → MES). Las horas van en la zona horaria de tu gráfico: elígela al importar.',
     ],
     links: [
-      { label: 'TradingView: panel de trading y pestaña History', href: 'https://www.tradingview.com/support/solutions/43000474096/' },
+      { label: 'Centro de ayuda de TradingView (panel de trading)', href: 'https://www.tradingview.com/support/' },
       { label: 'Plus500 Futures', href: 'https://futures.plus500.com/' },
     ],
   },

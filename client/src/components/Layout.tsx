@@ -14,6 +14,8 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { api, logoutEverywhere } from '../lib/api';
+import { GA_ID, reopenConsent, trackPage } from '../lib/analytics';
+import { usePageTitle } from '../lib/usePageTitle';
 import BrandLogo from './BrandLogo';
 import { cn } from '../lib/cn';
 import { useAdminEnabled, useRadarEnabled, useSession, type Account, type User } from '../store/session';
@@ -44,6 +46,7 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/importar/, 'Importar operaciones'],
   [/^\/radar\/[A-Z0-9]{4,6}/, 'Radar · activo'],
   [/^\/radar/, 'Radar · divisas, índices y metales'],
+  [/^\/cuentas\/\d+\/conectar/, 'Conectar cuenta'],
 ];
 
 function pageTitle(pathname: string): string {
@@ -88,6 +91,13 @@ export default function Layout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // Título de la pestaña y vista de página para la analítica (solo si se aceptó).
+  const title = pageTitle(location.pathname);
+  usePageTitle(title);
+  useEffect(() => {
+    trackPage(location.pathname);
+  }, [location.pathname, title]);
+
   const sidebar = (
     <>
       <div className="flex items-center gap-2 px-4 h-14 border-b border-border">
@@ -131,6 +141,11 @@ export default function Layout() {
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
+        <nav aria-label="Legal" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500">
+          <NavLink to="/privacidad" className="hover:text-gray-200">Privacidad</NavLink>
+          <NavLink to="/terminos" className="hover:text-gray-200">Términos</NavLink>
+          {GA_ID && <button type="button" onClick={reopenConsent} className="hover:text-gray-200">Cookies</button>}
+        </nav>
       </div>
     </>
   );

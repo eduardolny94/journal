@@ -2,6 +2,9 @@
 # La base de datos y las imágenes viven en /app/server/data (monta ahí un volumen persistente).
 FROM node:24-alpine AS build
 WORKDIR /app
+# Google Analytics 4 (opcional): Railway pasa sus variables como argumentos de compilación. Vacío = sin analítica.
+ARG VITE_GA4_ID=
+ENV VITE_GA4_ID=$VITE_GA4_ID
 COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
