@@ -23,6 +23,17 @@ Idea: el P&L del journal es dinero de la prop firm hasta que lo retiras. Lo que 
 
 ## Fondeos y payouts (certificados y comprobantes) · 2026-10-03
 
+Dos pestañas separadas en Finanzas: **Fondeos** (una tarjeta por cuenta fondeada: certificado, de qué evaluación
+viene, días hasta el fondeo, cuánto ha pagado) y **Payouts** (cada retiro con su comprobante), ambas filtrables por
+cuenta. Los documentos se abren en un **visor cinematográfico** a pantalla completa: el propio documento desenfocado
+de telón, humo en movimiento, el documento nítido en el centro y los datos abajo (fuente Inter alojada en el sitio).
+
+**Correlación evaluación → fondeada.** La prop firm suele dar una cuenta nueva al pasar. Al crear la cuenta
+«Financiada» se elige «Viene de la evaluación» (`accounts.parent_account_id`): la evaluación pasa sola a «Superada» con
+la fecha de compra de la fondeada, Fondeos muestra el origen y los días hasta el fondeo, y la evaluación deja de
+contar como fondeo propio (el certificado y los payouts son de la cuenta nueva). Si la firma mantiene la misma
+cuenta, basta con marcarla «Superada»: funciona como antes.
+
 Pestaña **Fondeos y payouts** dentro de Finanzas: la historia de cada cuenta (compra → fondeo → payouts → cierre o quema)
 con sus documentos en una galería iluminada sobre fondo oscuro.
 

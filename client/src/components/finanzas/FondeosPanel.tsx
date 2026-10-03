@@ -1,10 +1,10 @@
-// Pestaña «Fondeos y payouts» de Finanzas: la historia de cada cuenta (compra → fondeo → payouts) con sus
-// certificados y comprobantes en una galería iluminada, y subida de documentos desde aquí mismo.
+// Pestaña «Fondeos» de Finanzas: una tarjeta por cuenta fondeada con su certificado, de qué evaluación viene y
+// cuánto ha pagado. Filtro por cuenta; cada documento se abre en el visor cinematográfico.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Award, Banknote, CheckCircle2, Flame, Plus, RefreshCw, ShoppingCart, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, Award, Banknote, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { Card, StatCard } from '../ui/Card';
+import { StatCard } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -12,32 +12,28 @@ import { Select } from '../ui/Select';
 import { PageSpinner } from '../ui/Spinner';
 import { cn } from '../../lib/cn';
 import { fmtDate, fmtMoney } from '../../lib/format';
-import {
-  OUTCOME_LABELS, deleteDocument, fetchFondeos, uploadDocument,
-  type AccountDocument, type DocKind, type FondeoAccount, type FondeosResumen, type PayoutWithDocs,
-} from '../../lib/finanzas';
-import CertificateCard, { DocumentLightbox, type CertificateVariant } from './CertificateCard';
+import { OUTCOME_LABELS, deleteDocument, fetchFondeos, uploadDocument, type AccountDocument, type FondeoItem, type FondeosResumen } from '../../lib/finanzas';
+import CertificateCard from './CertificateCard';
+import CinematicViewer, { viewerItemFor, type ViewerItem } from './CinematicViewer';
 import DocumentUploader from './DocumentUploader';
 
-type WallItem = { doc: AccountDocument; variant: CertificateVariant; account: FondeoAccount | null; payout: PayoutWithDocs | null; at: string };
-
 export interface FondeosPanelProps {
-  /** Se llama cuando cambia algo que afecta al resumen de Finanzas (p. ej. se borra un documento). */
   onChanged?: () => void;
-  /** Abre el formulario de nuevo movimiento (para registrar un payout). */
-  onNewPayout?: () => void;
+  /** Ir a la pestaña Payouts filtrada por cuenta. */
+  onShowPayouts?: (accountId: number) => void;
   reloadKey?: number;
 }
 
-export default function FondeosPanel({ onChanged, onNewPayout, reloadKey = 0 }: FondeosPanelProps) {
+export default function FondeosPanel({ onChanged, onShowPayouts, reloadKey = 0 }: FondeosPanelProps) {
   const [data, setData] = useState<FondeosResumen | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [localKey, setLocalKey] = useState(0);
-  const [open, setOpen] = useState<AccountDocument | null>(null);
+  const [accountFilter, setAccountFilter] = useState('');
+  const [viewer, setViewer] = useState<{ items: ViewerItem[]; index: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AccountDocument | null>(null);
   const [busy, setBusy] = useState(false);
-  const [uploadFor, setUploadFor] = useState<{ kind: DocKind; account_id?: number; transaction_id?: number } | null>(null);
+  const [uploadFor, setUploadFor] = useState<number | null | 'pick'>(null);
   const reload = useCallback(() => setLocalKey((n) => n + 1), []);
 
   useEffect(() => {
@@ -51,17 +47,15 @@ export default function FondeosPanel({ onChanged, onNewPayout, reloadKey = 0 }: 
     return () => ctrl.abort();
   }, [reloadKey, localKey]);
 
-  const wall = useMemo<WallItem[]>(() => {
-    if (!data) return [];
-    const items: WallItem[] = [];
-    for (const c of data.cuentas) {
-      for (const d of c.certificados) items.push({ doc: d, variant: 'fondeo', account: c, payout: null, at: c.funded_at || d.created_at });
-      for (const p of c.payouts) for (const d of p.comprobantes) items.push({ doc: d, variant: 'payout', account: c, payout: p, at: p.occurred_at });
-      for (const d of c.otros) items.push({ doc: d, variant: 'otro', account: c, payout: null, at: d.created_at });
-    }
-    for (const p of data.payouts_sin_cuenta) for (const d of p.comprobantes) items.push({ doc: d, variant: 'payout', account: null, payout: p, at: p.occurred_at });
-    return items.sort((a, b) => b.at.localeCompare(a.at) || b.doc.id - a.doc.id);
-  }, [data]);
+  const fondeos = useMemo(() => (data?.fondeos ?? []).filter((f) => !accountFilter || String(f.account_id) === accountFilter), [data, accountFilter]);
+
+  function openDoc(doc: AccountDocument) {
+    // El visor navega entre todos los certificados de la lista filtrada (← →).
+    const items: ViewerItem[] = [];
+    for (const g of fondeos) for (const d of g.certificados) items.push(viewerItemFor(d, 'fondeo', { account: g, origen: g.origen, funded_at: g.funded_at }));
+    const index = Math.max(0, items.findIndex((it) => it.doc.id === doc.id));
+    setViewer({ items, index });
+  }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -69,6 +63,7 @@ export default function FondeosPanel({ onChanged, onNewPayout, reloadKey = 0 }: 
     try {
       await deleteDocument(deleteTarget.id);
       setDeleteTarget(null);
+      setViewer(null);
       reload();
       onChanged?.();
     } catch (e) {
@@ -78,184 +73,108 @@ export default function FondeosPanel({ onChanged, onNewPayout, reloadKey = 0 }: 
     }
   }
 
-  if (loading && !data) return <PageSpinner label="Cargando fondeos y payouts…" />;
-
+  if (loading && !data) return <PageSpinner label="Cargando fondeos…" />;
   const t = data?.totals;
   const currency = data?.currency || 'USD';
-  const fundedAccounts = data?.cuentas.filter((c) => c.fondeada) ?? [];
-  const allPayouts: Array<{ p: PayoutWithDocs; account: FondeoAccount | null }> = [
-    ...(data?.cuentas.flatMap((c) => c.payouts.map((p) => ({ p, account: c }))) ?? []),
-    ...(data?.payouts_sin_cuenta.map((p) => ({ p, account: null })) ?? []),
-  ].sort((a, b) => b.p.occurred_at.localeCompare(a.p.occurred_at));
-  const nothing = !!data && data.cuentas.length === 0 && data.payouts_sin_cuenta.length === 0;
+  const all = data?.fondeos ?? [];
+  const accountOptions = [{ value: '', label: 'Todas las cuentas fondeadas' }, ...all.map((f) => ({ value: String(f.account_id), label: `${f.name}${f.firm ? ` · ${f.firm}` : ''}` }))];
 
   return (
     <div className="space-y-4">
       {error && <div className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss" role="alert">{error}</div>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-xs text-gray-400">Cada cuenta que pasaste y cada payout que cobraste, con su certificado y su comprobante. Los payouts suman en el Resumen.</p>
+        <p className="text-xs text-gray-400">Cada cuenta que te han fondeado, con su certificado y de qué evaluación viene. Los payouts tienen su propia pestaña.</p>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} options={accountOptions} selectClassName="py-1.5 text-xs" />
           <Button variant="secondary" size="sm" onClick={reload} loading={loading} leftIcon={<RefreshCw className="h-3.5 w-3.5" />} title="Actualizar"><span className="hidden sm:inline">Actualizar</span></Button>
-          <Button variant="secondary" size="sm" onClick={() => setUploadFor({ kind: 'certificado_fondeo' })} leftIcon={<Award className="h-3.5 w-3.5" />}>Subir certificado</Button>
-          <Button variant="secondary" size="sm" onClick={() => setUploadFor({ kind: 'comprobante_payout' })} leftIcon={<Banknote className="h-3.5 w-3.5" />}>Subir comprobante</Button>
-          {onNewPayout && <Button size="sm" onClick={onNewPayout} leftIcon={<Plus className="h-4 w-4" />}>Registrar payout</Button>}
+          <Button size="sm" onClick={() => setUploadFor('pick')} leftIcon={<Award className="h-3.5 w-3.5" />}>Subir certificado</Button>
         </div>
       </div>
 
       {t && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatCard label="Cuentas fondeadas" value={t.cuentas_fondeadas} valueClassName="text-accent-soft text-glow-accent" hint={`${t.certificados} certificado${t.certificados === 1 ? '' : 's'} subido${t.certificados === 1 ? '' : 's'}`} icon={<Award className="h-5 w-5 text-accent" aria-hidden />} />
-          <StatCard label="Total en payouts" value={fmtMoney(t.total_payouts, currency, { sign: false })} valueClassName="text-profit text-glow-profit" hint={`${t.n_payouts} payout${t.n_payouts === 1 ? '' : 's'}${t.payout_medio !== null ? ` · medio ${fmtMoney(t.payout_medio, currency, { sign: false })}` : ''}`} icon={<Banknote className="h-5 w-5 text-profit" aria-hidden />} />
-          <StatCard label="Mayor payout" value={t.mayor_payout === null ? '—' : fmtMoney(t.mayor_payout, currency, { sign: false })} hint={t.cuentas_con_payouts ? `${t.cuentas_con_payouts} cuenta${t.cuentas_con_payouts === 1 ? '' : 's'} con payouts` : 'aún sin payouts'} />
-          <StatCard label="Último payout" value={t.ultimo_payout_at ? fmtDate(t.ultimo_payout_at) : '—'} hint={`${t.comprobantes} comprobante${t.comprobantes === 1 ? '' : 's'} subido${t.comprobantes === 1 ? '' : 's'}`} />
+          <StatCard label="Sin certificado" value={t.fondeadas_sin_certificado} valueClassName={t.fondeadas_sin_certificado ? 'text-warn' : undefined} hint={t.fondeadas_sin_certificado ? 'súbelo desde su tarjeta' : 'todo documentado'} icon={<AlertTriangle className={cn('h-5 w-5', t.fondeadas_sin_certificado ? 'text-warn' : 'text-gray-600')} aria-hidden />} />
+          <StatCard label="Payouts de estas cuentas" value={fmtMoney(t.total_payouts, currency, { sign: false })} valueClassName="text-profit" hint={`${t.n_payouts} payout${t.n_payouts === 1 ? '' : 's'} · ver pestaña Payouts`} icon={<Banknote className="h-5 w-5 text-profit" aria-hidden />} />
         </div>
       )}
 
-      {t && (t.payouts_sin_comprobante > 0 || t.fondeadas_sin_certificado > 0) && (
-        <div className="flex flex-wrap gap-2 text-xs">
-          {t.fondeadas_sin_certificado > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-warn/10 px-3 py-1 text-warn"><AlertTriangle className="h-3.5 w-3.5" aria-hidden /> {t.fondeadas_sin_certificado} cuenta{t.fondeadas_sin_certificado === 1 ? '' : 's'} fondeada{t.fondeadas_sin_certificado === 1 ? '' : 's'} sin certificado</span>
-          )}
-          {t.payouts_sin_comprobante > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-warn/10 px-3 py-1 text-warn"><AlertTriangle className="h-3.5 w-3.5" aria-hidden /> {t.payouts_sin_comprobante} payout{t.payouts_sin_comprobante === 1 ? '' : 's'} sin comprobante</span>
-          )}
-        </div>
-      )}
-
-      {nothing && (
+      {all.length === 0 && (
         <EmptyState
           icon={<Award className="h-6 w-6" aria-hidden />}
-          title="Todavía no hay cuentas fondeadas ni payouts"
-          description="Cuando pases una evaluación, edita la cuenta en Cuentas, márcala como superada y sube el certificado. Cada payout se registra como retiro en Finanzas y ahí mismo subes el comprobante."
-          action={onNewPayout ? <Button onClick={onNewPayout} leftIcon={<Plus className="h-4 w-4" />}>Registrar el primer payout</Button> : undefined}
+          title="Todavía no hay cuentas fondeadas"
+          description="Cuando la prop firm te dé la cuenta fondeada, créala en Cuentas como «Financiada» y elige de qué evaluación viene; ahí mismo subes el certificado. Si tu firma te deja la misma cuenta, edítala y márcala como «Superada»."
         />
       )}
 
-      {wall.length > 0 && (
+      {fondeos.length > 0 && (
         <section className="bg-spotlight relative overflow-hidden rounded-2xl border border-border bg-[#05080699] p-4 sm:p-6">
           <div className="bg-brand-grid pointer-events-none absolute inset-0 opacity-40" aria-hidden />
-          <div className="relative mb-4 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Galería</p>
-              <h3 className="text-lg font-semibold tracking-tight text-white">Tus certificados y payouts</h3>
-            </div>
-            <p className="text-xs text-white/40 tnum">{wall.length} documento{wall.length === 1 ? '' : 's'}</p>
-          </div>
-          <div className="relative grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {wall.map((it, i) => (
-              <CertificateCard
-                key={it.doc.id}
-                doc={it.doc}
-                variant={it.variant}
-                index={i}
-                account={it.account ? { name: it.account.name, firm: it.account.firm, size: it.account.size, currency: it.account.currency } : null}
-                payout={it.payout ? { amount: it.payout.amount, gross_amount: it.payout.gross_amount, currency: it.payout.currency, occurred_at: it.payout.occurred_at } : null}
-                onOpen={setOpen}
-                onDelete={setDeleteTarget}
-              />
+          <div className="relative space-y-6">
+            {fondeos.map((f, gi) => (
+              <article key={f.account_id} className={cn('rounded-xl border border-border/70 bg-panel/60 p-4', f.is_archived && 'opacity-80')}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Award className="h-4 w-4 text-accent" aria-hidden />
+                  <span className="font-semibold text-white">{f.name}</span>
+                  {f.firm && <span className="text-sm text-gray-400">{f.firm}</span>}
+                  {f.size > 0 && <span className="text-sm text-accent-soft tnum">{fmtMoney(f.size, f.currency, { sign: false })}</span>}
+                  <Badge variant={f.outcome === 'quemada' ? 'loss' : f.outcome === 'cerrada' ? 'outline' : 'accent'}>{f.outcome === 'activa' ? 'Fondeada · activa' : OUTCOME_LABELS[f.outcome] ?? f.outcome}</Badge>
+                  {f.is_archived && <Badge variant="outline">Archivada</Badge>}
+                  {f.profit_split ? <span className="text-xs text-gray-500">split {f.profit_split} %</span> : null}
+                  <span className="ml-auto flex items-center gap-2">
+                    {f.n_payouts > 0 && onShowPayouts && (
+                      <button type="button" onClick={() => onShowPayouts(f.account_id)} className="inline-flex items-center gap-1 rounded-full border border-profit/40 bg-profit/10 px-2.5 py-1 text-xs text-profit hover:bg-profit/20">
+                        <Banknote className="h-3.5 w-3.5" aria-hidden /> {f.n_payouts} payout{f.n_payouts === 1 ? '' : 's'} · {fmtMoney(f.total_payouts, f.currency, { sign: false })}
+                      </button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => setUploadFor(f.account_id)} leftIcon={<Upload className="h-3.5 w-3.5" />}>Subir certificado</Button>
+                  </span>
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <Fact label="Evaluación de origen" value={f.origen ? `${f.origen.name}${f.origen.size ? ` · ${fmtMoney(f.origen.size, f.currency, { sign: false })}` : ''}` : 'misma cuenta'} />
+                  <Fact label="Comprada" value={f.origen?.purchased_at ? fmtDate(f.origen.purchased_at) : f.purchased_at ? fmtDate(f.purchased_at) : '—'} />
+                  <Fact label="Fondeada" value={f.funded_at ? `${fmtDate(f.funded_at)}${f.dias_hasta_fondeo !== null ? ` · ${f.dias_hasta_fondeo} días` : ''}` : '—'} glow />
+                  <Fact label={f.outcome === 'quemada' ? 'Quemada' : f.outcome === 'cerrada' ? 'Cerrada' : 'Estado'} value={f.ended_at ? fmtDate(f.ended_at) : f.outcome === 'activa' ? 'operando' : OUTCOME_LABELS[f.outcome] ?? '—'} loss={f.outcome === 'quemada'} />
+                </dl>
+
+                {f.certificados.length > 0 ? (
+                  <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                    {f.certificados.map((d, i) => (
+                      <CertificateCard key={d.id} doc={d} variant="fondeo" index={gi * 3 + i} account={f} footnote={f.origen ? `Viene de «${f.origen.name}»` : undefined} onOpen={openDoc} onDelete={setDeleteTarget} />
+                    ))}
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setUploadFor(f.account_id)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-warn/40 bg-warn/5 px-4 py-6 text-sm text-warn hover:bg-warn/10">
+                    <AlertTriangle className="h-4 w-4" aria-hidden /> Esta cuenta fondeada no tiene certificado. Pulsa para subirlo.
+                  </button>
+                )}
+              </article>
             ))}
           </div>
         </section>
       )}
 
-      {data && data.cuentas.length > 0 && (
-        <Card title="Historia por cuenta" subtitle="De la compra al fondeo y de ahí a cada payout" flush>
-          <ul className="divide-y divide-border">
-            {data.cuentas.map((c) => (
-              <li key={c.account_id} className={cn('px-4 py-4', c.is_archived && 'opacity-80')}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-gray-100">{c.name}</span>
-                  {c.firm && <span className="text-sm text-gray-400">{c.firm}</span>}
-                  {c.size > 0 && <span className="text-sm text-gray-500 tnum">{fmtMoney(c.size, c.currency, { sign: false })}</span>}
-                  <Badge variant={c.outcome === 'superada' ? 'profit' : c.outcome === 'quemada' ? 'loss' : c.outcome === 'cerrada' ? 'outline' : 'accent'}>{OUTCOME_LABELS[c.outcome] ?? c.outcome}</Badge>
-                  {c.is_archived && <Badge variant="outline">Archivada</Badge>}
-                  {c.profit_split ? <span className="text-xs text-gray-600">split {c.profit_split} %</span> : null}
-                  <span className="ml-auto text-sm font-semibold text-profit tnum">{c.n_payouts ? `+${fmtMoney(c.total_payouts, c.currency, { sign: false })}` : ''}</span>
-                </div>
+      {all.length > 0 && fondeos.length === 0 && <p className="text-sm text-gray-500">Nada que mostrar con ese filtro.</p>}
 
-                <ol className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Step icon={<ShoppingCart className="h-3.5 w-3.5" aria-hidden />} label="Comprada" value={c.purchased_at ? fmtDate(c.purchased_at) : '—'} done={!!c.purchased_at} />
-                  <Step
-                    icon={<Award className="h-3.5 w-3.5" aria-hidden />}
-                    label="Fondeada"
-                    value={c.fondeada ? (c.funded_at ? fmtDate(c.funded_at) : 'sí') : '—'}
-                    done={c.fondeada}
-                    glow
-                    extra={c.fondeada ? (c.certificados.length ? `${c.certificados.length} certificado${c.certificados.length === 1 ? '' : 's'}` : <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => setUploadFor({ kind: 'certificado_fondeo', account_id: c.account_id })}>subir certificado</button>) : null}
-                  />
-                  <Step icon={<Banknote className="h-3.5 w-3.5" aria-hidden />} label="Payouts" value={c.n_payouts ? `${c.n_payouts} · ${fmtMoney(c.total_payouts, c.currency, { sign: false })}` : '—'} done={c.n_payouts > 0} profit />
-                  <Step
-                    icon={c.outcome === 'quemada' ? <Flame className="h-3.5 w-3.5" aria-hidden /> : <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
-                    label={c.outcome === 'quemada' ? 'Quemada' : c.outcome === 'cerrada' ? 'Cerrada' : 'Estado'}
-                    value={c.ended_at ? fmtDate(c.ended_at) : c.outcome === 'activa' ? 'activa' : OUTCOME_LABELS[c.outcome] ?? '—'}
-                    done={c.outcome !== 'activa'}
-                    loss={c.outcome === 'quemada'}
-                  />
-                </ol>
+      <CinematicViewer items={viewer?.items ?? []} index={viewer ? viewer.index : null} onClose={() => setViewer(null)} onNavigate={(i) => setViewer((v) => (v ? { ...v, index: i } : v))} onDelete={setDeleteTarget} />
 
-                {c.payouts.length > 0 && (
-                  <ul className="mt-3 divide-y divide-border/60 rounded-md border border-border bg-bg/40">
-                    {c.payouts.map((p) => (
-                      <li key={p.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
-                        <span className="text-gray-400 tnum">{fmtDate(p.occurred_at)}</span>
-                        <span className="font-semibold text-profit tnum">+{fmtMoney(p.amount, p.currency, { sign: false })}</span>
-                        {p.gross_amount ? <span className="text-xs text-gray-500 tnum">bruto {fmtMoney(p.gross_amount, p.currency, { sign: false })}</span> : null}
-                        {p.note ? <span className="truncate text-xs text-gray-500" title={p.note}>{p.note}</span> : null}
-                        <span className="ml-auto flex items-center gap-2">
-                          {p.comprobantes.length ? (
-                            p.comprobantes.map((d) => (
-                              <button key={d.id} type="button" onClick={() => setOpen(d)} className="overflow-hidden rounded border border-profit/40 glow-profit" title="Ver comprobante" aria-label="Ver comprobante">
-                                {d.mime === 'application/pdf' ? <span className="flex h-9 w-12 items-center justify-center text-[10px] font-semibold text-profit">PDF</span> : <img src={d.path} alt="" className="h-9 w-12 object-cover" />}
-                              </button>
-                            ))
-                          ) : (
-                            <Button variant="ghost" size="sm" onClick={() => setUploadFor({ kind: 'comprobante_payout', transaction_id: p.id, account_id: c.account_id })} leftIcon={<Upload className="h-3.5 w-3.5" />}>Subir comprobante</Button>
-                          )}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {data && data.payouts_sin_cuenta.length > 0 && (
-        <Card title="Payouts sin cuenta" subtitle="Retiros registrados sin cuenta asociada" flush>
-          <ul className="divide-y divide-border/60">
-            {data.payouts_sin_cuenta.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
-                <span className="text-gray-400 tnum">{fmtDate(p.occurred_at)}</span>
-                <span className="font-semibold text-profit tnum">+{fmtMoney(p.amount, p.currency, { sign: false })}</span>
-                <span className="ml-auto">
-                  {p.comprobantes.length ? p.comprobantes.map((d) => <button key={d.id} type="button" onClick={() => setOpen(d)} className="text-xs text-profit underline-offset-2 hover:underline">ver comprobante</button>) : <Button variant="ghost" size="sm" onClick={() => setUploadFor({ kind: 'comprobante_payout', transaction_id: p.id })} leftIcon={<Upload className="h-3.5 w-3.5" />}>Subir comprobante</Button>}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      <DocumentLightbox doc={open} onClose={() => setOpen(null)} />
-
-      <UploadDocumentModal
+      <UploadCertificateModal
         target={uploadFor}
         onClose={() => setUploadFor(null)}
-        fundedAccounts={fundedAccounts}
-        payouts={allPayouts}
+        fondeos={all}
         onUploaded={() => { setUploadFor(null); reload(); onChanged?.(); }}
       />
 
       <Modal
         open={!!deleteTarget}
         onClose={() => (busy ? undefined : setDeleteTarget(null))}
-        title="Eliminar documento"
-        description={deleteTarget ? `${deleteTarget.title || deleteTarget.original_name || 'Documento'} · ${fmtDate(deleteTarget.created_at)}. El archivo se borra del servidor; el movimiento o la cuenta no cambian.` : ''}
+        title="Eliminar certificado"
+        description={deleteTarget ? `${deleteTarget.title || deleteTarget.original_name || 'Documento'} · ${fmtDate(deleteTarget.created_at)}. El archivo se borra del servidor; la cuenta no cambia.` : ''}
         size="sm"
         persistent={busy}
+        className="z-[70]"
         footer={
           <>
             <Button variant="secondary" onClick={() => setDeleteTarget(null)} disabled={busy}>Cancelar</Button>
@@ -267,52 +186,41 @@ export default function FondeosPanel({ onChanged, onNewPayout, reloadKey = 0 }: 
   );
 }
 
-function Step({ icon, label, value, extra, done, glow, profit, loss }: { icon: React.ReactNode; label: string; value: React.ReactNode; extra?: React.ReactNode; done: boolean; glow?: boolean; profit?: boolean; loss?: boolean }) {
+function Fact({ label, value, glow, loss }: { label: string; value: string; glow?: boolean; loss?: boolean }) {
   return (
-    <li className={cn('rounded-md border px-3 py-2', done ? (loss ? 'border-loss/40 bg-loss/5' : profit ? 'border-profit/40 bg-profit/5' : glow ? 'border-accent/40 bg-accent/5 glow-accent' : 'border-border bg-bg/40') : 'border-border/60 bg-bg/20 opacity-60')}>
-      <p className={cn('flex items-center gap-1.5 text-[10px] uppercase tracking-wider', done ? (loss ? 'text-loss' : profit ? 'text-profit' : glow ? 'text-accent-soft' : 'text-gray-400') : 'text-gray-500')}>{icon} {label}</p>
-      <p className="mt-0.5 text-sm text-gray-100 tnum">{value}</p>
-      {extra ? <p className="text-[11px] text-gray-500">{extra}</p> : null}
-    </li>
+    <div className={cn('rounded-md border px-3 py-2', loss ? 'border-loss/40 bg-loss/5' : glow ? 'border-accent/40 bg-accent/5' : 'border-border bg-bg/40')}>
+      <dt className={cn('text-[10px] uppercase tracking-wider', loss ? 'text-loss' : glow ? 'text-accent-soft' : 'text-gray-500')}>{label}</dt>
+      <dd className="mt-0.5 truncate text-sm text-gray-100 tnum" title={value}>{value}</dd>
+    </div>
   );
 }
 
-function UploadDocumentModal({ target, onClose, fundedAccounts, payouts, onUploaded }: {
-  target: { kind: DocKind; account_id?: number; transaction_id?: number } | null;
-  onClose: () => void;
-  fundedAccounts: FondeoAccount[];
-  payouts: Array<{ p: PayoutWithDocs; account: FondeoAccount | null }>;
-  onUploaded: () => void;
-}) {
+function UploadCertificateModal({ target, onClose, fondeos, onUploaded }: { target: number | null | 'pick'; onClose: () => void; fondeos: FondeoItem[]; onUploaded: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [accountId, setAccountId] = useState('');
-  const [txId, setTxId] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const open = !!target;
-  const isCert = target?.kind === 'certificado_fondeo';
+  const open = target !== null;
 
   useEffect(() => {
     if (!open) return;
     setFile(null);
     setTitle('');
     setError(null);
-    setAccountId(target?.account_id ? String(target.account_id) : fundedAccounts[0] ? String(fundedAccounts[0].account_id) : '');
-    setTxId(target?.transaction_id ? String(target.transaction_id) : payouts[0] ? String(payouts[0].p.id) : '');
-  }, [open, target, fundedAccounts, payouts]);
+    setAccountId(typeof target === 'number' ? String(target) : fondeos[0] ? String(fondeos[0].account_id) : '');
+  }, [open, target, fondeos]);
 
   async function submit() {
-    if (!target || !file) { setError('Elige el archivo.'); return; }
-    if (isCert && !accountId) { setError('Elige la cuenta fondeada.'); return; }
-    if (!isCert && !txId) { setError('Elige el payout.'); return; }
+    if (!file) { setError('Elige el archivo.'); return; }
+    if (!accountId) { setError('Elige la cuenta fondeada.'); return; }
     setSaving(true);
     setError(null);
     try {
-      await uploadDocument(file, { kind: target.kind, account_id: isCert ? Number(accountId) : undefined, transaction_id: isCert ? undefined : Number(txId), title: title.trim() });
+      await uploadDocument(file, { kind: 'certificado_fondeo', account_id: Number(accountId), title: title.trim() });
       onUploaded();
     } catch (e) {
-      setError((e as Error).message || 'No se pudo subir el documento.');
+      setError((e as Error).message || 'No se pudo subir el certificado.');
     } finally {
       setSaving(false);
     }
@@ -322,8 +230,8 @@ function UploadDocumentModal({ target, onClose, fundedAccounts, payouts, onUploa
     <Modal
       open={open}
       onClose={onClose}
-      title={isCert ? 'Subir certificado de cuenta fondeada' : 'Subir comprobante de payout'}
-      description={isCert ? 'La captura o el PDF que te manda la prop firm al pasar la evaluación.' : 'La captura o el PDF del pago recibido. Se cuelga del retiro ya registrado.'}
+      title="Subir certificado de cuenta fondeada"
+      description="La captura o el PDF que te manda la prop firm al darte la cuenta fondeada."
       size="md"
       persistent={saving}
       footer={
@@ -335,19 +243,13 @@ function UploadDocumentModal({ target, onClose, fundedAccounts, payouts, onUploa
     >
       <div className="space-y-3">
         {error && <div className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss" role="alert">{error}</div>}
-        {isCert ? (
-          fundedAccounts.length ? (
-            <Select label="Cuenta fondeada *" value={accountId} onChange={(e) => setAccountId(e.target.value)} options={fundedAccounts.map((c) => ({ value: String(c.account_id), label: `${c.name}${c.firm ? ` · ${c.firm}` : ''}${c.funded_at ? ` · ${fmtDate(c.funded_at)}` : ''}` }))} />
-          ) : (
-            <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">No tienes cuentas marcadas como fondeadas. En Cuentas, edita la cuenta y ponla en estado «Superada» o con fecha de fondeo; ahí mismo puedes subir el certificado.</p>
-          )
-        ) : payouts.length ? (
-          <Select label="Payout *" value={txId} onChange={(e) => setTxId(e.target.value)} options={payouts.map(({ p, account }) => ({ value: String(p.id), label: `${fmtDate(p.occurred_at)} · +${fmtMoney(p.amount, p.currency, { sign: false })}${account ? ` · ${account.name}` : ''}${p.comprobantes.length ? ' (ya tiene comprobante)' : ''}` }))} />
+        {fondeos.length ? (
+          <Select label="Cuenta fondeada *" value={accountId} onChange={(e) => setAccountId(e.target.value)} options={fondeos.map((f) => ({ value: String(f.account_id), label: `${f.name}${f.firm ? ` · ${f.firm}` : ''}${f.funded_at ? ` · ${fmtDate(f.funded_at)}` : ''}` }))} />
         ) : (
-          <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">No hay payouts registrados. Regístralo primero como retiro (botón «Registrar payout») y sube el comprobante en el mismo formulario.</p>
+          <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">No tienes cuentas fondeadas. Créala en Cuentas como «Financiada» (eligiendo la evaluación de origen) o marca la evaluación como «Superada».</p>
         )}
-        <DocumentUploader value={file} onChange={setFile} prompt={isCert ? 'Arrastra el certificado' : 'Arrastra el comprobante'} disabled={saving} />
-        <Input label="Título (opcional)" placeholder={isCert ? 'p. ej. Lucid 50K · certificado' : 'p. ej. Payout septiembre'} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
+        <DocumentUploader value={file} onChange={setFile} prompt="Arrastra el certificado" disabled={saving} />
+        <Input label="Título (opcional)" placeholder="p. ej. Certificado FTMO 100K" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
       </div>
     </Modal>
   );

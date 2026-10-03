@@ -30,6 +30,7 @@ export default {
           'sans-serif',
         ],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        inter: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
     },
   },

@@ -372,6 +372,8 @@ const COLUMN_MIGRATIONS = [
   { table: 'accounts', column: 'funded_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'ended_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'profit_split', ddl: 'REAL' },
+  // Cuenta fondeada que viene de una evaluación (la firma da una cuenta nueva al pasar).
+  { table: 'accounts', column: 'parent_account_id', ddl: 'INTEGER' },
   { table: 'trades', column: 'bias_diff', ddl: 'REAL' },
   { table: 'trades', column: 'bias_alignment', ddl: 'TEXT' },
   { table: 'radar_calendar', column: 'actual_inferred', ddl: 'INTEGER DEFAULT 0' },

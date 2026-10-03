@@ -39,6 +39,116 @@
   }
 }
 
+/* Inter (variable, latín) alojada en el propio sitio: solo la usa el visor cinematográfico. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+}
+
+/* Botón de cristal líquido: casi transparente, desenfoque suave y borde luminoso solo en el contorno. */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 20%, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.15) 80%, rgba(255, 255, 255, 0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@keyframes blurFadeUp {
+  from {
+    opacity: 0;
+    filter: blur(20px);
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+.animate-blur-fade-up {
+  /* `both`: durante el retraso se aplica el estado inicial (sin parpadeo) y al acabar se queda visible. Sin `opacity: 0`
+     de base: si la animación no corre (pestaña en segundo plano, movimiento reducido), el contenido se ve igualmente. */
+  animation: blurFadeUp 1s ease-out both;
+}
+
+/* Desenfoque solo en la parte baja de la pantalla (máscara), sin oscurecer. */
+.viewer-blur-mask {
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  -webkit-mask-image: linear-gradient(to top, black 0%, transparent 45%);
+  mask-image: linear-gradient(to top, black 0%, transparent 45%);
+}
+
+/* Humo: manchas grandes y desenfocadas que derivan despacio por detrás del documento. */
+.smoke {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: transform;
+}
+.smoke-a {
+  width: 70vw;
+  height: 70vw;
+  left: -15vw;
+  top: 10vh;
+  background: radial-gradient(closest-side, var(--smoke-tint, rgba(255, 255, 255, 0.3)), transparent 70%);
+  animation: smokeA 38s ease-in-out infinite alternate;
+}
+.smoke-b {
+  width: 60vw;
+  height: 60vw;
+  right: -20vw;
+  top: -10vh;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.22), transparent 70%);
+  animation: smokeB 52s ease-in-out infinite alternate;
+}
+.smoke-c {
+  width: 80vw;
+  height: 50vw;
+  left: 10vw;
+  bottom: -25vh;
+  background: radial-gradient(closest-side, var(--smoke-tint, rgba(255, 255, 255, 0.25)), transparent 70%);
+  animation: smokeC 45s ease-in-out infinite alternate;
+}
+@keyframes smokeA {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(18vw, -8vh) scale(1.25); }
+}
+@keyframes smokeB {
+  from { transform: translate(0, 0) scale(1.1); }
+  to { transform: translate(-16vw, 14vh) scale(0.9); }
+}
+@keyframes smokeC {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-12vw, -12vh) scale(1.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .smoke { animation: none; }
+  .animate-blur-fade-up { animation: none; }
+}
+
 @keyframes fadeSlideUp {
   from {
     opacity: 0;

@@ -1,11 +1,9 @@
 // Tarjeta iluminada para un certificado de cuenta fondeada o un comprobante de payout: borde con degradado,
 // halo que alumbra el fondo, brillo que recorre la imagen al pasar el ratón y entrada escalonada.
-// `DocumentLightbox` abre la imagen a tamaño completo (los PDF se abren en una pestaña nueva).
-import type { CSSProperties } from 'react';
+// Al pulsarla se abre el visor cinematográfico (CinematicViewer).
+import type { CSSProperties, ReactNode } from 'react';
 import { Award, Banknote, ExternalLink, FileText, Trash2 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/cn';
 import { fmtDate, fmtMoney } from '../../lib/format';
 import { isPdf, type AccountDocument } from '../../lib/finanzas';
@@ -19,6 +17,8 @@ export interface CertificateCardProps {
   index?: number;
   account?: { name: string; firm?: string | null; size?: number | null; currency?: string | null } | null;
   payout?: { amount: number; gross_amount?: number | null; currency?: string | null; occurred_at: string } | null;
+  /** Texto adicional bajo el nombre (p. ej. la evaluación de origen). */
+  footnote?: ReactNode;
   onOpen?: (doc: AccountDocument) => void;
   onDelete?: (doc: AccountDocument) => void;
   className?: string;
@@ -35,7 +35,7 @@ const LIGHT: Record<CertificateVariant, string> = {
   otro: 'bg-[radial-gradient(ellipse_at_top,rgba(245,180,0,0.18),transparent_60%)]',
 };
 
-export function CertificateCard({ doc, variant, index = 0, account, payout, onOpen, onDelete, className }: CertificateCardProps) {
+export function CertificateCard({ doc, variant, index = 0, account, payout, footnote, onOpen, onDelete, className }: CertificateCardProps) {
   const pdf = isPdf(doc);
   const currency = payout?.currency || account?.currency || doc.account_currency || 'USD';
   const title = doc.title || (variant === 'fondeo' ? 'Certificado de cuenta fondeada' : variant === 'payout' ? 'Comprobante de payout' : doc.original_name || 'Documento');
@@ -77,23 +77,24 @@ export function CertificateCard({ doc, variant, index = 0, account, payout, onOp
           )}
 
           <p className="mt-2 truncate text-sm font-semibold tracking-tight text-white" title={account?.name || title}>{account?.name || title}</p>
-          <p className="truncate text-xs text-white/50">
+          <p className="truncate text-xs text-white/55">
             {account?.firm ? `${account.firm}` : ''}
             {account?.firm && account?.size ? ' · ' : ''}
             {account?.size ? fmtMoney(account.size, currency, { sign: false }) : ''}
             {!account?.firm && !account?.size ? doc.original_name : ''}
           </p>
+          {footnote ? <p className="mt-1 truncate text-[11px] text-white/45">{footnote}</p> : null}
 
           {variant === 'payout' && payout ? (
             <div className="mt-2">
               <p className="text-2xl font-semibold tracking-tight text-profit text-glow-profit tnum">+{fmtMoney(payout.amount, currency, { sign: false })}</p>
-              {payout.gross_amount ? <p className="text-[11px] text-white/40 tnum">bruto {fmtMoney(payout.gross_amount, currency, { sign: false })}</p> : null}
+              {payout.gross_amount ? <p className="text-[11px] text-white/45 tnum">bruto {fmtMoney(payout.gross_amount, currency, { sign: false })}</p> : null}
             </div>
           ) : variant === 'fondeo' && account?.size ? (
             <p className="mt-2 text-lg font-medium tracking-tight text-accent-soft text-glow-accent tnum">{fmtMoney(account.size, currency, { sign: false })}</p>
           ) : null}
 
-          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-white/40">
+          <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-white/45">
             <span className="tnum">{fmtDate(payout?.occurred_at || doc.created_at)}</span>
             <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
               <a href={doc.path} target="_blank" rel="noopener" className="rounded p-1 hover:bg-white/10 hover:text-white" title="Abrir en una pestaña" aria-label="Abrir en una pestaña">
@@ -109,43 +110,6 @@ export function CertificateCard({ doc, variant, index = 0, account, payout, onOp
         </div>
       </div>
     </article>
-  );
-}
-
-export interface DocumentLightboxProps {
-  doc: AccountDocument | null;
-  onClose: () => void;
-}
-
-/** Visor a pantalla casi completa. Los PDF no se incrustan (la CSP lo impide): se abren en una pestaña nueva. */
-export function DocumentLightbox({ doc, onClose }: DocumentLightboxProps) {
-  if (!doc) return null;
-  const pdf = isPdf(doc);
-  return (
-    <Modal
-      open={!!doc}
-      onClose={onClose}
-      size="xl"
-      title={doc.title || doc.original_name || 'Documento'}
-      description={[doc.account_name, doc.account_firm, fmtDate(doc.created_at)].filter(Boolean).join(' · ')}
-      className="border-accent/30 glow-accent"
-      footer={
-        <Button variant="secondary" size="sm" onClick={() => window.open(doc.path, '_blank', 'noopener')} leftIcon={<ExternalLink className="h-3.5 w-3.5" />}>
-          Abrir en una pestaña
-        </Button>
-      }
-    >
-      <div className="bg-spotlight flex min-h-[320px] items-center justify-center rounded-lg bg-black p-2">
-        {pdf ? (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <FileText className="h-16 w-16 text-accent-soft drop-shadow-[0_0_24px_rgba(22,245,122,0.5)]" aria-hidden />
-            <p className="text-sm text-gray-300">Este documento es un PDF. Ábrelo en una pestaña para verlo completo.</p>
-          </div>
-        ) : (
-          <img src={doc.path} alt={doc.title || doc.original_name} className="max-h-[70vh] w-auto max-w-full rounded-md object-contain shadow-[0_0_60px_-10px_rgba(22,245,122,0.45)]" />
-        )}
-      </div>
-    </Modal>
   );
 }
 

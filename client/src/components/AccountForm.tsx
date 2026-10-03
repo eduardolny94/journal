@@ -69,6 +69,7 @@ interface FormState {
   ended_at: string;
   profit_split: string;
   purchase_price: string;
+  parent_account_id: string;
 }
 
 const EMPTY: FormState = {
@@ -90,6 +91,7 @@ const EMPTY: FormState = {
   ended_at: '',
   profit_split: '',
   purchase_price: '',
+  parent_account_id: '',
 };
 
 function fromAccount(a: Account | null | undefined): FormState {
@@ -113,6 +115,7 @@ function fromAccount(a: Account | null | undefined): FormState {
     ended_at: a.ended_at ?? '',
     profit_split: a.profit_split !== null && a.profit_split !== undefined ? String(a.profit_split) : '',
     purchase_price: '',
+    parent_account_id: a.parent_account_id ? String(a.parent_account_id) : '',
   };
 }
 
@@ -129,9 +132,11 @@ export interface AccountFormProps {
   /** Cuenta a editar; null/undefined = crear */
   account?: Account | null;
   onSaved: (account: Account) => void;
+  /** Todas las cuentas del usuario (incluidas archivadas) para elegir la evaluación de origen. */
+  allAccounts?: Account[];
 }
 
-export default function AccountForm({ open, onClose, account, onSaved }: AccountFormProps) {
+export default function AccountForm({ open, onClose, account, onSaved, allAccounts = [] }: AccountFormProps) {
   const [form, setForm] = useState<FormState>(() => fromAccount(account));
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
@@ -220,6 +225,7 @@ export default function AccountForm({ open, onClose, account, onSaved }: Account
         funded_at: form.funded_at || null,
         ended_at: form.ended_at || null,
         profit_split: numOrNull(form.profit_split),
+        parent_account_id: form.account_type === 'financiada' && form.parent_account_id ? Number(form.parent_account_id) : null,
         ...(account ? {} : { purchase_price: numOrNull(form.purchase_price) }),
       };
       const existing = account ?? savedAccount;
@@ -331,6 +337,22 @@ export default function AccountForm({ open, onClose, account, onSaved }: Account
             <Select label="Estado" value={form.outcome} onChange={(e) => set('outcome', e.target.value as Outcome)} options={OUTCOME_OPTIONS} />
             <Input label="Fecha en que pasó a financiada" type="date" value={form.funded_at} onChange={(e) => set('funded_at', e.target.value)} />
             <Input label="Fecha de cierre o quema" type="date" value={form.ended_at} onChange={(e) => set('ended_at', e.target.value)} />
+            {form.account_type === 'financiada' && (
+              <Select
+                label="Viene de la evaluación"
+                value={form.parent_account_id}
+                onChange={(e) => set('parent_account_id', e.target.value)}
+                className="sm:col-span-2"
+                hint="La prop firm te da una cuenta nueva al pasar: enlázala con la evaluación. Esa evaluación quedará como «Superada» con la fecha de compra de esta cuenta, y Fondeos mostrará de dónde viene."
+                options={[
+                  { value: '', label: 'Sin enlace (misma cuenta o cuenta directa)' },
+                  ...allAccounts
+                    .filter((a) => !account || a.id !== account.id)
+                    .filter((a) => a.account_type !== 'financiada' || a.id === Number(form.parent_account_id))
+                    .map((a) => ({ value: String(a.id), label: `${a.name}${a.firm ? ` · ${a.firm}` : ''}${a.purchased_at ? ` · comprada ${a.purchased_at}` : ''}${a.is_archived ? ' (archivada)' : ''}` })),
+                ]}
+              />
+            )}
           </div>
         </section>
 

@@ -525,12 +525,13 @@ try {
     // Vista «Fondeos y payouts»
     const fo = await api('GET', '/finanzas/fondeos');
     assert(fo.status === 200, `fondeos ${fo.status}`);
-    const cu = fo.data.cuentas.find((c) => c.account_id === accId);
-    assert(cu && cu.fondeada && cu.certificados.length === 1 && cu.n_payouts === 1 && cu.total_payouts === 1800, `cuenta en fondeos ${JSON.stringify(cu)}`);
-    assert(cu.payouts[0].comprobantes.length === 1 && cu.payouts[0].comprobantes[0].id === c2.data.id, 'comprobante colgado del payout');
+    const cu = fo.data.fondeos.find((c) => c.account_id === accId);
+    assert(cu && cu.certificados.length === 1 && cu.n_payouts === 1 && cu.total_payouts === 1800, `cuenta en fondeos ${JSON.stringify(cu)}`);
+    const po = fo.data.payouts.find((p) => p.id === payout.data.id);
+    assert(po && po.account_name === 'Fondeada docs' && po.comprobantes.length === 1 && po.comprobantes[0].id === c2.data.id, 'comprobante colgado del payout');
     assert(fo.data.totals.cuentas_fondeadas >= 1 && fo.data.totals.total_payouts >= 1800 && fo.data.totals.certificados >= 1, `totales fondeos ${JSON.stringify(fo.data.totals)}`);
     const foOther = await api('GET', '/finanzas/fondeos', undefined, { token: user2Token });
-    assert(foOther.data.cuentas.length === 0 && foOther.data.totals.n_payouts === 0, 'otro usuario no debería ver fondeos');
+    assert(foOther.data.fondeos.length === 0 && foOther.data.payouts.length === 0, 'otro usuario no debería ver fondeos');
 
     // Listado, edición de título y borrado (otro usuario -> 404)
     const list = await api('GET', `/finanzas/documentos?account_id=${accId}`);
@@ -550,6 +551,25 @@ try {
     const gone2 = await fetch(`${BASE}${c2.data.path}`, { headers: { Authorization: `Bearer ${token}` } });
     assert(gone2.status === 404, `comprobante borrado debería dar 404, llegó ${gone2.status}`);
     await api('DELETE', `/accounts/${accId}`);
+  });
+
+  await test('fondeo enlazado: la cuenta financiada viene de una evaluación (parent_account_id)', async () => {
+    const ev = await api('POST', '/accounts', { name: 'Eval FTMO 100K', firm: 'FTMO', platform: 'mt5', account_type: 'evaluacion', size: 100000, purchased_at: '2026-07-01' });
+    assert(ev.status === 201, `eval ${ev.status}`);
+    const self = await api('PUT', `/accounts/${ev.data.id}`, { parent_account_id: ev.data.id });
+    assert(self.status === 400, `origen = sí misma debería dar 400, dio ${self.status}`);
+    const ajena = await api('POST', '/accounts', { name: 'X', platform: 'mt5', account_type: 'financiada', parent_account_id: ev.data.id }, { token: user2Token });
+    assert(ajena.status === 404, `origen ajena debería dar 404, dio ${ajena.status}`);
+    const fu = await api('POST', '/accounts', { name: 'FTMO 100K fondeada', firm: 'FTMO', platform: 'mt5', account_type: 'financiada', size: 100000, purchased_at: '2026-07-20', parent_account_id: ev.data.id });
+    assert(fu.status === 201 && fu.data.parent_account_id === ev.data.id, `fondeada ${fu.status} ${JSON.stringify(fu.data).slice(0, 200)}`);
+    const evAfter = await api('GET', `/accounts/${ev.data.id}`);
+    assert(evAfter.data.outcome === 'superada' && evAfter.data.funded_at === '2026-07-20', `la evaluación debería quedar superada el 2026-07-20: ${JSON.stringify(evAfter.data).slice(0, 200)}`);
+    const fo = await api('GET', '/finanzas/fondeos');
+    const item = fo.data.fondeos.find((f) => f.account_id === fu.data.id);
+    assert(item && item.origen && item.origen.account_id === ev.data.id && item.dias_hasta_fondeo === 19, `fondeo con origen: ${JSON.stringify(item)}`);
+    assert(!fo.data.fondeos.some((f) => f.account_id === ev.data.id), 'la evaluación enlazada no debe aparecer como fondeo propio');
+    await api('DELETE', `/accounts/${fu.data.id}`);
+    await api('DELETE', `/accounts/${ev.data.id}`);
   });
 
   let user2Id = null;

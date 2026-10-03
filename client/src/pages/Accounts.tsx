@@ -290,7 +290,7 @@ export default function Accounts() {
       )}
 
       {/* Crear / editar */}
-      <AccountForm open={formOpen} onClose={() => setFormOpen(false)} account={editing} onSaved={upsert} />
+      <AccountForm open={formOpen} onClose={() => setFormOpen(false)} account={editing} onSaved={upsert} allAccounts={accounts} />
 
       {/* Bloquear ahora */}
       <Modal

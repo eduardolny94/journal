@@ -1,6 +1,7 @@
 // Documentos de Finanzas: certificado de cuenta fondeada (cuelga de la cuenta) y comprobante de payout
 // (cuelga del movimiento de retiro). Imagen o PDF, privados por usuario (misma carpeta que las capturas).
-// También sirve la vista «Fondeos y payouts»: la historia de cada cuenta (compra → fondeo → payouts).
+// También sirve la vista «Fondeos» y «Payouts»: cada cuenta fondeada con su evaluación de origen y sus certificados,
+// y cada payout con su comprobante.
 import { Router } from 'express';
 import { getDb } from '../db.js';
 import { publicPathFor, removeOwnedUpload, uploadDocument } from '../upload.js';
@@ -140,15 +141,27 @@ router.delete('/documentos/:id', async (req, res, next) => {
 });
 
 const round2 = (n) => Math.round(n * 100) / 100;
+function daysBetween(a, b) {
+  if (!a || !b) return null;
+  const d = (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86400000;
+  return Number.isFinite(d) ? Math.round(d) : null;
+}
 
 /**
- * Historia de fondeos y payouts por cuenta. Entran las cuentas fondeadas, las que tienen retiros o las que tienen
- * algún documento; las demás no aportan nada aquí. Las archivadas sí entran: esta vista es histórica.
+ * Fondeos y payouts.
+ * - `fondeos`: una entrada por cuenta fondeada. Si la cuenta viene de una evaluación (parent_account_id), la evaluación
+ *   va en `origen` y NO aparece como fondeo propio (la firma da una cuenta nueva al pasar; el certificado y los payouts
+ *   son de la nueva). Las cuentas sin enlace pero marcadas superada / con fecha de fondeo siguen contando (modelo de
+ *   una sola cuenta). Las archivadas sí entran: esta vista es histórica.
+ * - `payouts`: todos los retiros con su cuenta y sus comprobantes, del más reciente al más antiguo.
  */
 export function fondeos(db, userId) {
   const accounts = db.prepare('SELECT * FROM accounts WHERE user_id = ? ORDER BY COALESCE(funded_at, purchased_at, created_at) DESC, id DESC').all(userId);
-  const payouts = db.prepare("SELECT * FROM account_transactions WHERE user_id = ? AND kind = 'retiro' ORDER BY occurred_at DESC, id DESC").all(userId);
+  const payoutsRaw = db.prepare("SELECT * FROM account_transactions WHERE user_id = ? AND kind = 'retiro' ORDER BY occurred_at DESC, id DESC").all(userId);
   const docs = db.prepare(`${SELECT_DOC} WHERE d.user_id = ? ORDER BY d.created_at DESC, d.id DESC`).all(userId);
+
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const parentsLinked = new Set(accounts.map((a) => a.parent_account_id).filter((id) => id && byId.has(id)));
 
   const docsByTx = new Map();
   const certsByAccount = new Map();
@@ -165,27 +178,41 @@ export function fondeos(db, userId) {
       otherByAccount.get(d.account_id).push(d);
     }
   }
-  const payoutsByAccount = new Map();
-  const sinCuenta = [];
-  for (const p of payouts) {
-    const row = { ...p, comprobantes: docsByTx.get(p.id) || [] };
-    if (p.account_id === null) { sinCuenta.push(row); continue; }
-    if (!payoutsByAccount.has(p.account_id)) payoutsByAccount.set(p.account_id, []);
-    payoutsByAccount.get(p.account_id).push(row);
-  }
 
-  const cuentas = [];
+  const payoutsByAccount = new Map();
+  const payouts = payoutsRaw.map((p) => {
+    const acc = p.account_id ? byId.get(p.account_id) : null;
+    const row = {
+      ...p,
+      account_name: acc ? acc.name : null,
+      account_firm: acc ? acc.firm || '' : null,
+      account_size: acc ? Number(acc.size) || 0 : null,
+      account_currency: acc ? acc.currency || 'USD' : null,
+      comprobantes: docsByTx.get(p.id) || [],
+    };
+    if (acc) {
+      if (!payoutsByAccount.has(acc.id)) payoutsByAccount.set(acc.id, []);
+      payoutsByAccount.get(acc.id).push(row);
+    }
+    return row;
+  });
+
+  const list = [];
   let cuentasFondeadas = 0;
   for (const acc of accounts) {
-    const funded = acc.account_type === 'financiada' || acc.outcome === 'superada' || !!acc.funded_at;
     const certificados = certsByAccount.get(acc.id) || [];
     const otros = otherByAccount.get(acc.id) || [];
+    const funded = acc.account_type === 'financiada' || acc.outcome === 'superada' || !!acc.funded_at;
+    // Una evaluación que ya tiene su cuenta fondeada enlazada no es un fondeo por sí misma: es el origen.
+    if (parentsLinked.has(acc.id) && !certificados.length) continue;
+    if (!funded && !certificados.length) continue;
+    cuentasFondeadas++;
+    const parent = acc.parent_account_id ? byId.get(acc.parent_account_id) || null : null;
+    const fundedAt = acc.funded_at || (parent ? acc.purchased_at || parent.funded_at : null);
+    const dias = parent ? daysBetween(parent.purchased_at, fundedAt) : daysBetween(acc.purchased_at, acc.funded_at);
     const pays = payoutsByAccount.get(acc.id) || [];
-    if (funded) cuentasFondeadas++;
-    if (!funded && !pays.length && !certificados.length && !otros.length) continue;
     const total = pays.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const bruto = pays.reduce((s, p) => s + (Number(p.gross_amount) || 0), 0);
-    cuentas.push({
+    list.push({
       account_id: acc.id,
       name: acc.name,
       firm: acc.firm || '',
@@ -195,16 +222,26 @@ export function fondeos(db, userId) {
       outcome: acc.outcome || 'activa',
       is_archived: !!acc.is_archived,
       purchased_at: acc.purchased_at || null,
-      funded_at: acc.funded_at || null,
+      funded_at: fundedAt || null,
       ended_at: acc.ended_at || null,
       profit_split: acc.profit_split ?? null,
-      fondeada: funded,
       certificados,
       otros,
-      payouts: pays,
+      origen: parent
+        ? {
+            account_id: parent.id,
+            name: parent.name,
+            firm: parent.firm || '',
+            size: Number(parent.size) || 0,
+            purchased_at: parent.purchased_at || null,
+            funded_at: parent.funded_at || null,
+            ended_at: parent.ended_at || null,
+            outcome: parent.outcome || 'activa',
+          }
+        : null,
+      dias_hasta_fondeo: dias !== null && dias >= 0 ? dias : null,
       n_payouts: pays.length,
       total_payouts: round2(total),
-      bruto_payouts: round2(bruto),
       ultimo_payout_at: pays.length ? pays[0].occurred_at : null,
     });
   }
@@ -224,11 +261,11 @@ export function fondeos(db, userId) {
       ultimo_payout_at: payouts.length ? payouts[0].occurred_at : null,
       certificados: docs.filter((d) => d.kind === 'certificado_fondeo').length,
       comprobantes: docs.filter((d) => d.kind === 'comprobante_payout').length,
-      payouts_sin_comprobante: payouts.filter((p) => !(docsByTx.get(p.id) || []).length).length,
-      fondeadas_sin_certificado: cuentas.filter((c) => c.fondeada && !c.certificados.length).length,
+      payouts_sin_comprobante: payouts.filter((p) => !p.comprobantes.length).length,
+      fondeadas_sin_certificado: list.filter((c) => !c.certificados.length).length,
     },
-    cuentas,
-    payouts_sin_cuenta: sinCuenta,
+    fondeos: list,
+    payouts,
   };
 }
 

@@ -2,9 +2,10 @@
 // lecturas automáticas; flujo de caja mensual; desglose por firma y por cuenta; libro de movimientos.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Award, CheckCircle2, Info, LayoutList, Pencil, PiggyBank, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, Award, Banknote, CheckCircle2, Info, LayoutList, Pencil, PiggyBank, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import CashflowChart from '../components/finanzas/CashflowChart';
 import FondeosPanel from '../components/finanzas/FondeosPanel';
+import PayoutsPanel from '../components/finanzas/PayoutsPanel';
 import TransactionForm from '../components/finanzas/TransactionForm';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -23,10 +24,11 @@ import { useSession } from '../store/session';
 
 const KIND_FILTER_OPTIONS = [{ value: '', label: 'Todos los tipos' }, ...(Object.keys(KIND_LABELS) as TxKind[]).map((k) => ({ value: k, label: KIND_LABELS[k] }))];
 
-type Tab = 'resumen' | 'fondeos';
+type Tab = 'resumen' | 'fondeos' | 'payouts';
 const TABS: Array<{ key: Tab; label: string; icon: typeof LayoutList }> = [
   { key: 'resumen', label: 'Resumen', icon: LayoutList },
-  { key: 'fondeos', label: 'Fondeos y payouts', icon: Award },
+  { key: 'fondeos', label: 'Fondeos', icon: Award },
+  { key: 'payouts', label: 'Payouts', icon: Banknote },
 ];
 
 function pct(v: number | null | undefined, decimals = 0): string {
@@ -49,8 +51,10 @@ export default function Finanzas() {
   const [busy, setBusy] = useState(false);
   const [initialKind, setInitialKind] = useState<TxKind>('evaluacion');
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab: Tab = searchParams.get('tab') === 'fondeos' ? 'fondeos' : 'resumen';
-  const setTab = (t: Tab) => setSearchParams(t === 'resumen' ? {} : { tab: t }, { replace: true });
+  const tabParam = searchParams.get('tab');
+  const tab: Tab = tabParam === 'fondeos' || tabParam === 'payouts' ? tabParam : 'resumen';
+  const payoutsAccount = Number(searchParams.get('cuenta')) || null;
+  const setTab = (t: Tab, account?: number) => setSearchParams(t === 'resumen' ? {} : account ? { tab: t, cuenta: String(account) } : { tab: t }, { replace: true });
   const from = useMemo(() => finRangeFrom(range), [range]);
   const reload = useCallback(() => setReloadKey((n) => n + 1), []);
   const openForm = (kind: TxKind = 'evaluacion', tx: Transaction | null = null) => {
@@ -139,7 +143,8 @@ export default function Finanzas() {
 
       {error && <div className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss" role="alert">{error}</div>}
 
-      {tab === 'fondeos' && <FondeosPanel reloadKey={reloadKey} onChanged={reload} onNewPayout={() => openForm('retiro')} />}
+      {tab === 'fondeos' && <FondeosPanel reloadKey={reloadKey} onChanged={reload} onShowPayouts={(id) => setTab('payouts', id)} />}
+      {tab === 'payouts' && <PayoutsPanel reloadKey={reloadKey} onChanged={reload} onNewPayout={() => openForm('retiro')} accountId={payoutsAccount} />}
 
       {tab === 'resumen' && summary && summary.movimientos === 0 && txs.length === 0 && (
         <EmptyState

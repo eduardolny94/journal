@@ -58,7 +58,7 @@ function optionalPositiveInt(value, label) {
  * @param {object} body
  * @param {object|null} existing fila actual (para PUT parcial) o null (POST)
  */
-function parseAccountInput(body, existing = null) {
+function parseAccountInput(db, userId, body, existing = null) {
   const b = body && typeof body === 'object' ? body : {};
   const pick = (key, fallback) => (b[key] !== undefined ? b[key] : existing ? existing[key] : fallback);
 
@@ -104,7 +104,32 @@ function parseAccountInput(body, existing = null) {
   const profit_split = optionalNonNegative(pick('profit_split', null), 'El reparto de beneficios');
   if (profit_split !== null && profit_split > 100) throw new HttpError(400, 'El reparto de beneficios es un porcentaje entre 0 y 100.');
 
-  return { name, firm, platform, account_type, size, currency, timezone, day_reset_hour, ...risk, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split };
+  // Cuenta fondeada que viene de una evaluación: la firma da una cuenta nueva al pasar, y esta enlaza con la de origen.
+  let parent_account_id = existing ? existing.parent_account_id ?? null : null;
+  if (b.parent_account_id !== undefined) {
+    if (b.parent_account_id === null || b.parent_account_id === '') parent_account_id = null;
+    else {
+      const pid = Number(b.parent_account_id);
+      if (!Number.isInteger(pid) || pid <= 0) throw new HttpError(400, 'La cuenta de origen no es válida.');
+      if (existing && pid === existing.id) throw new HttpError(400, 'Una cuenta no puede ser su propia cuenta de origen.');
+      const parent = db.prepare('SELECT id FROM accounts WHERE id = ? AND user_id = ?').get(pid, userId);
+      if (!parent) throw new HttpError(404, 'La cuenta de origen no existe.');
+      parent_account_id = pid;
+    }
+  }
+
+  return { name, firm, platform, account_type, size, currency, timezone, day_reset_hour, ...risk, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split, parent_account_id };
+}
+
+/** Si la cuenta viene de una evaluación, la evaluación pasa a «superada» con la fecha del fondeo (si no la tenía). */
+function linkParent(db, userId, accountId) {
+  const child = db.prepare('SELECT id, parent_account_id, funded_at, purchased_at FROM accounts WHERE id = ? AND user_id = ?').get(accountId, userId);
+  if (!child || !child.parent_account_id) return;
+  const parent = db.prepare('SELECT id, outcome, funded_at FROM accounts WHERE id = ? AND user_id = ?').get(child.parent_account_id, userId);
+  if (!parent) return;
+  const fundedAt = child.funded_at || child.purchased_at || new Date().toISOString().slice(0, 10);
+  const outcome = !parent.outcome || parent.outcome === 'activa' ? 'superada' : parent.outcome;
+  db.prepare('UPDATE accounts SET outcome = ?, funded_at = COALESCE(funded_at, ?) WHERE id = ? AND user_id = ?').run(outcome, fundedAt, parent.id, userId);
 }
 
 function parseRiskInput(body, existing = null) {
@@ -157,12 +182,12 @@ router.get('/', (req, res, next) => {
 router.post('/', (req, res, next) => {
   try {
     const db = getDb();
-    const data = parseAccountInput(req.body, null);
+    const data = parseAccountInput(db, req.user.id, req.body, null);
     const result = db
       .prepare(
         `INSERT INTO accounts (user_id, name, firm, platform, account_type, size, currency, timezone, day_reset_hour,
-           daily_max_loss, weekly_max_loss, max_trades_per_day, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           daily_max_loss, weekly_max_loss, max_trades_per_day, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split, parent_account_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         req.user.id,
@@ -183,8 +208,10 @@ router.post('/', (req, res, next) => {
         data.funded_at,
         data.ended_at,
         data.profit_split,
+        data.parent_account_id,
       );
     const newId = Number(result.lastInsertRowid);
+    linkParent(db, req.user.id, newId);
     // Coste de la evaluación (solo al crear): se registra como gasto en Finanzas.
     const price = optionalNonNegative(req.body && req.body.purchase_price, 'El coste de la evaluación');
     if (price) {
@@ -212,11 +239,11 @@ router.put('/:id', (req, res, next) => {
   try {
     const db = getDb();
     const account = getOwnedAccount(db, req.user.id, req.params.id);
-    const data = parseAccountInput(req.body, account);
+    const data = parseAccountInput(db, req.user.id, req.body, account);
     db.prepare(
       `UPDATE accounts SET name = ?, firm = ?, platform = ?, account_type = ?, size = ?, currency = ?, timezone = ?,
          day_reset_hour = ?, daily_max_loss = ?, weekly_max_loss = ?, max_trades_per_day = ?, is_archived = ?,
-         outcome = ?, purchased_at = ?, funded_at = ?, ended_at = ?, profit_split = ?
+         outcome = ?, purchased_at = ?, funded_at = ?, ended_at = ?, profit_split = ?, parent_account_id = ?
        WHERE id = ? AND user_id = ?`,
     ).run(
       data.name,
@@ -236,9 +263,11 @@ router.put('/:id', (req, res, next) => {
       data.funded_at,
       data.ended_at,
       data.profit_split,
+      data.parent_account_id,
       account.id,
       req.user.id,
     );
+    linkParent(db, req.user.id, account.id);
     res.json(accountWithStatus(db, account.id));
   } catch (err) {
     next(err);

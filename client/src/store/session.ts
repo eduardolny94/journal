@@ -64,6 +64,8 @@ export interface Account {
   funded_at?: string | null;
   ended_at?: string | null;
   profit_split?: number | null;
+  /** Evaluación de la que viene esta cuenta fondeada (la firma da una cuenta nueva al pasar). */
+  parent_account_id?: number | null;
   status?: AccountStatus;
   /** Sincronización automática desde MetaTrader 5 (el token nunca llega al cliente salvo al generarlo). */
   sync?: AccountSync;

@@ -172,10 +172,24 @@ export function isPdf(doc: Pick<AccountDocument, 'mime' | 'path'>): boolean {
   return doc.mime === 'application/pdf' || /\.pdf$/i.test(doc.path);
 }
 
-export interface PayoutWithDocs extends Transaction {
+export interface PayoutItem extends Transaction {
+  account_name: string | null;
+  account_firm: string | null;
+  account_size: number | null;
+  account_currency: string | null;
   comprobantes: AccountDocument[];
 }
-export interface FondeoAccount {
+export interface FondeoOrigen {
+  account_id: number;
+  name: string;
+  firm: string;
+  size: number;
+  purchased_at: string | null;
+  funded_at: string | null;
+  ended_at: string | null;
+  outcome: Outcome;
+}
+export interface FondeoItem {
   account_id: number;
   name: string;
   firm: string;
@@ -188,13 +202,13 @@ export interface FondeoAccount {
   funded_at: string | null;
   ended_at: string | null;
   profit_split: number | null;
-  fondeada: boolean;
   certificados: AccountDocument[];
   otros: AccountDocument[];
-  payouts: PayoutWithDocs[];
+  /** Evaluación de la que viene (null si la firma mantuvo la misma cuenta). */
+  origen: FondeoOrigen | null;
+  dias_hasta_fondeo: number | null;
   n_payouts: number;
   total_payouts: number;
-  bruto_payouts: number;
   ultimo_payout_at: string | null;
 }
 export interface FondeosResumen {
@@ -212,8 +226,8 @@ export interface FondeosResumen {
     payouts_sin_comprobante: number;
     fondeadas_sin_certificado: number;
   };
-  cuentas: FondeoAccount[];
-  payouts_sin_cuenta: PayoutWithDocs[];
+  fondeos: FondeoItem[];
+  payouts: PayoutItem[];
 }
 
 export function fetchFondeos(signal?: AbortSignal): Promise<FondeosResumen> {
