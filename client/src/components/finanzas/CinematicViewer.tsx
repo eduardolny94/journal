@@ -1,8 +1,10 @@
 // Visor cinematográfico a pantalla completa para certificados y comprobantes: el propio documento, desenfocado y
 // ampliado, sirve de telón de fondo; encima flotan capas de humo que se mueven despacio; el documento nítido va en el
 // centro y los datos (importe, cuenta, fechas) abajo, con entrada escalonada y botones de cristal.
+// El humo es un vídeo en bucle generado con los colores de la marca (scripts/generar-video-humo.py); si no se puede
+// reproducir o el usuario prefiere menos movimiento, se usa el humo de partículas en canvas.
 // Los PDF no se incrustan (la CSP lo impide): se muestran con un panel de cristal y el botón «Abrir».
-import { useEffect, useMemo, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, Banknote, Calendar, ChevronLeft, ChevronRight, ExternalLink, FileText, Landmark, Trash2, Wallet, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
@@ -63,6 +65,8 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
 
   const tint = useMemo(() => (item?.kind === 'payout' ? 'rgba(34,211,111,0.35)' : item?.kind === 'fondeo' ? 'rgba(22,245,122,0.32)' : 'rgba(245,180,0,0.25)'), [item?.kind]);
   const smokeTint = useMemo<[number, number, number]>(() => (item?.kind === 'otro' ? [255, 215, 140] : [140, 255, 190]), [item?.kind]);
+  const [videoOk, setVideoOk] = useState(true);
+  const reducedMotion = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
   if (!open || !item) return null;
   const pdf = isPdf(item.doc);
@@ -78,8 +82,25 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
           <img src={item.doc.path} alt="" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl saturate-150" />
         )}
         <div className="absolute inset-0 bg-black/45" />
-        {/* Humo real: partículas en canvas, mezcladas en modo pantalla sobre el telón. */}
-        <SmokeCanvas tint={smokeTint} className="mix-blend-screen opacity-90" />
+        {/* Humo: vídeo en bucle con los colores de la marca (negro + verde neón), mezclado en modo pantalla sobre el
+            telón para que su fondo negro desaparezca. Si falla, humo de partículas en canvas. */}
+        {videoOk && !reducedMotion ? (
+          <video
+            className="absolute inset-0 h-full w-full object-cover mix-blend-screen opacity-95"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster="/video/humo-poster.jpg"
+            onError={() => setVideoOk(false)}
+          >
+            <source src="/video/humo.webm" type="video/webm" />
+            <source src="/video/humo.mp4" type="video/mp4" />
+          </video>
+        ) : (
+          <SmokeCanvas tint={smokeTint} className="mix-blend-screen opacity-90" />
+        )}
         {/* Sombra suave abajo para que el importe y los datos se lean sobre el humo. */}
         <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
       </div>
@@ -137,11 +158,17 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
               );
             })}
           </div>
-          <h1 className={cn('animate-blur-fade-up mb-2 text-3xl font-normal tracking-[-0.04em] drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)] sm:text-5xl md:mb-4 md:text-6xl', item.kind === 'payout' && 'text-profit')} style={rise(400)}>
+          <h1
+            className={cn(
+              'animate-blur-fade-up mb-2 font-normal tracking-[-0.04em] drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)] md:mb-3',
+              item.kind === 'payout' ? 'text-3xl text-profit sm:text-5xl md:text-6xl' : 'text-xl sm:text-2xl md:text-3xl',
+            )}
+            style={rise(400)}
+          >
             {item.title}
           </h1>
           {item.subtitle && (
-            <p className="animate-blur-fade-up max-w-2xl text-base text-gray-300 sm:text-lg md:text-xl" style={rise(500)}>{item.subtitle}</p>
+            <p className="animate-blur-fade-up max-w-2xl text-sm text-gray-300 sm:text-base" style={rise(500)}>{item.subtitle}</p>
           )}
           <div className="mt-5 flex flex-wrap gap-3 sm:mt-8 sm:gap-4">
             <a href={item.doc.path} target="_blank" rel="noopener" className="animate-blur-fade-up inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-medium text-black transition-colors hover:bg-gray-200 sm:px-8 sm:py-3" style={rise(600)}>
@@ -182,11 +209,7 @@ export function viewerItemFor(
     meta.push({ icon: 'date', text: fmtDate(ctx.payout.occurred_at) });
     if (ctx.account) meta.push({ icon: 'account', text: `${ctx.account.name}${ctx.account.firm ? ` · ${ctx.account.firm}` : ''}` });
     if (ctx.account?.size) meta.push({ icon: 'size', text: fmtMoney(ctx.account.size, currency, { sign: false }) });
-    const parts: string[] = [];
-    if (ctx.payout.gross_amount) parts.push(`bruto ${fmtMoney(ctx.payout.gross_amount, currency, { sign: false })}`);
-    if (ctx.payout.fee_amount) parts.push(`comisión ${fmtMoney(ctx.payout.fee_amount, currency, { sign: false })}`);
-    if (ctx.payout.note) parts.push(ctx.payout.note);
-    return { doc, kind, title: `+${fmtMoney(ctx.payout.amount, currency, { sign: false })}`, subtitle: parts.join(' · ') || doc.title || undefined, meta, date: ctx.payout.occurred_at };
+    return { doc, kind, title: `+${fmtMoney(ctx.payout.amount, currency, { sign: false })}`, subtitle: ctx.payout.note || doc.title || undefined, meta, date: ctx.payout.occurred_at };
   }
   if (kind === 'fondeo') {
     meta.push({ icon: 'kind', text: 'Cuenta fondeada' });

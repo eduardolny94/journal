@@ -1,6 +1,7 @@
-// Carrusel horizontal: los elementos van uno al lado del otro, con desplazamiento por tarjeta (snap), flechas de
-// cristal a los lados, contador y arrastre con el ratón. En móvil se desliza con el dedo.
-import { Children, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+// Carrusel horizontal sin scroll nativo: una pista que se mueve con `transform` dentro de una ventana fija, de modo que
+// ni la página ni el panel que lo contiene se desplazan nunca (el scroll-snap del navegador arrastraba a los
+// contenedores). Flechas de cristal, puntos, arrastre con ratón o dedo y teclado (← →).
+import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
@@ -12,63 +13,103 @@ export interface CarouselProps {
   ariaLabel?: string;
 }
 
+const GAP = 20; // px, igual que gap-5
+
 export function Carousel({ children, itemClassName = 'w-[300px] sm:w-[340px]', className, ariaLabel }: CarouselProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState({ canPrev: false, canNext: false, index: 0 });
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const items = Children.toArray(children);
   const count = items.length;
+  const [index, setIndex] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [maxOffset, setMaxOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ startX: number; startOffset: number; moved: boolean; pointerId: number } | null>(null);
+
+  /** Posición (px) a la que hay que llevar la pista para que el elemento `i` quede al principio, sin dejar hueco al final. */
+  const offsetFor = useCallback(
+    (i: number) => {
+      const track = trackRef.current;
+      const vp = viewportRef.current;
+      if (!track || !vp) return 0;
+      const kids = Array.from(track.children) as HTMLElement[];
+      const k = kids[Math.min(Math.max(i, 0), kids.length - 1)];
+      const max = Math.max(0, track.scrollWidth - vp.clientWidth);
+      return Math.min(k ? k.offsetLeft : 0, max);
+    },
+    [],
+  );
 
   const measure = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    const kids = Array.from(el.children) as HTMLElement[];
-    let index = 0;
-    for (let i = 0; i < kids.length; i++) if (kids[i].offsetLeft - el.scrollLeft <= 8) index = i;
-    setState({ canPrev: el.scrollLeft > 4, canNext: el.scrollLeft < max - 4, index });
-  }, []);
+    const track = trackRef.current;
+    const vp = viewportRef.current;
+    if (!track || !vp) return;
+    setMaxOffset(Math.max(0, track.scrollWidth - vp.clientWidth));
+    setOffset(offsetFor(index));
+  }, [index, offsetFor]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     measure();
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    el.addEventListener('scroll', measure, { passive: true });
-    return () => {
-      ro.disconnect();
-      el.removeEventListener('scroll', measure);
-    };
   }, [measure, count]);
 
-  const go = (dir: 1 | -1) => {
-    const el = ref.current;
-    if (!el) return;
-    const kids = Array.from(el.children) as HTMLElement[];
-    const target = Math.min(count - 1, Math.max(0, state.index + dir));
-    const k = kids[target];
-    if (k) el.scrollTo({ left: k.offsetLeft, behavior: 'smooth' });
-  };
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(vp);
+    return () => ro.disconnect();
+  }, [measure]);
 
-  // Arrastre con el ratón en escritorio.
-  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
-  const onMouseDown = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el || e.button !== 0) return;
-    drag.current = { x: e.clientX, left: el.scrollLeft, moved: false };
+  const goTo = (i: number) => {
+    const next = Math.min(Math.max(i, 0), count - 1);
+    setIndex(next);
+    setOffset(offsetFor(next));
   };
-  const onMouseMove = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el || !drag.current) return;
-    const dx = e.clientX - drag.current.x;
-    if (Math.abs(dx) > 4) drag.current.moved = true;
-    if (drag.current.moved) {
-      el.scrollLeft = drag.current.left - dx;
+  const canPrev = offset > 1;
+  const canNext = offset < maxOffset - 1;
+
+  // Arrastre: con ratón o con el dedo (pointer events), sin que el navegador haga scroll.
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    drag.current = { startX: e.clientX, startOffset: offset, moved: false, pointerId: e.pointerId };
+    setDragging(true);
+  };
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    if (!d.moved && Math.abs(dx) > 6) {
+      d.moved = true;
+      (e.currentTarget as HTMLElement).setPointerCapture(d.pointerId);
+    }
+    if (d.moved) {
+      const raw = d.startOffset - dx;
+      // Resistencia en los extremos.
+      const clamped = raw < 0 ? raw * 0.3 : raw > maxOffset ? maxOffset + (raw - maxOffset) * 0.3 : raw;
+      setOffset(clamped);
+    }
+  };
+  const endDrag = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    setDragging(false);
+    if (!d) return;
+    if (!d.moved) return;
+    const dx = e.clientX - d.startX;
+    if (dx < -40) goTo(index + 1);
+    else if (dx > 40) goTo(index - 1);
+    else goTo(index);
+  };
+  const onClickCapture = (e: React.MouseEvent) => {
+    // Tras arrastrar, el clic no debe abrir la tarjeta.
+    if (dragging || drag.current?.moved) {
+      e.stopPropagation();
       e.preventDefault();
     }
   };
-  const endDrag = () => {
-    drag.current = null;
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); goTo(index + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(index - 1); }
   };
 
   if (count === 0) return null;
@@ -76,31 +117,38 @@ export function Carousel({ children, itemClassName = 'w-[300px] sm:w-[340px]', c
   return (
     <div className={cn('group/carousel relative', className)}>
       <div
-        ref={ref}
+        ref={viewportRef}
         role="region"
         aria-label={ariaLabel}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={endDrag}
-        onMouseLeave={endDrag}
-        onClickCapture={(e) => {
-          // Si se arrastró, no disparar el clic de la tarjeta.
-          if (drag.current?.moved) e.stopPropagation();
-        }}
-        className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-1 pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-roledescription="carrusel"
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
+        className={cn('w-full overflow-hidden px-1 pb-3 pt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50', dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+        style={{ touchAction: 'pan-y' }}
       >
-        {items.map((child, i) => (
-          <div key={i} className={cn('shrink-0 snap-start', itemClassName)}>
-            {child}
-          </div>
-        ))}
+        <div
+          ref={trackRef}
+          className={cn('flex will-change-transform', !dragging && 'transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]')}
+          style={{ gap: GAP, transform: `translate3d(${-offset}px, 0, 0)` }}
+        >
+          {items.map((child, i) => (
+            <div key={i} className={cn('shrink-0', itemClassName)} aria-hidden={i !== index ? undefined : undefined}>
+              {child}
+            </div>
+          ))}
+        </div>
       </div>
       {count > 1 && (
         <>
           <button
             type="button"
-            onClick={() => go(-1)}
-            disabled={!state.canPrev}
+            onClick={() => goTo(index - 1)}
+            disabled={!canPrev}
             className="liquid-glass absolute left-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/60 disabled:opacity-0 sm:inline-flex"
             aria-label="Anterior"
           >
@@ -108,8 +156,8 @@ export function Carousel({ children, itemClassName = 'w-[300px] sm:w-[340px]', c
           </button>
           <button
             type="button"
-            onClick={() => go(1)}
-            disabled={!state.canNext}
+            onClick={() => goTo(index + 1)}
+            disabled={!canNext}
             className="liquid-glass absolute right-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white transition hover:bg-black/60 disabled:opacity-0 sm:inline-flex"
             aria-label="Siguiente"
           >
@@ -117,7 +165,7 @@ export function Carousel({ children, itemClassName = 'w-[300px] sm:w-[340px]', c
           </button>
           <div className="mt-1 flex items-center justify-center gap-1.5" aria-hidden>
             {items.map((_, i) => (
-              <span key={i} className={cn('h-1.5 rounded-full transition-all', i === state.index ? 'w-5 bg-accent' : 'w-1.5 bg-gray-700')} />
+              <button key={i} type="button" tabIndex={-1} onClick={() => goTo(i)} className={cn('h-1.5 rounded-full transition-all', i === index ? 'w-5 bg-accent' : 'w-1.5 bg-gray-700 hover:bg-gray-500')} />
             ))}
           </div>
         </>

@@ -163,7 +163,7 @@ export default function Layout() {
         </div>
       )}
 
-      <div className="flex-1 md:pl-60 flex flex-col min-h-screen">
+      <div className="flex-1 md:pl-60 flex flex-col min-h-screen min-w-0 overflow-x-hidden">
         <header className="sticky top-0 z-30 h-14 border-b border-border bg-panel/95 backdrop-blur flex items-center gap-3 px-4">
           <button
             className="md:hidden text-gray-400 hover:text-white"
