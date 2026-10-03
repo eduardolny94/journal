@@ -1,16 +1,14 @@
-// Visor cinematográfico a pantalla completa para certificados y comprobantes: el propio documento, desenfocado y
-// ampliado, sirve de telón de fondo; encima flotan capas de humo que se mueven despacio; el documento nítido va en el
-// centro y los datos (importe, cuenta, fechas) abajo, con entrada escalonada y botones de cristal.
-// El humo es un vídeo en bucle generado con los colores de la marca (scripts/generar-video-humo.py); si no se puede
-// reproducir o el usuario prefiere menos movimiento, se usa el humo de partículas en canvas.
-// Los PDF no se incrustan (la CSP lo impide): se muestran con un panel de cristal y el botón «Abrir».
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+// Visor cinematográfico a pantalla completa para certificados y comprobantes: de telón, un planeta del color
+// dominante del propio documento (Apex azul, Lucid gris…) girando sobre un cielo negro con estrellas y el verde de la
+// marca; el documento nítido en el centro y los datos (importe, cuenta, fechas) abajo, con entrada escalonada y
+// botones de cristal. Los PDF no se incrustan (la CSP lo impide): panel de cristal y botón «Abrir».
+import { useEffect, useMemo, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, Banknote, Calendar, ChevronLeft, ChevronRight, ExternalLink, FileText, Landmark, Trash2, Wallet, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { fmtDate, fmtMoney } from '../../lib/format';
 import { isPdf, type AccountDocument } from '../../lib/finanzas';
-import SmokeCanvas from './SmokeCanvas';
+import PlanetBackdrop from './PlanetBackdrop';
 
 export type ViewerKind = 'fondeo' | 'payout' | 'otro';
 
@@ -64,9 +62,6 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
   }, [open, hasPrev, hasNext, index, onClose, onNavigate]);
 
   const tint = useMemo(() => (item?.kind === 'payout' ? 'rgba(34,211,111,0.35)' : item?.kind === 'fondeo' ? 'rgba(22,245,122,0.32)' : 'rgba(245,180,0,0.25)'), [item?.kind]);
-  const smokeTint = useMemo<[number, number, number]>(() => (item?.kind === 'otro' ? [255, 215, 140] : [140, 255, 190]), [item?.kind]);
-  const [videoOk, setVideoOk] = useState(true);
-  const reducedMotion = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
   if (!open || !item) return null;
   const pdf = isPdf(item.doc);
@@ -74,35 +69,13 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
 
   return createPortal(
     <div key={item.doc.id} role="dialog" aria-modal="true" aria-label={item.title} className="font-inter fixed inset-0 z-[60] overflow-hidden bg-black text-white">
-      {/* Telón: el documento ampliado y desenfocado (color) + capas de humo en movimiento */}
+      {/* Telón: planeta del color del documento sobre cielo estrellado; el propio documento muy desenfocado aporta un
+          leve velo de su color por encima. */}
       <div className="absolute inset-0 z-0" aria-hidden>
-        {pdf ? (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(22,245,122,0.28),#050806_65%)]" />
-        ) : (
-          <img src={item.doc.path} alt="" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl saturate-150" />
-        )}
-        <div className="absolute inset-0 bg-black/45" />
-        {/* Humo: vídeo en bucle con los colores de la marca (negro + verde neón), mezclado en modo pantalla sobre el
-            telón para que su fondo negro desaparezca. Si falla, humo de partículas en canvas. */}
-        {videoOk && !reducedMotion ? (
-          <video
-            className="absolute inset-0 h-full w-full object-cover mix-blend-screen opacity-95"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            poster="/video/humo-poster.jpg"
-            onError={() => setVideoOk(false)}
-          >
-            <source src="/video/humo.webm" type="video/webm" />
-            <source src="/video/humo.mp4" type="video/mp4" />
-          </video>
-        ) : (
-          <SmokeCanvas tint={smokeTint} className="mix-blend-screen opacity-90" />
-        )}
-        {/* Sombra suave abajo para que el importe y los datos se lean sobre el humo. */}
-        <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
+        <PlanetBackdrop imageSrc={pdf ? null : item.doc.path} />
+        {!pdf && <img src={item.doc.path} alt="" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-[0.12] blur-3xl saturate-150" />}
+        {/* Sombra suave abajo para que el importe y los datos se lean. */}
+        <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
       </div>
       {/* Desenfoque solo en la parte baja (máscara), sin oscurecer con degradados */}
       <div className="viewer-blur-mask pointer-events-none absolute inset-0 z-[1]" aria-hidden />

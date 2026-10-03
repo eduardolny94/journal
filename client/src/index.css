@@ -91,6 +91,15 @@
   animation: blurFadeUp 1s ease-out both;
 }
 
+/* Planeta del visor: la textura (2:1, con costura envolvente) se desplaza para simular el giro. */
+@keyframes planetSpin {
+  from { background-position: 0 0; }
+  to { background-position: -200% 0; }
+}
+.planet-spin {
+  animation: planetSpin 110s linear infinite;
+}
+
 /* Desenfoque solo en la parte baja de la pantalla (máscara), sin oscurecer. */
 .viewer-blur-mask {
   -webkit-backdrop-filter: blur(24px);
