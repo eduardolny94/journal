@@ -34,7 +34,9 @@ con sus documentos en una galería iluminada sobre fondo oscuro.
   capturas: solo el dueño los ve. Los PDF se abren en una pestaña nueva (la CSP no permite incrustarlos).
 - Borrar la cuenta borra sus documentos; borrar el retiro borra su comprobante (fila y archivo).
 - Avisos en la pestaña: cuentas fondeadas sin certificado y payouts sin comprobante.
-- Las cuentas archivadas sí aparecen: esta vista es histórica (a diferencia del Dashboard, que solo cuenta las activas).
+- Las cuentas archivadas sí aparecen: esta vista es histórica. Dashboard y Operaciones, en cambio, excluyen las
+  archivadas cuando no hay cuenta elegida (en Operaciones, la casilla «Incluir cuentas archivadas» las añade).
+- Importar CSV vive en **Cuentas** (botón «Importar CSV» y Cuentas → Conectar), no en el menú ni en Operaciones.
 
 ## API
 

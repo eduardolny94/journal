@@ -283,7 +283,7 @@ router.get('/symbols', (req, res, next) => {
   }
 });
 
-// GET /api/trades?account_id&from&to&symbol&tag_id&side&page&limit -> { items, total }
+// GET /api/trades?account_id&from&to&symbol&tag_id&side&include_archived&page&limit -> { items, total }
 router.get('/', (req, res, next) => {
   try {
     const db = getDb();
@@ -296,6 +296,10 @@ router.get('/', (req, res, next) => {
       if (!Number.isInteger(accountId) || accountId <= 0) return res.status(400).json({ error: 'account_id inválido.' });
       where.push('t.account_id = ?');
       params.push(accountId);
+    } else if (!['1', 'true'].includes(String(q.include_archived || '').toLowerCase())) {
+      // Sin cuenta elegida: misma regla que el Dashboard, solo cuentas NO archivadas (include_archived=1 las añade).
+      where.push('t.account_id IN (SELECT id FROM accounts WHERE user_id = ? AND is_archived = 0)');
+      params.push(req.user.id);
     }
     if (q.from) {
       if (!isYmd(q.from)) return res.status(400).json({ error: 'El parámetro "from" debe tener formato YYYY-MM-DD.' });

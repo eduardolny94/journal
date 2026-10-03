@@ -277,6 +277,23 @@ try {
     assert(bad.status === 400 || (bad.status === 200 && bad.data.total === 0), `side inválido status ${bad.status}`);
   });
 
+  await test('operaciones de cuentas archivadas: fuera por defecto, dentro con include_archived=1', async () => {
+    const arch = await api('POST', '/accounts', { name: 'Quemada archivada', firm: 'Apex', platform: 'rithmic', account_type: 'evaluacion', size: 50000 });
+    assert(arch.status === 201, `cuenta ${arch.status}`);
+    const t = await api('POST', '/trades', { ...baseTrade(), account_id: arch.data.id, pnl: 5 });
+    if (isStub(t)) return SKIP;
+    assert(t.status === 201, `trade ${t.status} ${JSON.stringify(t.data).slice(0, 200)}`);
+    const up = await api('PUT', `/accounts/${arch.data.id}`, { is_archived: 1, outcome: 'quemada' });
+    assert(up.status === 200 && up.data.is_archived === 1, 'archivar');
+    const all = await api('GET', '/trades?limit=100');
+    assert(!all.data.items.some((x) => x.account_id === arch.data.id), 'sin cuenta elegida no deberían salir las archivadas');
+    const inc = await api('GET', '/trades?limit=100&include_archived=1');
+    assert(inc.data.items.some((x) => x.account_id === arch.data.id), 'con include_archived=1 deberían salir');
+    const direct = await api('GET', `/trades?account_id=${arch.data.id}`);
+    assert(direct.data.total === 1, 'eligiendo la cuenta archivada se ven sus operaciones');
+    await api('DELETE', `/accounts/${arch.data.id}`);
+  });
+
   await test('símbolos del usuario', async () => {
     const r = await api('GET', '/trades/symbols');
     if (isStub(r)) return SKIP;

@@ -1,7 +1,7 @@
 // Página «Cuentas»: tarjetas de cuentas con estado de riesgo, creación/edición,
 // bloqueo manual, desbloqueo, historial de bloqueos y eliminación.
 import { useCallback, useEffect, useState } from 'react';
-import { Archive, History, Lock, Pencil, Plug, Plus, RefreshCw, Trash2, Wallet } from 'lucide-react';
+import { Archive, History, Lock, Pencil, Plug, Plus, RefreshCw, Trash2, Upload, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AccountForm, { accountTypeLabel, platformLabel } from '../components/AccountForm';
 import AccountStatusCard, { lockReasonLabel } from '../components/AccountStatusCard';
@@ -168,6 +168,9 @@ export default function Accounts() {
           )}
           <Button variant="secondary" size="sm" onClick={() => void load(true)} loading={refreshing} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
             Actualizar
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/importar')} leftIcon={<Upload className="h-3.5 w-3.5" />} title="Importar operaciones desde el CSV de tu plataforma">
+            Importar CSV
           </Button>
           <Button
             size="sm"

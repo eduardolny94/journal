@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, Hash, ListOrdered, Percent, Plus, RotateCcw, Sigma, TrendingUp, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Hash, ListOrdered, Percent, Plus, RotateCcw, Sigma, TrendingUp } from 'lucide-react';
 import { api, qs } from '../lib/api';
 import { cn } from '../lib/cn';
 import { fmtMoney, fmtNum, pnlClass } from '../lib/format';
@@ -53,6 +53,8 @@ interface Filters {
   symbol: string;
   tag_id: string;
   side: string;
+  /** '1' = incluir operaciones de cuentas archivadas (solo aplica sin cuenta seleccionada). */
+  archived: string;
 }
 
 /** Lee y sanea los filtros de la URL (valores inválidos se ignoran). */
@@ -66,6 +68,7 @@ function readFilters(params: URLSearchParams): Filters {
     symbol: (params.get('symbol') ?? '').trim().toUpperCase().slice(0, 20),
     tag_id: /^\d+$/.test(tag) ? tag : '',
     side: SIDES.has(side) ? side : '',
+    archived: params.get('archived') === '1' ? '1' : '',
   };
 }
 
@@ -141,6 +144,7 @@ export default function Trades() {
             symbol: filters.symbol,
             tag_id: filters.tag_id,
             side: filters.side,
+            include_archived: accountId === null && filters.archived ? 1 : null,
             page,
             limit: PAGE_SIZE,
           })}`,
@@ -210,11 +214,7 @@ export default function Trades() {
           <h2 className="text-lg font-semibold text-gray-100">Operaciones</h2>
           <p className="text-xs text-gray-400">{selectedAccount ? `${selectedAccount.name}${selectedAccount.firm ? ` · ${selectedAccount.firm}` : ''}` : 'Todas las cuentas'}</p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="secondary" onClick={() => navigate(selectedAccount ? `/importar?account=${selectedAccount.id}` : '/importar')} leftIcon={<Upload className="h-4 w-4" />} title="Importar operaciones desde el CSV de tu plataforma">
-            <span className="hidden sm:inline">Importar CSV</span>
-            <span className="sm:hidden">CSV</span>
-          </Button>
+        <div className="ml-auto">
           <Button onClick={() => navigate('/operaciones/nueva')} leftIcon={<Plus className="h-4 w-4" />}>
             Nueva operación
           </Button>
@@ -245,7 +245,7 @@ export default function Trades() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => updateParams({ from: null, to: null, symbol: null, tag_id: null, side: null })}
+                onClick={() => updateParams({ from: null, to: null, symbol: null, tag_id: null, side: null, archived: null })}
                 leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
               >
                 Limpiar filtros
@@ -285,6 +285,12 @@ export default function Trades() {
               <option value="short">Short</option>
             </Select>
           </div>
+          {accountId === null && (
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-xs text-gray-400 select-none">
+              <input type="checkbox" checked={filters.archived === '1'} onChange={(e) => updateParams({ archived: e.target.checked ? '1' : null })} className="h-3.5 w-3.5 rounded border-border bg-bg accent-accent" />
+              Incluir cuentas archivadas (igual que el Dashboard, por defecto solo se muestran las activas)
+            </label>
+          )}
         </div>
       </Card>
 
