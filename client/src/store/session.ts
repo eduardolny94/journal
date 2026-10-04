@@ -7,6 +7,8 @@ export interface User {
   email: string;
   name: string;
   created_at?: string;
+  /** Guía de bienvenida ya vista (la marca el servidor). */
+  tour_completed?: boolean;
 }
 
 export type Platform = 'tradovate' | 'projectx' | 'rithmic' | 'ninjatrader' | 'mt5' | 'mt4' | 'ctrader' | 'tradingview' | 'otro';

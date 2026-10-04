@@ -168,6 +168,17 @@ try {
   await test('me devuelve el usuario', async () => {
     const r = await api('GET', '/auth/me');
     assert(r.status === 200 && r.data.user && r.data.user.email === email1, JSON.stringify(r.data));
+    assert(r.data.user.tour_completed === false, 'usuario nuevo: guía pendiente');
+  });
+
+  await test('guía de bienvenida: se marca como vista y se puede repetir', async () => {
+    const done = await api('POST', '/auth/tour', { completed: true });
+    assert(done.status === 200 && done.data.user.tour_completed === true, `marcar ${done.status} ${JSON.stringify(done.data)}`);
+    const me = await api('GET', '/auth/me');
+    assert(me.data.user.tour_completed === true, 'debería persistir');
+    const undo = await api('POST', '/auth/tour', { completed: false });
+    assert(undo.data.user.tour_completed === false, 'desmarcar');
+    await api('POST', '/auth/tour', { completed: true });
   });
 
   await test('crear cuenta con reglas de riesgo', async () => {

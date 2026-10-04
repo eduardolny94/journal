@@ -268,6 +268,8 @@ export interface QueOperar {
   strongest: Array<{ code: CurrencyCode; score: number }>;
   weakest: Array<{ code: CurrencyCode; score: number }>;
   best: QueOperarItem[];
+  /** Fuerza mínima (0–5) que aplica el servidor para entrar en la lista. */
+  min_level?: number;
   total_a: number;
   total_b: number;
 }

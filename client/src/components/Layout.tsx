@@ -22,6 +22,7 @@ import { useAdminEnabled, useRadarEnabled, useSession, type Account, type User }
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import LockBanner from './LockBanner';
+import Tour, { startTour } from './Tour';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -55,7 +56,7 @@ function pageTitle(pathname: string): string {
 }
 
 export default function Layout() {
-  const { user, accountId, accounts, setAccountId, setAccounts, setFeatures } = useSession();
+  const { user, accountId, accounts, setAccountId, setAccounts, setFeatures, setSession } = useSession();
   const radarEnabled = useRadarEnabled();
   const adminEnabled = useAdminEnabled();
   const location = useLocation();
@@ -73,13 +74,16 @@ export default function Layout() {
       });
     api<{ user: User; features?: unknown }>('/auth/me')
       .then((res) => {
-        if (!cancelled && res && res.features !== undefined) setFeatures(res.features);
+        if (cancelled || !res) return;
+        // Refresca el usuario del servidor (p. ej. si la guía de bienvenida ya se vio en otro dispositivo).
+        if (res.user) setSession(res.user, res.features);
+        else if (res.features !== undefined) setFeatures(res.features);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [setAccounts, setFeatures]);
+  }, [setAccounts, setFeatures, setSession]);
 
   const nav = [
     ...NAV,
@@ -116,6 +120,7 @@ export default function Layout() {
             key={to}
             to={to}
             end={end}
+            data-tour={`nav:${to}`}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -144,6 +149,7 @@ export default function Layout() {
         <nav aria-label="Legal" className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500">
           <NavLink to="/privacidad" className="hover:text-gray-200">Privacidad</NavLink>
           <NavLink to="/terminos" className="hover:text-gray-200">Términos</NavLink>
+          <button type="button" onClick={startTour} className="hover:text-gray-200" title="Repetir la guía de bienvenida">Guía</button>
           {GA_ID && <button type="button" onClick={reopenConsent} className="hover:text-gray-200">Cookies</button>}
         </nav>
       </div>
@@ -196,6 +202,7 @@ export default function Layout() {
         </header>
 
         <LockBanner accountId={accountId} />
+        <Tour />
 
         <main className="flex-1 p-4 md:p-6 max-w-[1600px] w-full mx-auto">
           <Outlet />

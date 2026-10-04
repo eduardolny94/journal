@@ -351,6 +351,8 @@ const COLUMN_MIGRATIONS = [
   { table: 'users', column: 'role', ddl: "TEXT DEFAULT 'user'" },
   { table: 'users', column: 'is_disabled', ddl: 'INTEGER DEFAULT 0' },
   { table: 'users', column: 'last_login_at', ddl: 'TEXT' },
+  // Guía de bienvenida vista (fecha) para no repetirla en cada dispositivo.
+  { table: 'users', column: 'tour_completed_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'outcome', ddl: "TEXT DEFAULT 'activa'" },
   // Cierres diarios: apertura, máximo y mínimo (vela de ayer, EMA y ATR para la capa de convicción).
   { table: 'radar_daily_prices', column: 'open', ddl: 'REAL' },

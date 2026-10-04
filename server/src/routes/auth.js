@@ -39,7 +39,7 @@ const registerLimiter = rateLimit({
 });
 
 function publicUser(row) {
-  return { id: row.id, email: row.email, name: row.name, created_at: row.created_at };
+  return { id: row.id, email: row.email, name: row.name, created_at: row.created_at, tour_completed: !!row.tour_completed_at };
 }
 
 function validateEmail(email) {
@@ -163,6 +163,19 @@ router.post('/login', authLimiter, async (req, res, next) => {
 router.post('/logout', (_req, res) => {
   clearAuthCookie(res);
   return res.json({ ok: true });
+});
+
+// POST /api/auth/tour { completed: true|false } -> marca (o desmarca) la guía de bienvenida como vista
+router.post('/tour', requireAuth, (req, res, next) => {
+  try {
+    const db = getDb();
+    const done = req.body && (req.body.completed === true || req.body.completed === 1 || req.body.completed === 'true');
+    db.prepare(`UPDATE users SET tour_completed_at = ${done ? "datetime('now')" : 'NULL'} WHERE id = ?`).run(req.user.id);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    return res.json({ user: publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/auth/me -> {user}
