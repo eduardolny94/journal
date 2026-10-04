@@ -1,7 +1,7 @@
 // Carrusel horizontal sin scroll nativo: una pista que se mueve con `transform` dentro de una ventana fija, de modo que
 // ni la página ni el panel que lo contiene se desplazan nunca. Flechas de cristal (visibles siempre que haya más
-// tarjetas de las que caben), puntos, arrastre con ratón o dedo y teclado: ← → funcionan en cuanto el carrusel está a
-// la vista, sin tener que pulsarlo antes.
+// tarjetas de las que caben), puntos, arrastre con ratón o dedo, rueda/trackpad horizontal (o Mayús + rueda) y
+// teclado: ← → funcionan en cuanto el carrusel está a la vista, sin tener que pulsarlo antes.
 import { Children, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/cn';
@@ -107,6 +107,42 @@ export function Carousel({ children, itemClassName = 'w-[300px] sm:w-[340px]', c
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [overflowing, goTo]);
+
+  // Rueda del ratón / trackpad: el desplazamiento horizontal (o vertical con Mayús) mueve la pista y, al parar,
+  // encaja en la tarjeta más cercana. Listener nativo porque hay que cancelar el scroll de la página.
+  const wheelOffset = useRef(0);
+  const wheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp || !overflowing) return;
+    const onWheel = (e: WheelEvent) => {
+      const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+      if (!horizontal) return;
+      e.preventDefault();
+      const max = computeMax();
+      wheelOffset.current = Math.min(max, Math.max(0, (wheelTimer.current ? wheelOffset.current : offsetFor(indexRef.current)) + horizontal));
+      setDragging(true); // sin transición mientras se mueve
+      setOffset(wheelOffset.current);
+      if (wheelTimer.current) clearTimeout(wheelTimer.current);
+      wheelTimer.current = setTimeout(() => {
+        wheelTimer.current = null;
+        setDragging(false);
+        // Encajar en la tarjeta más cercana a la posición alcanzada.
+        const track = trackRef.current;
+        if (!track) return;
+        const kids = Array.from(track.children) as HTMLElement[];
+        let best = 0;
+        let bestDist = Infinity;
+        kids.forEach((k, i) => {
+          const d = Math.abs(k.offsetLeft - wheelOffset.current);
+          if (d < bestDist) { bestDist = d; best = i; }
+        });
+        goTo(best);
+      }, 140);
+    };
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    return () => vp.removeEventListener('wheel', onWheel);
+  }, [overflowing, computeMax, offsetFor, goTo]);
 
   // Arrastre: con ratón o con el dedo (pointer events), sin que el navegador haga scroll.
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
