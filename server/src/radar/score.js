@@ -143,14 +143,22 @@ function momentumByCurrency(pairData) {
 
 // ---------- Datos por par (velas) ----------
 
+/** Clave de día de trading (AAAA-MM-DD, día de Nueva York) que cae en sábado o domingo: mercado cerrado. */
+function isWeekendKey(key) {
+  const dow = new Date(`${key}T12:00:00Z`).getUTCDay();
+  return dow === 0 || dow === 6;
+}
+
 export function pairComputations(sym, s, now) {
   const pip = s.pip;
   const nyDays = aggregateNyDays(s.h1);
   const h4 = aggregateH4(s.h1);
   const today = currentTradingDay(NY);
-  const completed = nyDays.filter((d) => d.key !== today);
+  // Yahoo sigue cotizando (muy poco) sábado y domingo: esos "días" de Nueva York (clave en sábado o domingo) son
+  // barras casi vacías que no valen como vela de ayer, ni para el ADR ni para la semana anterior. Se descartan.
+  const completed = nyDays.filter((d) => d.key !== today && !isWeekendKey(d.key));
   const last = nyDays[nyDays.length - 1];
-  const todayBar = last && last.key === today ? last : null;
+  const todayBar = last && last.key === today && !isWeekendKey(today) ? last : null;
   const yesterday = completed[completed.length - 1] || last;
   const adrDays = completed.slice(-20);
   const adr = adrDays.length ? mean(adrDays.map((d) => d.high - d.low)) : null;
