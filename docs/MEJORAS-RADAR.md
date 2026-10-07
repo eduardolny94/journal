@@ -1,4 +1,4 @@
-# Lista de mejoras del radar · actualizada el 2026-09-17 (noche)
+# Lista de mejoras del radar · actualizada el 2026-10-07
 
 Orden por valor esperado. "Hecho" significa implementado, verificado y documentado; los resultados medidos están en `docs/BACKTEST-RADAR.md`, `docs/BACKTEST-REACCION.md` y `docs/BACKTEST-METODO.md`.
 
@@ -34,6 +34,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 20. **Ciclo de mejora automático (hecho, 02-10-2026).** Cada backtest semanal mide las condiciones candidatas en tres cortes temporales y adopta o retira por reglas fijas (nivel A a 5 días, n ≥ 30, +2 puntos, R no peor, dos semanas seguidas), con historial visible en Admin → Diagnóstico (ver [CICLO-MEJORA.md](CICLO-MEJORA.md)). Las 16 condiciones base no se retiran solas. Sin coste de API: es cálculo en el servidor.
 21. **Estrategia swing H4 medida (02-10-2026).** Del catálogo de DataQuant se midieron en H4 cuatro entradas (barrido y recuperación, retroceso a EMA 20, FVG, Donchian) con velas H1 de MT5, 10 pares y 5 años (ver [ESTRATEGIA-SWING-H4.md](ESTRATEGIA-SWING-H4.md)). Ninguna tiene ventaja sola; con nivel A/B del radar a favor, el barrido y recuperación da +0,29R y 43 % a 2R (n=121), positivo los cuatro años. Indicador TradingView `GTFX_SwingH4.pine` en descargas. "Qué operar hoy" muestra ahora solo pares con fuerza ≥ 3/5 y nivel A/B (`MIN_TRADEABLE_LEVEL`).
 22. **Cruce de medias C4L (EMA 8 / MA 18 / EMA 200) medido (02-10-2026).** Pierde en 9 de 10 pares en todas las variantes (−0,05 a −0,09R por operación); solo USDJPY con EMA 200 fue positivo y por la tendencia del yen 2022-2024, negativo en 2025-2026. Vale como lectura de dirección, no como disparador (ver [ESTRATEGIA-SWING-H4.md](ESTRATEGIA-SWING-H4.md)).
+
+23. **Reintento de fuentes caídas y expectativa de la Fed cargada (07-10-2026, Mac).** Una fuente que falla (p. ej. los bonos oficiales del BCE por un corte de red) se reintenta al cabo de una hora en vez de esperar su intervalo normal (24 h para los bonos), así el diagnóstico no queda en "error" un día entero por un fallo pasajero (`RETRY_AFTER_ERROR_MS` en `engine.js`). Hallazgo al aplicar la guía de lectura de la Fed ([LECTURA-FED.md](LECTURA-FED.md)): el FedWatch propio calcula las probabilidades (28-oct mantener 82 %, 9-dic subida 76 %) pero el pivote de la semana y el pilar "Fed" del oro y los índices leen solo la expectativa cargada a mano; sin ella decían "sin consenso claro". Candidato: usar el FedWatch propio como expectativa por defecto para USD cuando no hay una manual.
 
 ## Lo que se descarta (medido, sin ventaja)
 
