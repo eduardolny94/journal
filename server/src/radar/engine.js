@@ -57,8 +57,22 @@ function loadSourceState(db) {
   }
 }
 
+/** Tras un fallo, una fuente se reintenta al cabo de una hora (no al intervalo normal, que puede ser de 24 h). */
+const RETRY_AFTER_ERROR_MS = 60 * 60_000;
+
+function lastFetchFailed(db, key) {
+  const m = getMeta(db, `fetch:${key}`);
+  if (!m) return false;
+  try {
+    return JSON.parse(m.value).ok === false;
+  } catch {
+    return false;
+  }
+}
+
 async function runSource(db, key, everyMs, fn, { force = false, now = Date.now() } = {}) {
-  if (!force && now - lastFetchMs(db, key) < everyMs) return;
+  const waitMs = lastFetchFailed(db, key) ? Math.min(everyMs, RETRY_AFTER_ERROR_MS) : everyMs;
+  if (!force && now - lastFetchMs(db, key) < waitMs) return;
   try {
     const r = await fn();
     const info = { ...state.sources[key], ...r, ok: r.ok !== false, error: r.error || null, last_fetch: new Date(now).toISOString() };
