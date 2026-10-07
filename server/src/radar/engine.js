@@ -1,11 +1,12 @@
 // Orquestador del radar: refresca las fuentes según su intervalo, recalcula el snapshot (cache en memoria,
 // máximo 60 s de antigüedad), guarda un histórico horario y nunca deja caer el snapshot por una fuente rota.
 import { getDb } from '../db.js';
-import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, regimeOf, normalizeAnySymbol } from './constants.js';
+import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
 import { refreshYahoo, getPrices } from './sources/prices.js';
 import { refreshFred, latest } from './sources/fred.js';
-import { refreshCalendar, refreshCalendarHistory } from './sources/calendar.js';
+import { refreshCalendar, refreshCalendarHistory, nextEventByTitles } from './sources/calendar.js';
+import { fedProbabilities } from './sources/fedwatch.js';
 import { refreshYieldsOfficial, refreshYieldsLive } from './sources/yields.js';
 import { runBacktest, lastBacktest } from './backtest.js';
 import { FEATURE_VERSION } from './conviction.js';
@@ -13,7 +14,7 @@ import { refreshCot, cotRows } from './sources/cot.js';
 import { refreshNews, listNews } from './sources/news.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
 import { readExpectation, weekPlan } from './week.js';
-import { getMeta, getMetaJson, setMeta, listManual, listPolicy, setPolicy, listExpectations, saveSnapshot, latestSnapshotRow } from './store.js';
+import { getMeta, getMetaJson, setMeta, listManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, latestSnapshotRow } from './store.js';
 
 const BACKTEST_EVERY_MS = 7 * 86400000;
 const CALENDAR_HISTORY_YEARS = 3;
@@ -184,12 +185,55 @@ function dailyClosesProvider(db) {
   };
 }
 
+const FEDWATCH_SOURCE = 'fedwatch:auto';
+const FEDWATCH_EVERY_MS = 6 * 3600_000;
+const FEDWATCH_RETRY_MS = 30 * 60_000;
+let fedwatchLastTry = 0;
+
+/**
+ * Expectativa de la Fed sin cargarla a mano. Si no hay una manual reciente (≤ EXPECTATION_MAX_AGE_DAYS), la rellena
+ * con el FedWatch propio (futuros de fondos federales, `sources/fedwatch.js`) y la renueva cada 6 h. Una expectativa
+ * cargada a mano siempre prevalece mientras esté vigente. Así el pivote de la semana y el pilar "Fed" del oro y los
+ * índices no dicen "sin expectativa cargada" cuando el radar ya sabe lo que descuenta el mercado.
+ */
+async function syncFedwatchExpectation(db, now) {
+  const row = getExpectation(db, 'USD');
+  const ageMs = row && row.updated_at ? now - new Date(row.updated_at).getTime() : Infinity;
+  const isAuto = !!(row && row.source === FEDWATCH_SOURCE);
+  if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000) return; // manual vigente
+  if (isAuto && ageMs < FEDWATCH_EVERY_MS) return;
+  if (now - fedwatchLastTry < FEDWATCH_RETRY_MS) return;
+  fedwatchLastTry = now;
+  try {
+    const ev = nextEventByTitles(db, 'USD', POLICY_EVENT_TITLES.USD || [], new Date(now));
+    const fed = await fedProbabilities({ meetingDates: ev ? [ev.at_utc.slice(0, 10)] : [], now: new Date(now) });
+    const m = (fed.meetings || []).find((x) => x.ok);
+    if (!m) return;
+    const pct = (v) => Math.round((Number(v) || 0) * 1000) / 10;
+    const hike = pct((m.p_hike_25 || 0) + (m.p_hike_50 || 0));
+    const cut = pct((m.p_cut_25 || 0) + (m.p_cut_50 || 0));
+    const hold = Math.round((100 - hike - cut) * 10) / 10;
+    setExpectation(db, 'USD', {
+      meeting_date: m.date,
+      prob_hike: hike,
+      prob_cut: cut,
+      prob_hold: hold,
+      expected_bp: Math.round(m.change_bp || 0),
+      source: FEDWATCH_SOURCE,
+      note: `Automática: futuros de fondos federales (${m.method}). Si cargas una a mano, prevalece ${EXPECTATION_MAX_AGE_DAYS} días.`,
+    }, new Date(now));
+  } catch (err) {
+    console.warn(`[radar] FedWatch automático: ${err.message || err}`);
+  }
+}
+
 async function compute() {
   const db = getDb();
   const now = Date.now();
   const nowDate = new Date(now);
   const prices = await getPrices({ now });
   const cot = cotRows(db);
+  await syncFedwatchExpectation(db, now);
   const expRows = listExpectations(db);
   const expectations = CURRENCIES.map((c, i) => readExpectation(expRows[i], c, db, nowDate));
   const expByCcy = Object.fromEntries(expectations.map((e) => [e.currency, e]));
