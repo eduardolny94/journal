@@ -1,0 +1,9 @@
+{
+  "_doc": "Tono manual de cada banco central que el radar aplica a TODOS los usuarios (pilar «tono», −2..+2). Se actualiza con cada acta, decisión o discurso relevante según docs/BITACORA-NOTICIAS.md y se despliega con el repo. Un ajuste hecho a mano en Radar → Ajustes después de `as_of` prevalece. Al pasar `until`, el tono vuelve a 0 si nadie lo ha tocado.",
+  "USD": {
+    "cb_tone": 1,
+    "as_of": "2026-10-08",
+    "until": "2026-10-28",
+    "note": "Actas FOMC 7-oct-2026 (reunión 15-16 sep): subida unánime a 3,75-4,00 %; la mayoría ve apropiada otra subida antes de fin de año; riesgos de inflación al alza (energía, aranceles, IA); empleo cerca del pleno. +1 y no +2 porque el texto es anterior al PCE 3,0 % y las nóminas +29k, y el mercado ya descuenta diciembre al 76 % (reacción nula en 1 h y 24 h). Revisar el 28-oct (decisión)."
+  }
+}

@@ -3,8 +3,10 @@
 Una entrada por publicación relevante (actas, decisiones, discursos, datos que el usuario señale), con la misma
 plantilla, para ir construyendo criterio por tipo de noticia. La lectura sigue [LECTURA-FED.md](LECTURA-FED.md):
 primero lo descontado, luego el texto, luego la confirmación del mercado. Lo que entra en el radar por esta vía es
-solo el **tono manual** del banco central (pilar «tono», peso 5, Radar → Ajustes), con la nota y la fecha; los pesos
-y las condiciones del modelo no se tocan sin medirlos (skill `radar-metodologia`).
+solo el **tono del banco central** (pilar «tono», peso 5), escrito en `server/src/radar/data/cb-tone.json` con la nota,
+la fecha (`as_of`) y la caducidad (`until`): al desplegar, el radar lo aplica a **todos los usuarios**; un ajuste hecho a mano
+en Radar → Ajustes después de esa fecha prevalece. Los pesos y las condiciones del modelo no se tocan sin medirlos
+(skill `radar-metodologia`).
 
 Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a few) · **Reacción** 1 h y 24 h ·
 **Lectura** · **Qué se cargó en el radar** · **Lección**.
@@ -35,8 +37,8 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
 - **Lectura**: texto restrictivo pero anterior a los datos flojos; el mercado ya lo tenía descontado, así que no hubo
   repricing. Lo que se mueve al día siguiente es el petróleo (+4 %) y el VIX, no la Fed. El oro rebota sin
   confirmación de bonos ni dólar.
-- **Qué se cargó en el radar**: expectativa USD 28-oct (mantener 82 %) desde el FedWatch propio; tono manual USD **+1**
-  (halcón moderado) con nota; nota de la semana 41 en Semana.
+- **Qué se cargó en el radar**: expectativa USD 28-oct (mantener 82 %) desde el FedWatch propio; tono USD **+1** (halcón
+  moderado) en `cb-tone.json` hasta el 28-oct, para todos los usuarios; nota de la semana 41 en Semana.
 - **Lección**: unas actas de una reunión ya "superada" por los datos no mueven nada aunque suenen duras. Lo operable
   está en la probabilidad de diciembre: si cae por debajo del 50 %, el dólar pierde el motor; si sube, confirma.
   Próxima comprobación: decisión del 28-oct y datos de inflación de octubre.

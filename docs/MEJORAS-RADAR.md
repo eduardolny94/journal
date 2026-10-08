@@ -37,6 +37,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 
 23. **Reintento de fuentes caídas y expectativa de la Fed cargada (07-10-2026, Mac).** Una fuente que falla (p. ej. los bonos oficiales del BCE por un corte de red) se reintenta al cabo de una hora en vez de esperar su intervalo normal (24 h para los bonos), así el diagnóstico no queda en "error" un día entero por un fallo pasajero (`RETRY_AFTER_ERROR_MS` en `engine.js`). Hallazgo al aplicar la guía de lectura de la Fed ([LECTURA-FED.md](LECTURA-FED.md)): el FedWatch propio calcula las probabilidades (28-oct mantener 82 %, 9-dic subida 76 %) pero el pivote de la semana y el pilar "Fed" del oro y los índices leen solo la expectativa cargada a mano; sin ella decían "sin consenso claro". Hecho el mismo día: si no hay expectativa manual vigente (14 días), el motor rellena la de USD con el FedWatch propio cada 6 h (`syncFedwatchExpectation` en `engine.js`, fuente `fedwatch:auto`); una expectativa cargada a mano sigue prevaleciendo.
 
+24. **Tono del banco central versionado y global (08-10-2026).** `server/src/radar/data/cb-tone.json` guarda el tono (−2..+2), la nota, la fecha y la caducidad por divisa; el motor lo aplica a `radar_manual` en cada despliegue (`syncToneFromFile` en `engine.js`, nota con marca `[bitácora]`), así la lectura cualitativa de actas, decisiones y discursos llega a todos los usuarios sin tocar Ajustes a mano. Un ajuste manual posterior prevalece; al caducar vuelve a 0. Cada entrada sale de [BITACORA-NOTICIAS.md](BITACORA-NOTICIAS.md). Sigue siendo el pilar «tono» de peso 5: no cambia pesos ni condiciones medidas.
+
 ## Lo que se descarta (medido, sin ventaja)
 
 - La reacción de la primera hora tras una noticia como señal de continuación (48 %).

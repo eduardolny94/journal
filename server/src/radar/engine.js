@@ -1,5 +1,6 @@
 // Orquestador del radar: refresca las fuentes según su intervalo, recalcula el snapshot (cache en memoria,
 // máximo 60 s de antigüedad), guarda un histórico horario y nunca deja caer el snapshot por una fuente rota.
+import { readFileSync } from 'node:fs';
 import { getDb } from '../db.js';
 import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
@@ -14,7 +15,7 @@ import { refreshCot, cotRows } from './sources/cot.js';
 import { refreshNews, listNews } from './sources/news.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
 import { readExpectation, weekPlan } from './week.js';
-import { getMeta, getMetaJson, setMeta, listManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, latestSnapshotRow } from './store.js';
+import { getMeta, getMetaJson, setMeta, listManual, setManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, latestSnapshotRow } from './store.js';
 
 const BACKTEST_EVERY_MS = 7 * 86400000;
 const CALENDAR_HISTORY_YEARS = 3;
@@ -227,6 +228,44 @@ async function syncFedwatchExpectation(db, now) {
   }
 }
 
+const TONE_FILE_MARK = '[bitácora]';
+let toneFile = null;
+
+/** Tono versionado por divisa (`data/cb-tone.json`): el mismo sesgo cualitativo para todos los usuarios. */
+function loadToneFile() {
+  if (toneFile) return toneFile;
+  try {
+    toneFile = JSON.parse(readFileSync(new URL('./data/cb-tone.json', import.meta.url), 'utf8'));
+  } catch {
+    toneFile = {};
+  }
+  return toneFile;
+}
+
+/**
+ * Aplica el tono del archivo a la tabla radar_manual. Reglas: un ajuste hecho a mano en Ajustes después de `as_of`
+ * prevalece; pasado `until`, el tono del archivo vuelve a 0 si nadie lo ha tocado. Solo escribe cuando algo cambia.
+ */
+function syncToneFromFile(db, now) {
+  const file = loadToneFile();
+  const today = new Date(now).toISOString().slice(0, 10);
+  const rows = Object.fromEntries(listManual(db).map((m) => [m.currency, m]));
+  for (const ccy of CURRENCIES) {
+    const entry = file[ccy];
+    if (!entry || !Number.isInteger(entry.cb_tone) || !entry.as_of) continue;
+    const row = rows[ccy] || null;
+    const rowIsFile = !!(row && typeof row.note === 'string' && row.note.startsWith(TONE_FILE_MARK));
+    const rowIsManual = !!(row && !rowIsFile && (Number(row.cb_tone) !== 0 || (row.note && row.note.trim())));
+    const rowDate = row && row.updated_at ? row.updated_at.slice(0, 10) : null;
+    if (rowIsManual && rowDate && rowDate >= entry.as_of) continue; // ajuste a mano posterior: prevalece
+    const expired = entry.until && today > entry.until;
+    const tone = expired ? 0 : Math.max(-2, Math.min(2, entry.cb_tone));
+    const note = `${TONE_FILE_MARK} ${entry.as_of}${entry.until ? ` → ${entry.until}` : ''}: ${entry.note || ''}`.slice(0, 500);
+    if (row && Number(row.cb_tone) === tone && row.note === note) continue;
+    setManual(db, ccy, { cb_tone: tone, note }, new Date(now));
+  }
+}
+
 async function compute() {
   const db = getDb();
   const now = Date.now();
@@ -237,6 +276,7 @@ async function compute() {
   const expRows = listExpectations(db);
   const expectations = CURRENCIES.map((c, i) => readExpectation(expRows[i], c, db, nowDate));
   const expByCcy = Object.fromEntries(expectations.map((e) => [e.currency, e]));
+  syncToneFromFile(db, now);
   const manual = Object.fromEntries(listManual(db).map((m) => [m.currency, m]));
   const policy = policyMap(db);
   // Régimen (VIX) → pesos aprendidos por el backtest si hay evidencia; si no, los vigentes.
