@@ -99,6 +99,57 @@ vender cuando cruza por debajo; la EMA 200 (morada) como contexto. Script: `serv
 Conclusión: el cruce 8/18 sirve para leer la dirección en el gráfico, no para disparar entradas. La dirección la
 pone el radar (nivel A/B) y la entrada medida es el barrido y recuperación.
 
+## Operativa swing del usuario: C4L en H4 guiada por el radar (medida el 09-10-2026)
+
+Regla propuesta por el usuario (09-10-2026): en H4, comprar cuando la EMA 8 (azul) cruza por encima de la media simple
+18 (roja) y vender cuando cruza por debajo; stop en el último bajo/alto (estructura o mínimo/máximo del día anterior);
+salida en el cruce contrario; solo en la dirección de la semana (8/18 en semanal) y del sesgo macro del radar; en los
+3-4 pares más tendenciales. Script: `server/scripts/backtest-c4l-swing.mjs` con velas H1 de Yahoo (2 años y medio,
+`scripts/descargar-h1-yahoo.mjs`, hora de servidor NY + 7), 14 pares, spread descontado, sesgo del radar point-in-time
+(`radar_daily_bias`) y nivel A/B del modelo de prueba (`conviccion-diaria.json`).
+
+| Variante (salida en el cruce contrario) | n | gana | R/op · stop estructura | R/op · stop día anterior | factor (día ant.) |
+|---|---|---|---|---|---|
+| Cruce 8/18 sin filtro | 3.791 | 30-32 % | −0,04R | −0,02R | 0,96 |
+| + EMA 200 a favor | 1.938 | 30-31 % | −0,06R | −0,01R | 0,98 |
+| + diario 8/18 a favor | 1.584 | 30-31 % | −0,06R | 0,00R | 1,00 |
+| + semanal 8/18 a favor | 1.713 | 30-32 % | −0,04R | 0,00R | 0,99 |
+| + semanal + diario | 821 | 31-33 % | −0,04R | +0,05R | 1,10 |
+| + radar a favor (fuerza ≥ 2) | 531 | 37-38 % | **+0,10R** | **+0,14R** | 1,33 |
+| + semanal + radar | 375 | 39-40 % | **+0,10R** | **+0,18R** | **1,44** |
+| + semanal + radar + "tendencial" (top 4 eficiencia 60 d) | 151 | 36-38 % | −0,01R | +0,02R | 1,05 |
+| + radar nivel A/B | 71 | 44-45 % | +0,34R | +0,42R | 2,16 |
+| + semanal + radar nivel A/B | 46 | 52 % | **+0,42R** | **+0,61R** | **2,85** |
+| + semanal + EMA 200 + radar | 342 | 39 % | +0,08R | +0,12R | 1,30 |
+
+Semanal + radar, stop de estructura, por año: 2024 +0,11R (n=106), 2025 −0,01R (n=104), 2026 +0,18R (n=165). Por par:
+gana en GBPUSD, USDCHF, USDCAD, AUDUSD, AUDJPY, EURJPY; pierde en EURUSD, EURGBP, CADJPY. Motivo de salida: el cruce
+contrario cierra el 84 % de las operaciones (+0,32R de media), el stop el 16 % (−1R).
+
+Cuenta de 500 $ arriesgando el 1 % por operación (capitalizando), 2024-02 → 2026-10:
+
+| Filtro | Final | Drawdown máximo | Meses positivos | Peor mes |
+|---|---|---|---|---|
+| Sin filtro | 90 $ (−82 %) | 89 % | 14 de 33 | −96 $ |
+| Semanal | 213 $ (−57 %) | 65 % | 13 de 31 | −129 $ |
+| **Semanal + radar** | **716 $ (+43 %)** | **15 %** | 16 de 31 | −30 $ |
+| Semanal + radar + tendencial | 488 $ (−2 %) | 12 % | 9 de 25 | −28 $ |
+
+Conclusiones:
+
+1. **El cruce 8/18 por sí solo pierde, con o sin el filtro semanal**: gana una de cada tres y el serrucho se come el resto.
+2. **Lo que lo vuelve rentable es el radar**: con el sesgo a favor (fuerza ≥ 2) pasa a +0,10/+0,18R y factor 1,3-1,4;
+   con nivel A/B, +0,42/+0,61R (n=46, pocos casos: los niveles A/B son escasos). La dirección la pone el radar; el cruce
+   solo dice cuándo.
+3. **"Pares tendenciales" no ayuda**: elegir los 4 de mayor eficiencia a 60 días empeora el resultado. La selección
+   del apartado Swing va por radar (fuerza, nivel) y liquidez, no por "lo que tiende".
+4. **Stop en el día anterior mejor que en la estructura de 10 velas** (más ajustado, misma tasa de acierto).
+5. 2025 fue plano (−0,01R): no es una máquina; un año sin tendencias no paga.
+
+Apartado **Swing** del radar (`server/src/radar/swing.js`, pestaña Swing): hasta 4 pares con sesgo del radar y semana
+8/18 alineada, estado de cada marco (semanal, diario, H4, EMA 200), último cruce H4, los dos stops con riesgo en pips y
+tamaño para 500 $ al 1 %. Informa: la entrada es del trader.
+
 ## Recorrido y objetivo con stop fijo de 35 pips (medido el 02-10-2026)
 
 Barrido y recuperación con nivel A/B a favor, stop fijo de 35 pips, dejando correr solo con el stop (`backtest-swing-h4.mjs

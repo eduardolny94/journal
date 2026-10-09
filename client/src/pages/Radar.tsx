@@ -1,10 +1,11 @@
 // Radar de divisas, índices y metales (privado): panel global tipo terminal con pestañas y favoritos.
 import FavoritesPicker from '../components/radar/FavoritesPicker';
 import QueOperarCard from '../components/radar/QueOperarCard';
+import SwingCard from '../components/radar/SwingCard';
 import ImpactCard from '../components/radar/ImpactCard';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarDays, Coins, Globe2, RefreshCw, Settings2, Star, Table2, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, Coins, Globe2, RefreshCw, Settings2, Star, Table2, TrendingUp, Users } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSpinner } from '../components/ui/Spinner';
@@ -24,6 +25,7 @@ import {
 const TABS = [
   { key: 'panel', label: 'Panel', icon: <Globe2 className="h-3.5 w-3.5" /> },
   { key: 'activos', label: 'Índices y metales', icon: <Coins className="h-3.5 w-3.5" /> },
+  { key: 'swing', label: 'Swing', icon: <TrendingUp className="h-3.5 w-3.5" /> },
   { key: 'semana', label: 'Semana', icon: <CalendarDays className="h-3.5 w-3.5" /> },
   { key: 'calendario', label: 'Calendario', icon: <Table2 className="h-3.5 w-3.5" /> },
   { key: 'comparativa', label: 'Comparativa', icon: <BarChart3 className="h-3.5 w-3.5" /> },
@@ -173,6 +175,12 @@ export default function Radar() {
               <PairCard {...cardProps(p)} compact />
             ))}
           </div>
+        </div>
+      )}
+
+      {tab === 'swing' && (
+        <div className="space-y-4">
+          <SwingCard plan={snap.swing ?? null} />
         </div>
       )}
 
