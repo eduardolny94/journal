@@ -3,7 +3,7 @@
 // ese día (bonos, calendario con datos reales, COT con 3 días de retraso, FRED con retraso de publicación,
 // precios diarios de Yahoo) y mira qué hizo cada par 1, 3, 5 y 10 días después.
 import { PAIRS, FETCHED_PAIRS, CURRENCIES, PILLARS, PILLAR_WEIGHTS, YAHOO_PAIR_SYMBOLS, YAHOO_MARKET_SYMBOLS, FRED_BY_CURRENCY, POLICY_EVENT_TITLES, REGIMES, regimeOf, splitPair, pairPip } from './constants.js';
-import { computeCurrencies, pillarDiffs } from './score.js';
+import { computeCurrencies, pillarDiffs, isBigFour } from './score.js';
 import { parseYahooChart } from './sources/prices.js';
 import { fetchJson, mapLimit } from './sources/http.js';
 import { getSeries, seriesAsOf, shiftDays } from './sources/fred.js';
@@ -138,7 +138,7 @@ function finish(b, extra = {}) {
  * @param {object} db
  * @param {{ years?: number, horizons?: number[], now?: number, log?: (s: string) => void }} opts
  */
-export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20], now = Date.now(), log = () => {}, keepRows = false } = {}) {
+export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20, 60], now = Date.now(), log = () => {}, keepRows = false } = {}) {
   const t0 = Date.now();
   const maxH = Math.max(...horizons);
   log('descargando precios diarios (Yahoo, 5 años)…');
@@ -244,6 +244,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
     // Condiciones del día para la capa de convicción: datos fuertes en las próximas 24 h y último dato publicado (48 h).
     const newsSoonCcy = new Set(eventsBetween(db, new Date(asOfMs).toISOString(), new Date(asOfMs + 24 * 3600_000).toISOString()).filter((e) => e.impact === 'High').map((e) => e.country));
     const lastDir = {};
+    const lastDirBig = {};
     for (const ev of events) {
       if (!ev.actual || ev.impact === 'Low') continue;
       const t = new Date(ev.at_utc).getTime();
@@ -251,6 +252,7 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
       const sp = surpriseOf(ev, db);
       if (!sp.favors) continue;
       lastDir[ev.country] = { t, dir: sp.favors === ev.country ? 1 : -1 };
+      if (isBigFour(ev)) lastDirBig[ev.country] = lastDir[ev.country];
     }
     const pillarsByCcy = {};
     for (const c of cur.currencies) {
@@ -283,10 +285,13 @@ export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20],
       const pq = cur.byCode[quote].pillars;
       const dirB = lastDir[base] ? lastDir[base].dir : 0;
       const dirQ = lastDir[quote] ? lastDir[quote].dir : 0;
+      const dirBigB = lastDirBig[base] ? lastDirBig[base].dir : 0;
+      const dirBigQ = lastDirBig[quote] ? lastDirBig[quote].dir : 0;
       const feat = signalFeatures({
         symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value,
         cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon: newsSoonCcy.has(base) || newsSoonCcy.has(quote),
         lastSurprise: clamp(sign * (dirB - dirQ), -1, 1),
+        lastSurpriseBig: clamp(sign * (dirBigB - dirBigQ), -1, 1),
         pillarDiff: pillarDiffs(pb, pq),
       });
       const atrPips = feat.atr ? feat.atr / pip : null;

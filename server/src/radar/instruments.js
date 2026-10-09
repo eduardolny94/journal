@@ -6,6 +6,7 @@ import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
 import { pairComputations, rank01 } from './score.js';
+import { usdScenario } from './cycle-phase.js';
 
 const fmt = (n, k = 1) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -42,7 +43,7 @@ function planForInstrument(ins, bias, strength, score, digits, S) {
 
 /**
  * @param {object} db
- * @param {{ prices, cot, usdGrowth: number, expectations: Record<string,object>, now: number }} input
+ * @param {{ prices, cot, usdGrowth: number, usdCycle?: object, expectations: Record<string,object>, now: number }} input
  * @returns {Array} instrumentos con la misma forma que un par del radar
  */
 export function computeInstruments(db, input) {
@@ -77,6 +78,7 @@ export function computeInstruments(db, input) {
     const isMetal = ins.kind === 'metal';
     const cotRow = input.cot.byCurrency[ins.symbol] || null;
     const momRaw = 0.2 * p.mom.m1 + 0.4 * p.mom.m5 + 0.4 * p.mom.m20;
+    const scen = usdScenario(input.usdCycle || null, ins.kind);
     const pillars = {
       momentum: { value: round(clamp(momRaw, -2, 2)), raw: round(momRaw), missing: false, text: `momentum ${momRaw >= 0 ? 'positivo' : 'negativo'} (${fmt(momRaw)} ATR a 1/5/20 días)` },
       tasas: isMetal
@@ -91,6 +93,7 @@ export function computeInstruments(db, input) {
       macro: { value: round(clamp(isMetal ? -usdGrowth * 0.8 : usdGrowth, -2, 2)), raw: usdGrowth, missing: false, text: `sorpresas macro de EE. UU. ${usdGrowth >= 0 ? 'positivas' : 'negativas'} (${fmt(usdGrowth)})` },
       fed: { value: round(fedDiff === null ? 0 : clamp(fedDiff / 50, -2, 2)), raw: fedDiff, missing: !fedFresh, text: fedFresh ? `Fed: ${usdExp.priced} descontada (${fmt(usdExp.priced_pct, 0)} %)` : 'sin expectativa de la Fed cargada' },
       posicionamiento: { value: round(cotRow ? clamp(cotRow.z, -2, 2) * (Math.abs(cotRow.z) >= 1.5 ? 0.5 : 1) : 0), raw: cotRow ? cotRow.ratio : null, missing: !cotRow, percentile: cotRow ? cotRow.percentile : null, weekly_change: cotRow ? cotRow.weekly_change : null, extreme: !!(cotRow && cotRow.extreme), text: cotRow ? `COT ${cotRow.net >= 0 ? 'largo' : 'corto'} neto (percentil ${cotRow.percentile}${cotRow.extreme ? ', extremo' : ''})` : 'sin COT' },
+      escenario: { value: scen.value, raw: scen.scenario, missing: scen.scenario === null, scenario: scen.scenario, text: scen.text },
     };
     let num = 0;
     let den = 0;
@@ -101,8 +104,9 @@ export function computeInstruments(db, input) {
     const score = round((5 * num) / den);
     const bias = score >= 0 ? 'alcista' : 'bajista';
     const strength = Math.abs(score) >= 4 ? 'fuerte' : Math.abs(score) >= 2 ? 'moderado' : 'sin sesgo';
-    const missing = Object.values(pillars).filter((x) => x.missing).length;
-    const confidence = Math.round(100 * (1 - missing / 7) * Math.min(1, Math.abs(score) / 6));
+    const missing = Object.entries(pillars).filter(([k, x]) => x.missing && INSTRUMENT_PILLAR_WEIGHTS[k]).length;
+    const weighted = Object.keys(pillars).filter((k) => INSTRUMENT_PILLAR_WEIGHTS[k]).length;
+    const confidence = Math.round(100 * (1 - missing / weighted) * Math.min(1, Math.abs(score) / 6));
     const structure = { yesterday: p.yesterday, trend: p.trend, levels: p.levels, pos_pd: p.pos_pd, expected: p.expected };
     const warnings = [];
     if (nextEv.some((e) => e.at_utc <= in2h)) warnings.push({ kind: 'noticia_en_2h', text: `Dato de alto impacto de EE. UU. en menos de 2 h (${nextEv.find((e) => e.at_utc <= in2h).title}): no abrir posiciones nuevas.` });

@@ -52,7 +52,15 @@ export function readExpectation(row, ccy, db, now = new Date()) {
 }
 
 /** Plan de la semana de trading (lunes-viernes) que toca: en fin de semana, la próxima. */
-export function weekPlan(db, { now = new Date(), expectations = [], pairs = [], cotByCurrency = {}, market = null, tz = 'America/New_York' } = {}) {
+/** Palabras de conflicto en titulares (método Curto: la geopolítica manda sobre el calendario). Solo aviso, sin medir. */
+const GEO_RE = /\b(war|missile|missiles|strike|strikes|airstrike|attack|attacks|invasion|invade|troops|military|nuclear|ceasefire|sanction|sanctions|tariff|tariffs|hormuz|blockade|escalat\w*|conflict|geopolit\w*)\b/i;
+export function geopoliticalAlert(news, now = new Date()) {
+  const since = now.getTime() - 24 * 3600_000;
+  const hits = (news || []).filter((n) => n.published_at && new Date(n.published_at).getTime() >= since && GEO_RE.test(n.title || ''));
+  return { count: hits.length, titles: hits.slice(0, 3).map((n) => n.title) };
+}
+
+export function weekPlan(db, { now = new Date(), expectations = [], pairs = [], cotByCurrency = {}, market = null, news = [], tz = 'America/New_York' } = {}) {
   const todayNy = dateInTz(now.toISOString(), tz);
   const wd = weekdayOf(todayNy);
   let monday;
@@ -115,6 +123,8 @@ export function weekPlan(db, { now = new Date(), expectations = [], pairs = [], 
   for (const e of expectations) if (e.priced_pct !== null && e.priced_pct >= 85 && e.priced !== 'incierto') cautions.push(`${CENTRAL_BANKS[e.currency].short}: ${e.priced} descontada al ${fmt(e.priced_pct)} %; la sorpresa sería que no ocurra.`);
   for (const [c, row] of Object.entries(cotByCurrency)) if (row.extreme) cautions.push(`Posicionamiento extremo en ${c} (percentil ${row.percentile}): una sorpresa produciría movimientos violentos.`);
   if (market && market.vix && market.vix.value !== null && market.vix.value > 25) cautions.push(`VIX en ${fmt(market.vix.value, 1)}: modo refugio, el sesgo por tasas pesa menos que el miedo.`);
+  const geo = geopoliticalAlert(news, now);
+  if (geo.count >= 4) cautions.push(`Geopolítica: ${geo.count} titulares de conflicto en 24 h (p. ej. «${geo.titles[0]}»). Si hay un shock, manda sobre el calendario: menos confianza en el sesgo por datos (aviso sin medir).`);
 
   // Postura y texto
   const isRateWeek = decisions.length > 0;

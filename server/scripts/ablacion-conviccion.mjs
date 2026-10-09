@@ -21,13 +21,13 @@ const rows = report.conv_rows;
 console.log(`\n${rows.length} filas (día × par) en ${Math.round((Date.now() - t0) / 1000)} s\n`);
 
 const idx = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
-const NEW = ['taylor', 'descontado', 'real', 'tot'];
+const NEW = ['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande'];
 const BASE = FEATURE_NAMES.filter((n) => !NEW.includes(n));
 const configs = [
   { name: 'base (16, v1)', mask: idx(BASE), lambda: LAMBDA },
   ...NEW.map((n) => ({ name: `base + ${n}`, mask: idx([...BASE, n]), lambda: LAMBDA })),
-  { name: 'todas (20) λ=2', mask: null, lambda: 2 },
-  { name: 'todas (20) λ=20', mask: null, lambda: 20 },
+  { name: 'todas λ=2', mask: null, lambda: 2 },
+  { name: 'todas λ=20', mask: null, lambda: 20 },
   { name: 'base λ=8', mask: idx(BASE), lambda: 8 },
   { name: 'base + descontado λ=8', mask: idx([...BASE, 'descontado']), lambda: 8 },
   { name: 'base + desc + real', mask: idx([...BASE, 'descontado', 'real']), lambda: LAMBDA },
@@ -38,8 +38,12 @@ const configs = [
   { name: 'base + descontado · corte 1/2', mask: idx([...BASE, 'descontado']), lambda: LAMBDA, split: 0.5 },
   { name: 'base + real · corte 1/2', mask: idx([...BASE, 'real']), lambda: LAMBDA, split: 0.5 },
   { name: 'base + tot · corte 1/2', mask: idx([...BASE, 'tot']), lambda: LAMBDA, split: 0.5 },
+  { name: 'base + ciclo · corte 1/2', mask: idx([...BASE, 'ciclo']), lambda: LAMBDA, split: 0.5 },
+  { name: 'base + sorpresa_grande · corte 1/2', mask: idx([...BASE, 'sorpresa_grande']), lambda: LAMBDA, split: 0.5 },
   { name: 'base · corte 1/3', mask: idx(BASE), lambda: LAMBDA, split: 1 / 3 },
   { name: 'base + descontado · corte 1/3', mask: idx([...BASE, 'descontado']), lambda: LAMBDA, split: 1 / 3 },
+  { name: 'base + ciclo · corte 1/3', mask: idx([...BASE, 'ciclo']), lambda: LAMBDA, split: 1 / 3 },
+  { name: 'base + sorpresa_grande · corte 1/3', mask: idx([...BASE, 'sorpresa_grande']), lambda: LAMBDA, split: 1 / 3 },
 ];
 
 const f = (b) => (b && b.n ? `${String(b.hit_rate).padStart(5)} % ${b.avg_r >= 0 ? '+' : ''}${b.avg_r.toFixed(2)}R n=${String(b.n).padStart(4)}` : '        —          ');

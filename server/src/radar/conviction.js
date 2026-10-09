@@ -9,14 +9,15 @@ export const FEATURE_NAMES = [
   'fuerza', 'extremo', 'crecimiento', 'tendencia20', 'vela_ayer', 'extension_ema', 'eficiencia',
   'vix_tension', 'cot_extremo', 'noticia_24h', 'ultima_sorpresa', 'valor', 'tendencia_larga', 'sorpresas', 'par_usd', 'par_jpy',
   'taylor', 'descontado', 'real', 'tot',
+  'ciclo', 'sorpresa_grande',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 3;
+export const FEATURE_VERSION = 4;
 /**
  * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
  * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.
  */
-export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot'].includes(n));
+export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande'].includes(n));
 export const CANDIDATE_FEATURES = FEATURE_NAMES.filter((n) => !BASE_FEATURES.includes(n));
 export const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
 /** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
@@ -57,7 +58,8 @@ function efficiency(closes, n = 20) {
 /**
  * Vector de condiciones de una señal (todas en el sentido del sesgo: positivo = a favor).
  * @param {object} ctx { diff, prevDiff5, bars (diarias OHLC ascendentes, la última = hoy cerrada), vix, cotExtreme,
- *                       newsSoon, lastSurprise (−1|0|1 ya alineado), pillarDiff {valor, tendencia, sorpresas}, symbol }
+ *                       newsSoon, lastSurprise (−1|0|1 ya alineado), lastSurpriseBig (ídem, solo tipos/IPC/PIB/empleo),
+ *                       pillarDiff {valor, tendencia, sorpresas, …, ciclo}, symbol }
  */
 export function signalFeatures(ctx) {
   const s = ctx.diff > 0 ? 1 : -1;
@@ -95,6 +97,9 @@ export function signalFeatures(ctx) {
     clamp(((pd.descontado || 0) * s) / 2, -1, 1),
     clamp(((pd.real || 0) * s) / 2, -1, 1),
     clamp(((pd.tot || 0) * s) / 2, -1, 1),
+    // Fase 3 (método Curto): fase del ciclo (base menos cotizada) y último dato de los cuatro que cambian tendencias.
+    clamp(((pd.ciclo || 0) * s) / 4, -1, 1),
+    clamp(ctx.lastSurpriseBig || 0, -1, 1),
   ];
   return { x, atr, level };
 }
@@ -182,6 +187,8 @@ const REASON_TEXT = {
   descontado: ['el mercado aún no descuenta lo que piden los datos', 'el mercado ya lo descuenta'],
   real: ['tipo real a favor', 'tipo real en contra'],
   tot: ['materias primas a favor', 'materias primas en contra'],
+  ciclo: ['fase del ciclo a favor', 'fase del ciclo en contra'],
+  sorpresa_grande: ['último dato grande (tipos, IPC, PIB, empleo) a favor', 'último dato grande en contra'],
 };
 
 /** Las 3 condiciones que más suman y las 2 que más restan, en castellano, para explicar un nivel. */

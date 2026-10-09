@@ -75,7 +75,7 @@ export const MAX_FAVORITES = 3;
 /** Pares "principales" del usuario (arriba en la UI). */
 export const MAIN_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];
 
-export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas' | 'taylor' | 'descontado' | 'real' | 'tot';
+export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas' | 'taylor' | 'descontado' | 'real' | 'tot' | 'ciclo';
 
 export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: number; hint: string }> = [
   { key: 'tasas', label: 'Tasas', weight: 20, hint: 'Tasa de política y nivel del bono a 2 años (carry y lo ya descontado)' },
@@ -94,6 +94,7 @@ export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: num
   { key: 'descontado', label: 'Descontado vs debido', weight: 0, hint: 'Lo que piden los datos (Taylor) menos lo que el mercado ya descuenta (bono a 2 años): la oportunidad está donde aún no está en precio' },
   { key: 'real', label: 'Tipo real', weight: 0, hint: 'Tasa de política menos inflación interanual' },
   { key: 'tot', label: 'Materias primas', weight: 0, hint: 'Petróleo (CAD +, JPY −) y cobre (AUD, NZD) a 20 días: términos de intercambio' },
+  { key: 'ciclo', label: 'Fase del ciclo', weight: 0, hint: 'Expansión, pico, recesión o recuperación según PMI y su pendiente, paro a 6 meses, inflación frente al 2 % y curva 10-2 (método de Daniel Curto). Peso 0 hasta que el backtest lo valide' },
 ];
 
 // ---------- Contrato de la API: divisas y pares ----------
@@ -140,6 +141,7 @@ export interface CurrencyPillars {
   tendencia?: Pillar & { s3?: number | null; s12?: number | null };
   sorpresas?: Pillar & { n?: number };
   taylor?: Pillar & { taylor_rate?: number | null; pmi?: number | null; unemp12?: number | null };
+  ciclo?: Pillar & { phase?: string; pmi?: number | null; pmi_slope?: number | null; unemp6?: number | null; infl_gap?: number | null; curve?: number | null };
   descontado?: Pillar;
   real?: Pillar;
   tot?: Pillar;
@@ -272,6 +274,27 @@ export interface QueOperar {
   min_level?: number;
   total_a: number;
   total_b: number;
+}
+
+export interface SwingFrame { dir: 1 | -1 | 0; since: number | null; ok: boolean }
+export interface SwingSizing { risk_pips: number; lots: number; risk_usd: number }
+export interface SwingPair {
+  symbol: string; base: CurrencyCode | null; quote: CurrencyCode | null; synthetic: boolean; price: number | null; digits: number;
+  bias: Bias; diff: number; level: number; tier: 'A' | 'B' | 'C' | null; p5: number | null;
+  trend: { w1: string; d1: string; h4: string } | null; er20: number | null; liquidity: number;
+  weekly: SwingFrame; daily: SwingFrame;
+  h4: SwingFrame & { ema200: boolean | null; last_bar: string | null };
+  stops: { estructura: number | null; diario: number | null; estructura_sizing: SwingSizing | null; diario_sizing: SwingSizing | null } | null;
+  atr_pips: number | null;
+  estado: 'entrada' | 'en_curso' | 'esperando_cruce' | 'semanal_en_contra' | 'sin_sesgo';
+  warnings: string[];
+}
+export interface SwingPlan {
+  as_of: string;
+  account: { usd: number; risk_pct: number; max_pairs: number };
+  evidence: { text: string };
+  selected: string[];
+  pairs: SwingPair[];
 }
 
 export interface NextEvent {
@@ -575,6 +598,7 @@ export interface RadarSnapshot {
   sentiment: Sentiment | null;
   news_top: NewsItem[];
   que_operar?: QueOperar | null;
+  swing?: SwingPlan | null;
 }
 
 export interface RadarPairDetail {
@@ -1465,9 +1489,9 @@ export const INSTRUMENT_LABELS: Record<string, string> = {
 };
 
 export const INSTRUMENT_PILLAR_LABELS: Record<string, string> = {
-  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)',
+  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)',
 };
-export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5 };
+export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0 };
 
 /** Normaliza cualquier símbolo (par FX o índice/metal, con o sin sufijo) al del radar. */
 export function normalizeAnySymbol(symbol: string | null | undefined): string | null {

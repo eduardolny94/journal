@@ -107,3 +107,28 @@ Dos lecciones que cambian cómo leer la tarjeta:
    nivel acertaron X % fuera de muestra" y no "probabilidad garantizada".
 
 Pendiente para que mejoren de verdad: más historial (precios y calendario de 10 años) y medir en el journal.
+
+## Fase 3 (09-10-2026): fase del ciclo y "cuatro datos grandes" (método de Daniel Curto)
+
+Dos condiciones candidatas más, del curso de fundamentales de Daniel Curto (`docs/aprendizaje-videos/`):
+
+- **Fase del ciclo por economía** (`cycle-phase.js`, pilar `ciclo` a peso 0): expansión, pico, recesión o recuperación a
+  partir del PMI y su pendiente a 3 meses, el paro a 6 meses, la inflación frente al 2 % y la curva 10-2 de EE. UU.
+  Condición = fase de la base menos fase de la cotizada, en el sentido del sesgo.
+- **Último dato grande** (`sorpresa_grande`): como `ultima_sorpresa` pero solo con tipos, IPC, PIB y empleo.
+
+Ablación (`ablacion-conviccion.mjs`, 09-10-2026, 21.817 filas), nivel A fuera de muestra a 5 días:
+
+| Modelo | corte 2/3 | corte 1/2 | corte 1/3 |
+|---|---|---|---|
+| 16 condiciones (activo) | 65,7 % +0,50R (n=175) | 55,3 % +0,03R (n=673) | 51,3 % (n=2.221) |
+| + ciclo | 62,2 % +0,29R (n=251) | 54,8 % −0,02R (n=777) | 52,0 % (n=2.316) |
+| + sorpresa_grande | 68,2 % +0,39R (n=198) | 56,1 % +0,06R (n=731) | 52,1 % (n=2.320) |
+
+**Decisión**: ninguna entra. `ciclo` empeora en dos de tres cortes; `sorpresa_grande` sube 2,5 puntos en el corte 2/3
+pero con R peor y menos de 2 puntos en los otros dos. Quedan como candidatas que el ciclo de mejora mide cada semana.
+La fase del ciclo se enseña igualmente en cada divisa (contexto, como pide Curto), sin mover el sesgo.
+
+Horizonte largo (mismo backtest, sesgo bruto sin modelo): a **60 días** el sesgo con fuerza 3 acierta 57,2 % (n=1.868)
+y con fuerza 4 **63,2 % y +72 pips** (n=481), frente a 52,5 % y 51,3 % a 5 días. Curto tiene razón en que el macro
+paga a meses, no a días: el apartado Swing y la tarjeta de sesgo largo deben leerse a ese horizonte.

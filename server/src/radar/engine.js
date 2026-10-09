@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { getDb } from '../db.js';
 import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
+import { computeSwing } from './swing.js';
 import { refreshYahoo, getPrices } from './sources/prices.js';
 import { refreshFred, latest } from './sources/fred.js';
 import { refreshCalendar, refreshCalendarHistory, nextEventByTitles } from './sources/calendar.js';
@@ -292,13 +293,19 @@ async function compute() {
   let instruments = [];
   try {
     const usd = core.currencies.find((c) => c.code === 'USD');
-    instruments = computeInstruments(db, { prices, cot, usdGrowth: usd ? usd.pillars.crecimiento.value : 0, expectations: expByCcy, now });
+    instruments = computeInstruments(db, { prices, cot, usdGrowth: usd ? usd.pillars.crecimiento.value : 0, usdCycle: usd ? usd.pillars.ciclo : null, expectations: expByCcy, now });
   } catch (e) {
     console.warn('[radar] índices y metales:', e.message);
   }
   const market = marketContext(prices.market);
   const sentiment = sentimentOf(prices.market, core.pairData, cot.byCurrency);
-  const week = weekPlan(db, { now: nowDate, expectations, pairs: core.pairs, cotByCurrency: cot.byCurrency, market });
+  let swing = null;
+  try {
+    swing = computeSwing(prices, core.pairs, { now });
+  } catch (e) {
+    console.warn('[radar] swing:', e.message);
+  }
+  const week = weekPlan(db, { now: nowDate, expectations, pairs: core.pairs, cotByCurrency: cot.byCurrency, market, news: listNews(db, { limit: 60 }) });
   const newsTop = listNews(db, { limit: 5, minUrgency: 7 });
   const snapshot = {
     computed_at: nowDate.toISOString(),
@@ -317,6 +324,7 @@ async function compute() {
     instruments,
     upcoming: core.upcoming,
     que_operar: core.que_operar || null,
+    swing,
     cot: cot.rows,
     expectations,
     week,

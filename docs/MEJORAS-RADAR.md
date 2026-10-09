@@ -39,6 +39,9 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 
 24. **Tono del banco central versionado y global (08-10-2026).** `server/src/radar/data/cb-tone.json` guarda el tono (−2..+2), la nota, la fecha y la caducidad por divisa; el motor lo aplica a `radar_manual` en cada despliegue (`syncToneFromFile` en `engine.js`, nota con marca `[bitácora]`), así la lectura cualitativa de actas, decisiones y discursos llega a todos los usuarios sin tocar Ajustes a mano. Un ajuste manual posterior prevalece; al caducar vuelve a 0. Cada entrada sale de [BITACORA-NOTICIAS.md](BITACORA-NOTICIAS.md). Sigue siendo el pilar «tono» de peso 5: no cambia pesos ni condiciones medidas.
 
+25. **Método Curto aplicado (09-10-2026).** Fase del ciclo por economía (`cycle-phase.js`, pilar «ciclo» a peso 0 y condición candidata), «último dato grande» (tipos, IPC, PIB, empleo) como condición candidata, matriz crecimiento × inflación en oro e índices (pilar «escenario», peso 0), aviso geopolítico en Semana (titulares de conflicto, sin medir) y horizonte de 60 días en el backtest. Medido: ninguna de las dos condiciones mejora el nivel A en los tres cortes (ver [CONVICCION.md](CONVICCION.md), fase 3); a 60 días el sesgo con fuerza 4 acierta 63 % (n=481).
+26. **Apartado Swing (09-10-2026).** La operativa C4L del usuario (EMA 8 / MA 18 / EMA 200 en H4) medida con 2,5 años de H1 (`backtest-c4l-swing.mjs`, velas de Yahoo vía `descargar-h1-yahoo.mjs`): el cruce solo pierde; con semana alineada y sesgo del radar a favor +0,10/+0,18R (n=375), con nivel A/B +0,42/+0,61R (n=46); «pares tendenciales» empeora. Pestaña Swing con hasta 4 pares, estado por marco, stops y tamaño para 500 $ al 1 % (`swing.js`, `SwingCard.tsx`). Detalle en [ESTRATEGIA-SWING-H4.md](ESTRATEGIA-SWING-H4.md).
+
 ## Lo que se descarta (medido, sin ventaja)
 
 - La reacción de la primera hora tras una noticia como señal de continuación (48 %).

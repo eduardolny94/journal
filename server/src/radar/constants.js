@@ -94,6 +94,8 @@ export const PILLAR_WEIGHTS = {
   descontado: 0,
   real: 0,
   tot: 0,
+  // Fase 3 (cycle-phase.js, método Curto): fase del ciclo por economía. Peso 0 hasta que el backtest lo valide.
+  ciclo: 0,
 };
 export const PILLARS = Object.keys(PILLAR_WEIGHTS);
 
@@ -107,6 +109,7 @@ export const PILLAR_LABELS = {
   riesgo: 'Riesgo',
   momentum: 'Momentum',
   tono: 'Tono',
+  ciclo: 'Fase del ciclo',
 };
 
 // ---------- Precios (RADAR-v2 §A): Yahoo Finance como fuente principal ----------
@@ -364,8 +367,8 @@ export const INSTRUMENT_SYMBOLS = INSTRUMENTS.map((i) => i.symbol);
 export const INSTRUMENT_BY_SYMBOL = Object.fromEntries(INSTRUMENTS.map((i) => [i.symbol, i]));
 
 /** Pesos de los pilares de índices y metales (suman 100). */
-export const INSTRUMENT_PILLAR_WEIGHTS = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5 };
-export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)' };
+export const INSTRUMENT_PILLAR_WEIGHTS = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0 };
+export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */
 export function normalizeInstrumentSymbol(raw) {

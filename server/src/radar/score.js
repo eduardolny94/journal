@@ -13,6 +13,7 @@ import { currentTradingDay } from '../services/tradingDay.js';
 import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
 import { signalFeatures, predictProb, tierOf, explain } from './conviction.js';
 import { fundamentalsFor, termsOfTrade } from './fundamentals.js';
+import { cyclePhaseFor } from './cycle-phase.js';
 import { PAIR_LIQUIDITY, pairPip } from './constants.js';
 
 const fmt = (n, k = 2) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
@@ -318,6 +319,9 @@ export function computeCurrencies(db, input) {
   const fund = {};
   for (const c of CURRENCIES) fund[c] = fundamentalsFor(db, c, { policy: rates[c].policy, inflation: infl[c] ? infl[c].value : null, now, lagDays });
   const totC = termsOfTrade(market);
+  // Fase 3 (cycle-phase.js, método Curto): fase del ciclo por economía, point-in-time.
+  const cyc = {};
+  for (const c of CURRENCIES) cyc[c] = cyclePhaseFor(db, c, { inflation: infl[c] ? infl[c].value : null, now, lagDays });
   const zTaylor = zscores(CURRENCIES.map((c) => fund[c].taylor_gap));
   const zPriced = zscores(CURRENCIES.map((c) => (exps[c].d60 !== null ? exps[c].d60 : exps[c].d20)));
   const zReal = zscores(CURRENCIES.map((c) => fund[c].real));
@@ -380,6 +384,8 @@ export function computeCurrencies(db, input) {
         text: fund[c].taylor_gap === null ? 'sin datos' : zTaylor[i] - zPriced[i] > 0.5 ? 'los datos piden más de lo que el mercado descuenta' : zTaylor[i] - zPriced[i] < -0.5 ? 'el mercado descuenta más de lo que piden los datos' : 'lo descontado va en línea con los datos' },
       real: { value: round(fund[c].real === null ? 0 : zReal[i]), raw: fund[c].real, missing: fund[c].real === null,
         text: fund[c].real === null ? 'sin datos' : `tipo real ${fund[c].real >= 0 ? '+' : ''}${fmt(fund[c].real, 2)} % (tasa menos inflación)` },
+      ciclo: { value: cyc[c].value, raw: cyc[c].value, missing: cyc[c].pmi === null, phase: cyc[c].phase, pmi: cyc[c].pmi, pmi_slope: cyc[c].pmi_slope, unemp6: cyc[c].unemp6, infl_gap: cyc[c].infl_gap, curve: cyc[c].curve,
+        text: cyc[c].text },
       tot: { value: round(totC[c].raw === null ? 0 : zTot[i]), raw: round(totC[c].raw), missing: totC[c].raw === null,
         text: totC[c].raw === null ? 'sin exposición a materias primas' : `materias primas ${totC[c].raw >= 0 ? 'a favor' : 'en contra'} (petróleo ${totC[c].oil === null ? '—' : (totC[c].oil >= 0 ? '+' : '') + fmt(totC[c].oil, 1) + ' %'}, cobre ${totC[c].copper === null ? '—' : (totC[c].copper >= 0 ? '+' : '') + fmt(totC[c].copper, 1) + ' %'} en 20 d)` },
     };
@@ -537,7 +543,14 @@ function finishRadar(db, input, ctx) {
 /** Diferencias base − cotizada de los pilares que entran como condiciones en la capa de convicción. */
 export function pillarDiffs(pb, pq) {
   const d = (k) => ((pb[k] ? pb[k].value : 0) || 0) - ((pq[k] ? pq[k].value : 0) || 0);
-  return { valor: d('valor'), tendencia: d('tendencia'), sorpresas: d('sorpresas'), taylor: d('taylor'), descontado: d('descontado'), real: d('real'), tot: d('tot') };
+  return { valor: d('valor'), tendencia: d('tendencia'), sorpresas: d('sorpresas'), taylor: d('taylor'), descontado: d('descontado'), real: d('real'), tot: d('tot'), ciclo: d('ciclo') };
+}
+
+/** Los cuatro datos que "cambian tendencias" según Curto: tipos, IPC, PIB y empleo (NFP, paro). */
+export function isBigFour(ev) {
+  const cat = ev.category || categorize(ev.title);
+  if (cat === 'tasas' || cat === 'inflacion' || cat === 'empleo') return true;
+  return /\bGDP\b|\bPIB\b/i.test(String(ev.title || ''));
 }
 
 /** Nivel A/B/C de un par con el modelo del backtest (mismas condiciones que en la reconstrucción histórica). */
@@ -556,13 +569,19 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   const in24h = new Date(input.now || Date.now()).getTime() + 24 * 3600_000;
   const newsSoon = nextEv.some((e) => e.impact === 'High' && new Date(e.at_utc).getTime() <= in24h);
   const dir = {};
-  for (const e of [...lastEv].reverse()) if (e.favors && e.impact !== 'Low') dir[e.currency] = e.favors === e.currency ? 1 : -1;
+  const dirBig = {};
+  for (const e of [...lastEv].reverse()) {
+    if (!e.favors || e.impact === 'Low') continue;
+    dir[e.currency] = e.favors === e.currency ? 1 : -1;
+    if (isBigFour(e)) dirBig[e.currency] = dir[e.currency];
+  }
   const pb = byCode[base].pillars;
   const pq = byCode[quote].pillars;
   const feat = signalFeatures({
     symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null,
     cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
     lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
+    lastSurpriseBig: clamp(sign * ((dirBig[base] || 0) - (dirBig[quote] || 0)), -1, 1),
     pillarDiff: pillarDiffs(pb, pq),
   });
   const p5 = predictProb(model5, feat.x);
