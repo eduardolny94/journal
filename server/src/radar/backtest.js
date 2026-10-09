@@ -138,7 +138,11 @@ function finish(b, extra = {}) {
  * @param {object} db
  * @param {{ years?: number, horizons?: number[], now?: number, log?: (s: string) => void }} opts
  */
-export async function runBacktest(db, { years = 3, horizons = [1, 3, 5, 10, 20, 60], now = Date.now(), log = () => {}, keepRows = false } = {}) {
+/** Horizontes del backtest (días). El de 60 días (medido el 09-10-2026: fuerza 4 acierta 63 %) añade ~60 MB de pico en
+ * un contenedor de 512 MB, así que en producción no entra por defecto: RADAR_BACKTEST_HORIZONS=1,3,5,10,20,60 lo activa. */
+export const DEFAULT_HORIZONS = String(process.env.RADAR_BACKTEST_HORIZONS || '1,3,5,10,20').split(',').map(Number).filter((n) => Number.isFinite(n) && n > 0);
+
+export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, now = Date.now(), log = () => {}, keepRows = false } = {}) {
   const t0 = Date.now();
   const maxH = Math.max(...horizons);
   log('descargando precios diarios (Yahoo, 5 años)…');

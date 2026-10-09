@@ -19,6 +19,8 @@ const SYMBOLS = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'USDCAD', 'AUDUSD', 'NZ
 const SPREAD_PIPS = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5 };
 const FAST = 8, SLOW = 18, TREND = 200, STRUCT_BARS = 10, MAX_BARS = 200, MIN_STOP_ATR = 0.3;
 const TOP_TRENDING = 4;
+const argStop = process.argv.indexOf('--stop-pips');
+const FIXED_STOP_PIPS = argStop >= 0 ? Number(process.argv[argStop + 1]) : null;
 
 function loadH1(sym) {
   const rows = readFileSync(path.join(DATA, `${sym}_PERIOD_H1.csv`), 'utf8').trim().split(/\r?\n/).slice(1);
@@ -151,26 +153,49 @@ for (const sym of SYMBOLS) {
     const tier = tierBy ? tierBy[`${sym}|${b.date}`] || null : null;
     const radarAB = tierBy ? (radarOk === true && (tier === 'A' || tier === 'B')) : null;
     const trending = topTrendingAt(b.date).has(sym);
-    for (const [stopKind, stop] of [['estructura', stopStruct], ['diario', stopDaily]]) {
+    const stopFixed = FIXED_STOP_PIPS ? (dir > 0 ? entry - FIXED_STOP_PIPS * pip : entry + FIXED_STOP_PIPS * pip) : null;
+    for (const [stopKind, stop] of [['estructura', stopStruct], ['diario', stopDaily], ['fijo', stopFixed]]) {
       if (stop === null) continue;
       let risk = dir > 0 ? entry - stop : stop - entry;
       if (risk < MIN_STOP_ATR * a) risk = MIN_STOP_ATR * a; // stop pegado: distancia mínima
       const stopPx = dir > 0 ? entry - risk : entry + risk;
-      // Salida: cruce contrario (al cierre de esa vela) o stop en H1; tope de MAX_BARS velas H4.
+      // Salidas medidas a la vez sobre las mismas velas H1 (stop antes que objetivo si tocan en la misma hora):
+      //   cruce   = cruce contrario al cierre de la vela H4 (regla original del usuario)
+      //   obj2    = objetivo fijo 2R (también 1,5R y 3R); si no llega, stop
+      //   parcial = 80 % cerrado en 2R, stop del 20 % restante a la entrada (sin riesgo) y salida en el cruce contrario
       let exitR = null; let bars = 0; let reason = 'tope';
+      const tgt = { 1.5: null, 2: null, 3: null };
+      let maxFav = 0; let runnerStop = stopPx; let partialDone = false; let runnerExit = null;
       let j = i + 1;
       for (; j < h4.length && bars < MAX_BARS; j++, bars++) {
-        let hit = false;
+        let hit = false; let runnerHit = false;
         for (let k = h4[j].first; k <= h4[j].last; k++) {
           const x = h1[k];
-          if (dir > 0 ? x.l <= stopPx : x.h >= stopPx) { hit = true; break; }
+          const fav = (dir > 0 ? x.h - entry : entry - x.l) / risk;
+          const adverseStop = dir > 0 ? x.l <= stopPx : x.h >= stopPx;
+          if (adverseStop && exitR === null) { hit = true; }
+          if (!hit) maxFav = Math.max(maxFav, fav);
+          for (const t of [1.5, 2, 3]) if (tgt[t] === null && !hit && fav >= t) tgt[t] = t;
+          if (!hit && !partialDone && fav >= 2) { partialDone = true; runnerStop = entry; }
+          if (partialDone && runnerExit === null && (dir > 0 ? x.l <= runnerStop : x.h >= runnerStop)) runnerHit = true;
+          if (hit) break;
         }
-        if (hit) { exitR = -1; reason = 'stop'; break; }
+        if (hit) { if (exitR === null) { exitR = -1; reason = 'stop'; } if (!partialDone) { runnerExit = -1; } break; }
+        if (runnerHit && runnerExit === null) runnerExit = 0; // el resto salió a la entrada
         const cross = dir > 0 ? F.e8[j] < F.s18[j] : F.e8[j] > F.s18[j];
-        if (cross) { exitR = (dir > 0 ? h4[j].c - spread - entry : entry - h4[j].c - spread) / risk; reason = 'cruce'; break; }
+        if (cross) {
+          const rc = (dir > 0 ? h4[j].c - spread - entry : entry - h4[j].c - spread) / risk;
+          if (exitR === null) { exitR = rc; reason = 'cruce'; }
+          if (runnerExit === null) runnerExit = partialDone ? rc : rc;
+          break;
+        }
       }
       if (exitR === null) { if (j >= h4.length) continue; exitR = (dir > 0 ? h4[j - 1].c - entry : entry - h4[j - 1].c) / risk; }
-      trades.push({ sym, date: b.date, year: b.date.slice(0, 4), dir, stopKind, r: exitR, bars, reason, risk_pips: risk / pip, ema200ok, d1ok, w1ok, radarOk, radarAB, trending });
+      if (runnerExit === null) runnerExit = exitR;
+      for (const t of [1.5, 2, 3]) if (tgt[t] === null) tgt[t] = exitR < 0 && reason === 'stop' ? -1 : (reason === 'cruce' ? Math.min(exitR, t) : exitR);
+      // Variante parcial: 0,8 × 2R + 0,2 × salida del resto (si no llegó a 2R, es la salida original completa)
+      const parcial = partialDone ? 0.8 * 2 + 0.2 * runnerExit : exitR;
+      trades.push({ sym, date: b.date, year: b.date.slice(0, 4), dir, stopKind, r: exitR, r15: tgt[1.5], r2: tgt[2], r3: tgt[3], r_parcial: parcial, max_fav: Math.round(maxFav * 100) / 100, bars, reason, risk_pips: risk / pip, entry, stop: stopPx, ema200ok, d1ok, w1ok, radarOk, radarAB, trending });
     }
   }
 }
@@ -199,9 +224,9 @@ const VARIANTS = [
   ['+ semanal + radar A/B + tendencial', (t) => t.w1ok === true && t.radarAB === true && t.trending],
   ['+ semanal + EMA 200 + radar', (t) => t.w1ok === true && t.ema200ok && t.radarOk === true],
 ];
-for (const stopKind of ['estructura', 'diario']) {
+for (const stopKind of FIXED_STOP_PIPS ? ['estructura', 'diario', 'fijo'] : ['estructura', 'diario']) {
   const T = trades.filter((t) => t.stopKind === stopKind);
-  console.log(`\n== Stop en el último ${stopKind === 'estructura' ? 'bajo/alto de 10 velas H4' : 'mínimo/máximo del día anterior'} · salida en el cruce contrario · ${SYMBOLS.length} pares · ${T[0] ? T[0].date : ''} → ${T[T.length - 1] ? T[T.length - 1].date : ''} ==`);
+  console.log(`\n== Stop en el ${stopKind === 'estructura' ? 'último bajo/alto de 10 velas H4' : stopKind === 'diario' ? 'último mínimo/máximo del día anterior' : `fijo de ${FIXED_STOP_PIPS} pips`} · salida en el cruce contrario · ${SYMBOLS.length} pares · ${T[0] ? T[0].date : ''} → ${T[T.length - 1] ? T[T.length - 1].date : ''} ==`);
   for (const [name, fn] of VARIANTS) line(name, stats(T.filter(fn)));
 }
 // Detalle de la mejor combinación con stop de estructura: por par y por año.
@@ -212,6 +237,59 @@ console.log('Semanal + radar (stop estructura) · por año:');
 for (const y of [...new Set(best.map((t) => t.year))].sort()) line(y, stats(best.filter((t) => t.year === y)));
 console.log('Semanal + radar (stop estructura) · motivo de salida:');
 for (const r of ['cruce', 'stop', 'tope']) line(r, stats(best.filter((t) => t.reason === r)));
+
+// Salidas alternativas (objetivo fijo y parcial) para las combinaciones clave, con stop de estructura y en el día anterior.
+const statsR = (list, key) => stats(list.map((t) => ({ ...t, r: t[key] })));
+console.log('\n== Salidas alternativas · gana % / R por operación / factor (n) ==');
+for (const stopKind of FIXED_STOP_PIPS ? ['estructura', 'diario', 'fijo'] : ['estructura', 'diario']) {
+  console.log(`  stop ${stopKind}:`);
+  for (const [name, fn] of [['semanal', (t) => t.w1ok === true], ['semanal + radar', (t) => t.w1ok === true && t.radarOk === true], ['semanal + radar A/B', (t) => t.w1ok === true && t.radarAB === true]]) {
+    const T = trades.filter((t) => t.stopKind === stopKind && fn(t));
+    const cell = (key) => { const s = statsR(T, key); return s.n ? `${s.win}% ${s.avg >= 0 ? '+' : ''}${s.avg}R PF ${s.pf}` : '—'; };
+    console.log(`    ${name.padEnd(22)} n=${String(T.length).padStart(4)} · cruce: ${cell('r')} · 1,5R: ${cell('r15')} · 2R: ${cell('r2')} · 3R: ${cell('r3')} · parcial 80 % en 2R + resto al cruce: ${cell('r_parcial')}`);
+  }
+}
+// Lista de operaciones de un par y periodo (para comparar con un backtest manual): --par GBPJPY --desde 2026-04-01 --hasta 2026-06-15
+const ap = process.argv.indexOf('--par');
+if (ap >= 0) {
+  const sym = process.argv[ap + 1]; const ad = process.argv.indexOf('--desde'); const ah = process.argv.indexOf('--hasta');
+  const from = ad >= 0 ? process.argv[ad + 1] : '2000-01-01'; const to = ah >= 0 ? process.argv[ah + 1] : '2100-01-01';
+  console.log(`\nOperaciones ${sym} ${from} → ${to} · regla: cruce 8/18 en H4 a favor de la semana 8/18 · stop estructura (10 velas H4)`);
+  for (const t of trades.filter((t) => t.sym === sym && t.stopKind === 'estructura' && t.w1ok === true && t.date >= from && t.date <= to)) {
+    console.log(`  ${t.date} ${t.dir > 0 ? 'compra' : 'venta '} entrada ${t.entry.toFixed(3)} stop ${t.stop.toFixed(3)} (${t.risk_pips.toFixed(0)} pips) · máx a favor ${t.max_fav}R · cruce ${t.r >= 0 ? '+' : ''}${t.r.toFixed(2)}R (${t.reason}, ${t.bars} velas) · obj 2R ${t.r2 >= 0 ? '+' : ''}${t.r2}R · parcial ${t.r_parcial >= 0 ? '+' : ''}${t.r_parcial.toFixed(2)}R · radar ${t.radarOk === null ? '—' : t.radarOk ? 'a favor' : 'en contra'}${t.radarAB ? ' A/B' : ''}`);
+  }
+}
+
+// Persistencia de la tendencia en H4 por par: tramos de velas con la EMA 8 a un lado de la media 18, en días (6 velas H4).
+// Se miden todos los tramos, los alineados con la semana 8/18 y los que además tenían el radar a favor (fuerza ≥ 2).
+if (process.argv.includes('--persistencia')) {
+  console.log('\n== Persistencia de la tendencia en H4 (tramos 8/18 del mismo lado) · días = velas H4 / 6 ==');
+  console.log('  par       tramos  mediana  ≥4 d   ≥7 d   sigue tras 4 d  | alineados con semana: n  mediana  ≥7 d  | con radar a favor: n  mediana  ≥7 d');
+  const rows = [];
+  for (const sym of SYMBOLS) {
+    const F = frames[sym]; const { h4, w1 } = F;
+    const segs = [];
+    let start = null; let cur = 0;
+    for (let i = SLOW; i < h4.length; i++) {
+      const d = F.e8[i] > F.s18[i] ? 1 : F.e8[i] < F.s18[i] ? -1 : 0;
+      if (d !== cur) { if (cur !== 0 && start !== null) segs.push({ dir: cur, from: start, to: i - 1 }); cur = d; start = i; }
+    }
+    const info = segs.map((g) => {
+      const b = h4[g.from]; const wi = alignmentIndex(w1, b.date);
+      const wOk = wi >= 0 && F.w8[wi] !== null && F.w18[wi] !== null ? (g.dir > 0 ? F.w8[wi] > F.w18[wi] : F.w8[wi] < F.w18[wi]) : false;
+      const diff = biasAt(sym, b.date);
+      const rOk = diff !== null && Math.sign(diff) === g.dir && Math.abs(diff) >= 3;
+      return { days: (g.to - g.from + 1) / 6, wOk, rOk };
+    });
+    const med = (a) => { if (!a.length) return null; const x = [...a].sort((p, q) => p - q); return x[Math.floor(x.length / 2)]; };
+    const pct = (a, d) => (a.length ? Math.round((100 * a.filter((v) => v >= d).length) / a.length) : null);
+    const all = info.map((x) => x.days); const w = info.filter((x) => x.wOk).map((x) => x.days); const r = info.filter((x) => x.wOk && x.rOk).map((x) => x.days);
+    const after4 = all.filter((v) => v >= 4); const cont = after4.length ? Math.round((100 * after4.filter((v) => v >= 7).length) / after4.length) : null;
+    rows.push({ sym, n: all.length, med: med(all), p4: pct(all, 4), p7: pct(all, 7), cont, wn: w.length, wmed: med(w), wp7: pct(w, 7), rn: r.length, rmed: med(r), rp7: pct(r, 7) });
+  }
+  rows.sort((a, b) => (b.wp7 ?? 0) - (a.wp7 ?? 0));
+  for (const x of rows) console.log(`  ${x.sym.padEnd(8)} ${String(x.n).padStart(6)}  ${String(x.med?.toFixed(1)).padStart(5)} d  ${String(x.p4).padStart(3)} %  ${String(x.p7).padStart(3)} %   ${String(x.cont).padStart(3)} % siguen ≥7  | ${String(x.wn).padStart(4)}  ${String(x.wmed?.toFixed(1)).padStart(5)} d  ${String(x.wp7).padStart(3)} %  | ${String(x.rn).padStart(4)}  ${String(x.rmed === null ? '—' : x.rmed.toFixed(1)).padStart(5)} d  ${String(x.rp7 ?? '—').padStart(3)} %`);
+}
 
 // Cuenta de 500 $ arriesgando el 1 % por operación (capitalización), con la combinación semanal + radar.
 function account(list, riskPct = 0.01, start = 500) {
