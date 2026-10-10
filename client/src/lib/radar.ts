@@ -284,14 +284,23 @@ export interface SwingPair {
   trend: { w1: string; d1: string; h4: string } | null; er20: number | null; liquidity: number;
   weekly: SwingFrame; daily: SwingFrame;
   h4: SwingFrame & { ema200: boolean | null; last_bar: string | null };
-  stops: { estructura: number | null; diario: number | null; estructura_sizing: SwingSizing | null; diario_sizing: SwingSizing | null } | null;
+  stops: { estructura: number | null; diario: number | null; estructura_sizing: SwingSizing | null; diario_sizing: SwingSizing | null; estructura_objetivos: SwingTargets | null; diario_objetivos: SwingTargets | null } | null;
   atr_pips: number | null;
+  calidad: SwingQuality;
   estado: 'entrada' | 'en_curso' | 'esperando_cruce' | 'semanal_en_contra' | 'sin_sesgo';
   warnings: string[];
+}
+export interface SwingTargets { r15: number | null; r2: number | null; be: number | null }
+export interface SwingQuality {
+  adx_d: number | null; adx_ok: boolean | null;
+  cruce_atr: number | null; cruce_suave: boolean | null;
+  diario_dias: number | null; diario_joven: boolean | null;
+  puntos: number; temprana: boolean;
 }
 export interface SwingPlan {
   as_of: string;
   account: { usd: number; risk_pct: number; max_pairs: number };
+  rules?: { be_trigger_r: number; targets_r: number[]; early: { adx_max: number; cross_atr_max: number; daily_max_days: number } };
   evidence: { text: string };
   selected: string[];
   pairs: SwingPair[];
@@ -675,6 +684,7 @@ export function normalizeSnapshot(raw: unknown): RadarSnapshot {
     instruments: asArray<RadarPair>(r.instruments).map((p) => ({ ...p, base: null, quote: null, reasons: asArray(p.reasons), warnings: asArray(p.warnings), next_events: asArray(p.next_events), last_events: asArray(p.last_events) })),
     upcoming: asArray<NextEvent>(r.upcoming),
     que_operar: (r.que_operar as QueOperar | null | undefined) ?? null,
+    swing: ((r as { swing?: SwingPlan | null }).swing ?? null),
     cot: asArray<CotRow>(r.cot),
     expectations: asArray<Expectation>(r.expectations),
     week: r.week ?? null,

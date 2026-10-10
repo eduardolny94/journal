@@ -76,6 +76,58 @@ function atr(bars, n = 14) {
   }
   return out;
 }
+/** ADX de Wilder (fuerza de tendencia, sin dirección). */
+function adx(bars, n = 14) {
+  const out = new Array(bars.length).fill(null);
+  let trS = null, pS = null, nS = null, a = null;
+  for (let i = 1; i < bars.length; i++) {
+    const up = bars[i].h - bars[i - 1].h, dn = bars[i - 1].l - bars[i].l;
+    const pdm = up > dn && up > 0 ? up : 0, ndm = dn > up && dn > 0 ? dn : 0;
+    const tr = Math.max(bars[i].h - bars[i].l, Math.abs(bars[i].h - bars[i - 1].c), Math.abs(bars[i].l - bars[i - 1].c));
+    if (trS === null) { trS = tr; pS = pdm; nS = ndm; } else { trS += tr - trS / n; pS += pdm - pS / n; nS += ndm - nS / n; }
+    if (i < n) continue;
+    const pdi = trS ? (100 * pS) / trS : 0, ndi = trS ? (100 * nS) / trS : 0;
+    const dx = pdi + ndi ? (100 * Math.abs(pdi - ndi)) / (pdi + ndi) : 0;
+    a = a === null ? dx : (a * (n - 1) + dx) / n;
+    if (i >= 2 * n) out[i] = a;
+  }
+  return out;
+}
+function rsi(values, n = 14) {
+  const out = new Array(values.length).fill(null); let ag = null, al = null;
+  for (let i = 1; i < values.length; i++) {
+    const ch = values[i] - values[i - 1]; const g = Math.max(ch, 0), l = Math.max(-ch, 0);
+    if (ag === null) { ag = g; al = l; } else { ag = (ag * (n - 1) + g) / n; al = (al * (n - 1) + l) / n; }
+    if (i >= n) out[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al);
+  }
+  return out;
+}
+/** Histograma MACD (12, 26, 9). */
+function macdHist(values) {
+  const e12 = ema(values, 12), e26 = ema(values, 26);
+  const line = values.map((_, i) => (e12[i] !== null && e26[i] !== null ? e12[i] - e26[i] : null));
+  const idx = line.map((v, i) => (v === null ? -1 : i)).filter((i) => i >= 0);
+  const sig = ema(idx.map((i) => line[i]), 9);
+  const out = new Array(values.length).fill(null);
+  idx.forEach((i, k) => { if (sig[k] !== null) out[i] = line[i] - sig[k]; });
+  return out;
+}
+/** Simula una salida con objetivo fijo y escalones de protección [[R alcanzado, nuevo stop en R], ...] sobre velas H1. */
+function simExit(h1, h4, i, dir, entry, risk, stopPx, target, steps = [], maxBars = MAX_BARS) {
+  let stopNow = stopPx; let jj = i + 1; let bb = 0; let res = null; const done = steps.map(() => false);
+  for (; jj < h4.length && bb < maxBars && res === null; jj++, bb++) {
+    for (let k = h4[jj].first; k <= h4[jj].last; k++) {
+      const x = h1[k];
+      const adv = dir > 0 ? x.l : x.h;
+      if (dir > 0 ? adv <= stopNow : adv >= stopNow) { res = (dir > 0 ? stopNow - entry : entry - stopNow) / risk; break; }
+      const favR = (dir > 0 ? x.h - entry : entry - x.l) / risk;
+      if (favR >= target) { res = target; break; }
+      steps.forEach(([trig, toR], s) => { if (!done[s] && favR >= trig) { done[s] = true; stopNow = dir > 0 ? entry + toR * risk : entry - toR * risk; } });
+    }
+  }
+  if (res === null) res = jj < h4.length ? (dir > 0 ? h4[jj - 1].c - entry : entry - h4[jj - 1].c) / risk : 0;
+  return Math.round(res * 1000) / 1000;
+}
 /** Ratio de eficiencia a 60 días (|recorrido neto| / suma de |cambios|), a fecha. */
 function efficiency60(d1, idx) {
   if (idx < 60) return null;
@@ -115,8 +167,10 @@ for (const sym of SYMBOLS) {
   const h1 = loadH1(sym);
   const h4 = toH4(h1); const d1 = toD1(h1); const w1 = toW1(h1);
   const c4 = h4.map((b) => b.c);
-  frames[sym] = { h1, h4, d1, w1, e8: ema(c4, FAST), s18: sma(c4, SLOW), e200: ema(c4, TREND), atr4: atr(h4, 14),
-    d8: ema(d1.map((b) => b.c), FAST), d18: sma(d1.map((b) => b.c), SLOW), w8: ema(w1.map((b) => b.c), FAST), w18: sma(w1.map((b) => b.c), SLOW) };
+  const cd = d1.map((b) => b.c);
+  frames[sym] = { h1, h4, d1, w1, e8: ema(c4, FAST), s18: sma(c4, SLOW), e200: ema(c4, TREND), atr4: atr(h4, 14), adx4: adx(h4, 14),
+    d8: ema(cd, FAST), d18: sma(cd, SLOW), w8: ema(w1.map((b) => b.c), FAST), w18: sma(w1.map((b) => b.c), SLOW),
+    adxD: adx(d1, 14), rsiD: rsi(cd, 14), macdD: macdHist(cd), atrD: atr(d1, 14) };
   d1.forEach((b, i) => { const e = efficiency60(d1, i); if (e !== null) (effByDate[b.date] ||= {})[sym] = e; });
 }
 const effDates = Object.keys(effByDate).sort();
@@ -174,6 +228,24 @@ for (const sym of SYMBOLS) {
     const vwapWok = vwW === null ? null : (dir > 0 ? b.c > vwW : b.c < vwW);
     const vwapMok = vwM === null ? null : (dir > 0 ? b.c > vwM : b.c < vwM);
     const stopFixed = FIXED_STOP_PIPS ? (dir > 0 ? entry - FIXED_STOP_PIPS * pip : entry + FIXED_STOP_PIPS * pip) : null;
+    // Indicadores de contexto (point-in-time) para buscar filtros que suban el acierto a 1,5R / 2R.
+    const adx4 = F.adx4[i]; const adxD = di >= 0 ? F.adxD[di] : null; const rsiD = di >= 0 ? F.rsiD[di] : null; const macdD = di >= 0 ? F.macdD[di] : null;
+    const rsiDok = rsiD === null ? null : (dir > 0 ? rsiD > 50 : rsiD < 50);
+    const rsiDext = rsiD === null ? null : (dir > 0 ? rsiD >= 70 : rsiD <= 30);
+    const macdDok = macdD === null ? null : (dir > 0 ? macdD > 0 : macdD < 0);
+    const distE200 = F.e200[i] !== null ? Math.abs(b.c - F.e200[i]) / a : null;
+    const e200slope = F.e200[i] !== null && F.e200[i - 10] !== null ? Math.sign(F.e200[i] - F.e200[i - 10]) === dir : null;
+    const crossStrength = (dir > 0 ? b.c - F.s18[i] : F.s18[i] - b.c) / a;
+    let crosses30 = 0; for (let q = i0 - 30; q < i0; q++) if (q > 0 && F.e8[q] !== null && F.s18[q] !== null && Math.sign(F.e8[q] - F.s18[q]) !== Math.sign(F.e8[q - 1] - F.s18[q - 1])) crosses30++;
+    const w20 = h4.slice(Math.max(0, i - 20), i);
+    const donchian = dir > 0 ? b.c >= Math.max(...w20.map((x) => x.h)) : b.c <= Math.min(...w20.map((x) => x.l));
+    const dayEma8ok = di >= 0 && F.d8[di] !== null ? (dir > 0 ? d1[di].c > F.d8[di] : d1[di].c < F.d8[di]) : null;
+    let d1age = null; if (d1ok === true) { d1age = 0; for (let q = di; q >= 0 && F.d8[q] !== null && F.d18[q] !== null && (dir > 0 ? F.d8[q] > F.d18[q] : F.d8[q] < F.d18[q]); q--) d1age++; }
+    let w1age = null; if (w1ok === true) { w1age = 0; for (let q = wi; q >= 0 && F.w8[q] !== null && F.w18[q] !== null && (dir > 0 ? F.w8[q] > F.w18[q] : F.w8[q] < F.w18[q]); q--) w1age++; }
+    const hourNY = ((Number(String(b.key).split('|')[1]) * 4) - 7 + 24) % 24; // inicio de la vela H4 en hora de Nueva York
+    const weekday = new Date(`${b.date}T00:00:00Z`).getUTCDay();
+    const atrDrel = di >= 0 && F.atrD[di] && d1[di] ? F.atrD[di] / d1[di].c : null;
+    const ctx = { adx4, adxD, rsiDok, rsiDext, macdDok, distE200, e200slope, crossStrength, crosses30, donchian, dayEma8ok, d1age, w1age, hourNY, weekday, atrDrel };
     for (const [stopKind, stop] of [['estructura', stopStruct], ['diario', stopDaily], ['fijo', stopFixed]]) {
       if (stop === null) continue;
       let risk = dir > 0 ? entry - stop : stop - entry;
@@ -258,7 +330,12 @@ for (const sym of SYMBOLS) {
       }
       // Variante parcial: 0,8 × 2R + 0,2 × salida del resto (si no llegó a 2R, es la salida original completa)
       const parcial = partialDone ? 0.8 * 2 + 0.2 * runnerExit : exitR;
-      trades.push({ sym, date: b.date, hour: Number(String(b.key).split('|')[1]) * 4, year: b.date.slice(0, 4), dir, stopKind, r: exitR, r15: tgt[1.5], r2: tgt[2], r2_puro: pure2, p05: pureT[0.5], p075: pureT[0.75], p1: pureT[1], p15: pureT[1.5], r_be1: be1, entryKind: ENTRY_KIND, r_parcial1: parcial1, r3: tgt[3], r_parcial: parcial, max_fav: Math.round(maxFav * 100) / 100, bars, reason, risk_pips: risk / pip, entry, stop: stopPx, ema200ok, d1ok, w1ok, radarOk, radarAB, trending, vwapWok, vwapMok });
+      // Regla del usuario (10-10-2026): stop a la entrada al tocar +1,1R; objetivo 1,5R o 2R. Y una escalera: 1,1R → entrada, 1,5R → +0,75R, objetivo 2R.
+      const be11_t15 = simExit(h1, h4, i, dir, entry, risk, stopPx, 1.5, [[1.1, 0]]);
+      const be11_t2 = simExit(h1, h4, i, dir, entry, risk, stopPx, 2, [[1.1, 0]]);
+      const esc_t2 = simExit(h1, h4, i, dir, entry, risk, stopPx, 2, [[1.1, 0], [1.5, 0.75]]);
+      const esc_t3 = simExit(h1, h4, i, dir, entry, risk, stopPx, 3, [[1.1, 0], [1.5, 0.75], [2, 1.25]]);
+      trades.push({ sym, date: b.date, hour: Number(String(b.key).split('|')[1]) * 4, year: b.date.slice(0, 4), dir, stopKind, r: exitR, r15: tgt[1.5], r2: tgt[2], r2_puro: pure2, p05: pureT[0.5], p075: pureT[0.75], p1: pureT[1], p15: pureT[1.5], r_be1: be1, entryKind: ENTRY_KIND, r_parcial1: parcial1, r3: tgt[3], r_parcial: parcial, be11_t15, be11_t2, esc_t2, esc_t3, stop_atr: risk / a, max_fav: Math.round(maxFav * 100) / 100, bars, reason, risk_pips: risk / pip, entry, stop: stopPx, ema200ok, d1ok, w1ok, radarOk, radarAB, trending, vwapWok, vwapMok, ...ctx });
     }
    }
   }
@@ -362,6 +439,53 @@ if (process.argv.includes('--rejilla')) {
       const cell = (key) => { const s = statsR(T, key); return s.n ? `${String(s.win).padStart(4)}% ${s.avg >= 0 ? '+' : ''}${s.avg.toFixed(2)}R` : '—'; };
       console.log(`    ${name.padEnd(24)} n=${String(T.length).padStart(4)} · 0,5R ${cell('p05')} · 0,75R ${cell('p075')} · 1R ${cell('p1')} · 1,5R ${cell('p15')} · 2R ${cell('r2_puro')} · 50 % en 1R + resto 2R ${cell('r_parcial1')} · cruce contrario ${cell('r')}`);
     }
+  }
+}
+
+// Búsqueda de filtros que suban el acierto con objetivo 1,5R / 2R y stop a la entrada en +1,1R (regla del usuario, 10-10-2026).
+// Cada filtro se añade a una base y se mira n, acierto y R por operación; después, los mejores se comprueban por año (tres cortes).
+if (process.argv.includes('--filtros')) {
+  const EXITS = [['1,5R puro', 'p15'], ['2R puro', 'r2_puro'], ['BE 1,1→1,5R', 'be11_t15'], ['BE 1,1→2R', 'be11_t2'], ['escalera→2R', 'esc_t2'], ['escalera→3R', 'esc_t3']];
+  const BASES = [['semanal', (t) => t.w1ok === true], ['radar (fuerza ≥ 2)', (t) => t.radarOk === true], ['semanal + radar', (t) => t.w1ok === true && t.radarOk === true], ['semanal + radar A/B', (t) => t.w1ok === true && t.radarAB === true]];
+  const FILTERS = [
+    ['(base)', () => true],
+    ['ADX H4 ≥ 20', (t) => t.adx4 >= 20], ['ADX H4 ≥ 25', (t) => t.adx4 >= 25], ['ADX H4 < 20 (arranque)', (t) => t.adx4 !== null && t.adx4 < 20],
+    ['ADX diario ≥ 20', (t) => t.adxD >= 20], ['ADX diario ≥ 25', (t) => t.adxD >= 25], ['ADX diario < 20', (t) => t.adxD !== null && t.adxD < 20],
+    ['RSI diario a favor (>50/<50)', (t) => t.rsiDok === true], ['RSI diario no extremo', (t) => t.rsiDext === false],
+    ['MACD diario a favor', (t) => t.macdDok === true],
+    ['EMA 200 H4 a favor', (t) => t.ema200ok], ['pendiente EMA 200 a favor', (t) => t.e200slope === true],
+    ['cerca de EMA 200 (≤ 3 ATR)', (t) => t.distE200 !== null && t.distE200 <= 3], ['lejos de EMA 200 (> 3 ATR)', (t) => t.distE200 > 3],
+    ['cruce fuerte (cierre ≥ 0,5 ATR tras la MA 18)', (t) => t.crossStrength >= 0.5], ['cruce suave (< 0,5 ATR)', (t) => t.crossStrength < 0.5],
+    ['pocos cruces previos (≤ 2 en 30 velas)', (t) => t.crosses30 <= 2], ['mercado picado (≥ 4 cruces en 30 velas)', (t) => t.crosses30 >= 4],
+    ['rompe máximo/mínimo 20 velas H4', (t) => t.donchian], ['no rompe (cruce interno)', (t) => !t.donchian],
+    ['cierre diario a favor de su EMA 8', (t) => t.dayEma8ok === true],
+    ['diario 8/18 a favor', (t) => t.d1ok === true], ['diario a favor y joven (≤ 10 d)', (t) => t.d1ok === true && t.d1age <= 10], ['diario a favor y maduro (> 10 d)', (t) => t.d1ok === true && t.d1age > 10],
+    ['semana joven (≤ 6 sem)', (t) => t.w1age !== null && t.w1age <= 6], ['semana madura (> 6 sem)', (t) => t.w1age > 6],
+    ['stop ≤ 1,5 ATR H4', (t) => t.stop_atr <= 1.5], ['stop 1,5–3 ATR H4', (t) => t.stop_atr > 1.5 && t.stop_atr <= 3], ['stop > 3 ATR H4', (t) => t.stop_atr > 3],
+    ['vela Londres/NY (1–13 h NY)', (t) => t.hourNY >= 1 && t.hourNY <= 13], ['vela asiática (17–21 h NY)', (t) => t.hourNY >= 17 || t.hourNY < 1],
+    ['no viernes', (t) => t.weekday !== 5], ['no lunes', (t) => t.weekday !== 1],
+    ['VWAP semanal a favor', (t) => t.vwapWok === true],
+    ['volatilidad diaria alta (ATR > 0,7 %)', (t) => t.atrDrel > 0.007], ['volatilidad diaria baja (ATR ≤ 0,7 %)', (t) => t.atrDrel !== null && t.atrDrel <= 0.007],
+  ];
+  const cell = (list, key) => { const s = statsR(list, key); return s.n ? `${String(s.win).padStart(3)}% ${s.avg >= 0 ? '+' : ''}${s.avg.toFixed(2)}R` : '     —     '; };
+  for (const [bname, bfn] of BASES) {
+    const B = trades.filter((t) => t.entryKind === 'cruce' && t.stopKind === 'diario' && bfn(t));
+    console.log(`\n== Filtros sobre «${bname}» · stop día anterior · n=${B.length} · ${EXITS.map((e) => e[0]).join(' · ')} ==`);
+    for (const [fname, ffn] of FILTERS) {
+      const L = B.filter(ffn);
+      console.log(`  ${fname.padEnd(46)} n=${String(L.length).padStart(4)} · ${EXITS.map(([, k]) => cell(L, k)).join(' · ')}`);
+    }
+    // Robustez por año de los filtros con n ≥ 40 que mejoran el R de «BE 1,1→2R» respecto a la base en los tres años.
+    const years = ['2024', '2025', '2026'];
+    const baseY = Object.fromEntries(years.map((y) => [y, statsR(B.filter((t) => t.year === y), 'be11_t2')]));
+    const robust = [];
+    for (const [fname, ffn] of FILTERS.slice(1)) {
+      const L = B.filter(ffn); if (L.length < 40) continue;
+      const ok = years.every((y) => { const s = statsR(L.filter((t) => t.year === y), 'be11_t2'); return s.n >= 8 && s.avg > (baseY[y].avg ?? 0); });
+      if (ok) robust.push(`${fname} (n=${L.length}: ${years.map((y) => `${y} ${statsR(L.filter((t) => t.year === y), 'be11_t2').avg >= 0 ? '+' : ''}${statsR(L.filter((t) => t.year === y), 'be11_t2').avg}R`).join(', ')})`);
+    }
+    console.log(`  → base por año (BE 1,1→2R): ${years.map((y) => `${y} n=${baseY[y].n} ${baseY[y].win ?? '—'}% ${baseY[y].avg >= 0 ? '+' : ''}${baseY[y].avg ?? '—'}R`).join(' · ')}`);
+    console.log(`  → filtros que mejoran el R en los TRES años (n ≥ 40): ${robust.length ? robust.join(' | ') : 'ninguno'}`);
   }
 }
 

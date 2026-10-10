@@ -301,3 +301,49 @@ de la vela de barrido** (orden limitada válida 3 velas, mismo stop; patrón `sw
 
 Indicador: modo "Entrada: Retroceso 50 %" (orden limitada dibujada, se cancela si toca el stop antes de llenarse,
 aviso al llenarse) en `GTFX_SwingH4.pine`.
+
+## Subir el acierto a 1,5R y 2R: filtros de entrada temprana (medido el 10-10-2026)
+
+Petición del usuario: objetivo 1,5R–2R, stop a la entrada al tocar +1,1R, y buscar indicadores que suban el acierto.
+`backtest-c4l-swing.mjs --filtros` prueba 35 filtros (ADX H4 y diario, RSI, MACD, EMA 200 y su pendiente, fuerza
+del cruce, cruces previos, rotura Donchian 20, edad del diario y del semanal, tamaño del stop en ATR, sesión, día,
+VWAP semanal, volatilidad diaria) sobre cuatro bases, con stop en el día anterior, y comprueba por año (2024, 2025,
+2026) cuáles mejoran el R de «stop a la entrada en 1,1R → 2R» en los tres cortes.
+
+Salida `simExit`: objetivo fijo con escalones de protección sobre velas H1 (stop antes que objetivo en la misma hora).
+
+| Base «semanal + radar» (n=374) | 1,5R puro | 2R puro | BE 1,1R → 2R | 50 % en 1R + resto 2R |
+|---|---|---|---|---|
+| sin filtro | 46 % · +0,16R | 40 % · +0,21R | 32 % · +0,18R | 56 % · +0,16R |
+| ADX diario < 20 (n=153) | 52 % · +0,31R | 47 % · +0,41R | 38 % · +0,37R | 61 % · +0,28R |
+| cruce suave < 0,5 ATR (n=113) | 54 % · +0,37R | 49 % · +0,48R | 41 % · +0,45R | 65 % · +0,38R |
+| diario a favor y joven ≤ 10 d (n=77) | 56 % · +0,40R | 47 % · +0,40R | 42 % · +0,44R | 62 % · +0,34R |
+| **2 de 3 (n=80)** | **60 % · +0,50R** | **55 % · +0,65R** | 50 % · +0,69R | 69 % · +0,52R |
+| ADX < 20 + cruce suave (n=43) | 65 % · +0,63R | 63 % · +0,88R | 60 % · +0,93R | 72 % · +0,66R |
+| los tres (n=17) | 71 % · +0,76R | 65 % · +0,94R | 59 % · +0,88R | 71 % · +0,68R |
+
+- Los tres filtros robustos cuentan la misma historia: **entrar al arranque, no perseguir**. ADX diario bajo = la
+  tendencia diaria aún no está "hecha"; cruce suave = el cierre del cruce queda cerca de la media 18 (una vela enorme
+  ya gastó recorrido); diario joven = el 8/18 diario lleva ≤ 10 días a favor. Lo contrario pierde: ADX diario ≥ 25
+  (−0,07R), cruce fuerte (+0,09R), diario maduro (+0,07R), rotura de máximos de 20 velas (−0,20R con BE).
+- Umbrales estables (no es un filo): ADX 18–25 da +0,39/+0,41R; cruce 0,25–0,7 ATR da +0,42/+0,57R; diario joven
+  5–10 días da +0,40/+0,69R.
+- «2 de 3» por año a 2R: 2024 56 % (+0,67R, n=18), 2025 50 % (+0,50R, n=34), 2026 61 % (+0,82R, n=28). Por par: gana
+  en AUDJPY, EURJPY, USDJPY, GBPJPY, EURAUD, USDCAD; pierde en AUDUSD, NZDUSD, CADJPY, EURGBP (n ≤ 6 cada uno).
+- Frecuencia: 3,6 operaciones al mes en 14 pares. Cuenta 500 $ al 1 %, 2R puro: 500 → 832 $ con drawdown máximo
+  4,9 % y racha máxima de 5 stops (la base: 1.043 $ con 14,3 % de drawdown y 13 stops seguidos: más dinero, más dolor).
+- **Stop a la entrada en +1,1R**: en todas las bases resta entre 5 y 8 puntos de acierto a 1,5R y 2R y deja el R
+  igual o algo menor (el retroceso normal tras 1,1R toca la entrada). Con «2 de 3» a 2R: 55 % → 50 %, +0,65R → +0,69R.
+  Es una elección de comodidad, no de rentabilidad; la escalera (1,1R → entrada, 1,5R → +0,75R) tampoco añade.
+- Lo que **no** ayuda sobre esta base: ADX H4 (ni alto ni bajo), RSI y MACD diarios, pendiente de la EMA 200, VWAP
+  semanal, evitar lunes o viernes, cruces previos ≤ 2. Sin radar, ADX < 20 + cruce suave da 34 % a 2R (+0,02R): los
+  filtros técnicos solo funcionan encima del sesgo macro.
+- Sin la semana alineada (solo radar + 2 de 3): 52 % a 2R (+0,55R, n=110), positivo los tres años; la semana añade
+  3 puntos. Nivel A/B + ADX < 20: 63 % a 2R (+0,89R, n=27).
+- Honestidad: 35 filtros probados y 3 elegidos tras ver los resultados; la comprobación por año y la coherencia
+  (los tres miden "temprano") protegen algo, pero el 55–60 % se moverá en real. El 70 % a 1,5R solo aparece con los
+  tres filtros a la vez (n=17): no es una cifra en la que apoyarse.
+
+Aplicado en la pestaña Swing (`swing.js`, `SwingCard.tsx`): chips ADX diario / cruce / diario joven, distintivo
+«Entrada temprana 2/3 o 3/3» en los cruces recientes, orden por puntos dentro de cada estado, objetivos 1,5R y 2R y
+precio de +1,1R calculados desde el precio actual con el stop más ajustado.
