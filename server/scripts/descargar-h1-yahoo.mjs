@@ -22,7 +22,8 @@ function serverTime(epochSec) {
   return `${d.getUTCFullYear()}.${z(d.getUTCMonth() + 1)}.${z(d.getUTCDate())} ${z(d.getUTCHours())}:${z(d.getUTCMinutes())}`;
 }
 for (const sym of pairs) {
-  const y = YAHOO_PAIR_SYMBOLS[sym];
+  const EXTRA = { XAUUSD: 'GC=F', XAGUSD: 'SI=F', NAS100: '^NDX', US500: '^GSPC', US30: '^DJI', DE40: '^GDAXI', JP225: '^N225', UK100: '^FTSE', WTI: 'CL=F', US500F: 'ES=F', NAS100F: 'NQ=F', US30F: 'YM=F', JP225F: 'NIY=F' };
+  const y = YAHOO_PAIR_SYMBOLS[sym] || EXTRA[sym] || (/^[A-Z]{6}$/.test(sym) ? `${sym}=X` : null);
   if (!y) { console.log(`${sym}: sin símbolo de Yahoo`); continue; }
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(y)}?interval=1h&range=730d`;
   const r = await fetch(url, { headers: UA });

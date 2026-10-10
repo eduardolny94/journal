@@ -150,6 +150,25 @@ Apartado **Swing** del radar (`server/src/radar/swing.js`, pestaña Swing): hast
 8/18 alineada, estado de cada marco (semanal, diario, H4, EMA 200), último cruce H4, los dos stops con riesgo en pips y
 tamaño para 500 $ al 1 %. Informa: la entrada es del trader.
 
+### Acierto frente a objetivo (10-10-2026): el porcentaje se compra con el objetivo
+
+Rejilla con stop en el día anterior y objetivo "puro" (se mantiene hasta objetivo o stop), 14 pares, 2024-2026
+(`backtest-c4l-swing.mjs --rejilla`). Entrada en el cruce; la entrada en el primer retroceso a la EMA 8 (≤ 6 velas
+después del cruce) da cifras casi idénticas con un 20 % menos de operaciones, así que no aporta.
+
+| Filtro | n | 0,5R | 0,75R | 1R | 1,5R | 2R | 50 % en 1R + resto 2R |
+|---|---|---|---|---|---|---|---|
+| Semanal sola | 1.713 | 65 % · −0,02R | 56 % · −0,01R | 49 % · −0,02R | 40 % · 0,00R | 34 % · +0,02R | 49 % · 0,00R |
+| Semanal + radar (fuerza ≥ 2) | 374 | **72 % · +0,09R** | 64 % · +0,13R | 56 % · +0,13R | 46 % · +0,16R | 40 % · **+0,21R** | 56 % · +0,16R |
+| Semanal + radar nivel A/B | 46 | 78 % · +0,17R | **78 % · +0,37R** | **70 % · +0,39R** | 63 % · +0,57R | 61 % · **+0,81R** | 70 % · +0,50R |
+| Radar A/B (sin semanal) | 71 | 78 % · +0,16R | 73 % · +0,28R | 66 % · +0,32R | 59 % · +0,48R | 56 % · +0,68R | 66 % · +0,39R |
+
+Lectura: el acierto sube al acortar el objetivo y la esperanza baja. Un 70 % con esperanza positiva solo aparece con
+nivel A/B (objetivo 0,75R-1R, +0,37/+0,39R, pocos casos) o con objetivo 0,5R y radar (72 %, +0,09R: el spread se lo
+come). El dinero está en 2R con 40 % (+0,21R) o en A/B a 2R (+0,81R). VWAP anclado (media semanal/mensual sin volumen)
+como filtro: el mensual estorba, el semanal suma +0,02R (ruido). Persistencia con futuros de índices (24 h): Nasdaq,
+Dow y S&P quedan en la media de las divisas (66-68 % del tiempo en tramos ≥ 4 días; AUDJPY 79 %).
+
 ## Recorrido y objetivo con stop fijo de 35 pips (medido el 02-10-2026)
 
 Barrido y recuperación con nivel A/B a favor, stop fijo de 35 pips, dejando correr solo con el stop (`backtest-swing-h4.mjs
