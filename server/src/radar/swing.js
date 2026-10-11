@@ -141,7 +141,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
       const rp = riskPips(stop);
       if (rp === null || !pv || rp <= 0) return null;
       const lots = Math.max(0.01, Math.floor(((accountUsd * riskPct) / 100 / (rp * pv)) * 100) / 100);
-      return { risk_pips: rp, lots, risk_usd: round(lots * rp * pv, 2) };
+      return { risk_pips: rp, lots, risk_usd: round(lots * rp * pv, 2), pip_value_usd: round(pv, 4) };
     };
     const semanalOk = dir !== 0 && w1.dir === dir;
     const diarioOk = dir !== 0 && d1.dir === dir;

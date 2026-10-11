@@ -277,7 +277,7 @@ export interface QueOperar {
 }
 
 export interface SwingFrame { dir: 1 | -1 | 0; since: number | null; ok: boolean }
-export interface SwingSizing { risk_pips: number; lots: number; risk_usd: number }
+export interface SwingSizing { risk_pips: number; lots: number; risk_usd: number; pip_value_usd?: number }
 export interface SwingPair {
   symbol: string; base: CurrencyCode | null; quote: CurrencyCode | null; synthetic: boolean; price: number | null; digits: number;
   bias: Bias; diff: number; level: number; tier: 'A' | 'B' | 'C' | null; p5: number | null;

@@ -7,7 +7,7 @@ import { Info, TrendingUp } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/cn';
-import { flagOf, type SwingFrame, type SwingPair, type SwingPlan } from '../../lib/radar';
+import { flagOf, type SwingFrame, type SwingPair, type SwingPlan, type SwingSizing } from '../../lib/radar';
 import { TierBadge } from './QueOperarCard';
 
 const ESTADO: Record<SwingPair['estado'], { label: string; variant: 'profit' | 'warn' | 'accent' | 'outline' | 'loss'; help: string }> = {
@@ -23,6 +23,18 @@ function FrameChip({ name, f, dir }: { name: string; f: SwingFrame; dir: number 
   return <span className={cn('rounded border px-1.5 py-0.5 text-[11px]', ok ? 'border-profit/40 text-profit' : f.dir === 0 ? 'border-border text-gray-500' : 'border-loss/40 text-loss')} title={f.since !== null ? `${f.since} velas desde el cruce` : ''}>{name}: {txt}{f.since !== null && f.dir !== 0 ? ` (${f.since})` : ''}</span>;
 }
 function fmtPx(v: number | null, digits: number) { return v === null ? '—' : v.toFixed(digits); }
+/** Riesgo por operación elegido por el trader (el servidor calcula con el 1 %; aquí se reescala con el valor del pip). */
+const RISK_OPTIONS = [0.5, 1, 2, 3, 5, 10, 15];
+const RISK_KEY = 'gtfx-swing-risk-pct';
+function loadRisk(fallback: number): number { try { const v = Number(localStorage.getItem(RISK_KEY)); return RISK_OPTIONS.includes(v) ? v : fallback; } catch { return fallback; } }
+function sizeFor(s: SwingSizing | null, accountUsd: number, riskPct: number): { lots: number; risk_usd: number } | null {
+  if (!s) return null;
+  if (!s.pip_value_usd) return riskPct === 1 ? { lots: s.lots, risk_usd: s.risk_usd } : null;
+  const lots = Math.max(0.01, Math.floor(((accountUsd * riskPct) / 100 / (s.risk_pips * s.pip_value_usd)) * 100) / 100);
+  return { lots, risk_usd: Math.round(lots * s.risk_pips * s.pip_value_usd * 100) / 100 };
+}
+/** Lo que pierde la cuenta con la peor racha medida (5 stops seguidos con «2 de 3»; 13 en la base sin filtros). */
+function streakLoss(riskPct: number, n: number): number { return Math.round((1 - Math.pow(1 - riskPct / 100, n)) * 100); }
 /** Las tres señales de entrada temprana medidas (10-10-2026): con 2 de 3, 55 % a 2R y 60 % a 1,5R. */
 function QualityChips({ q }: { q: SwingPair['calidad'] }) {
   const chip = (ok: boolean | null, label: string, title: string) => (
@@ -40,15 +52,32 @@ function QualityChips({ q }: { q: SwingPair['calidad'] }) {
 export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
+  const [riskPct, setRiskPct] = useState(() => loadRisk(plan ? plan.account.risk_pct : 1));
   if (!plan) return null;
   const list = showAll ? plan.pairs : plan.pairs.filter((p) => plan.selected.includes(p.symbol));
+  const changeRisk = (v: number) => { setRiskPct(v); try { localStorage.setItem(RISK_KEY, String(v)); } catch { /* sin almacenamiento */ } };
+  const fmtSize = (s: SwingSizing | null) => { const z = sizeFor(s, plan.account.usd, riskPct); return s ? ` · ${s.risk_pips} pips · ${z ? `${z.lots} lotes (${z.risk_usd} $)` : 'tamaño sin calcular'}` : ''; };
   return (
     <Card
       title={<span className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-accent" /> Swing · C4L en 4 horas guiado por el radar</span>}
-      subtitle={`Hasta ${plan.account.max_pairs} pares con sesgo del radar (fuerza ≥ 2/5) y semana 8/18 alineada. Compras solo si la azul está sobre la roja en semanal y cruza en H4; ventas al revés. Objetivo 1,5R–2R, stop en el día anterior; las mejores entradas juntan 2 de 3 señales tempranas (ADX diario < 20, cruce suave, diario joven). Cuenta ${plan.account.usd} $ · riesgo ${plan.account.risk_pct} % por operación.`}
-      actions={<label className="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} className="h-3.5 w-3.5 accent-accent" /> ver todos los pares</label>}
+      subtitle={`Hasta ${plan.account.max_pairs} pares con sesgo del radar (fuerza ≥ 2/5) y semana 8/18 alineada. Compras solo si la azul está sobre la roja en semanal y cruza en H4; ventas al revés. Objetivo 1,5R–2R, stop en el día anterior; las mejores entradas juntan 2 de 3 señales tempranas (ADX diario < 20, cruce suave, diario joven). Cuenta ${plan.account.usd} $ · riesgo ${riskPct} % por operación.`}
+      actions={
+        <span className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+          <label className="flex items-center gap-1.5">riesgo
+            <select value={riskPct} onChange={(e) => changeRisk(Number(e.target.value))} className="rounded border border-border bg-transparent px-1 py-0.5 text-xs text-gray-200">
+              {RISK_OPTIONS.map((v) => <option key={v} value={v} className="bg-gray-900">{v} %</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} className="h-3.5 w-3.5 accent-accent" /> ver todos los pares</label>
+        </span>
+      }
       flush
     >
+      {riskPct >= 3 && (
+        <p className="border-b border-border bg-loss/5 px-4 py-2 text-[11px] text-loss">
+          Al {riskPct} % por operación, la peor racha medida con «2 de 3» (5 stops seguidos) deja la cuenta en −{streakLoss(riskPct, 5)} % ({Math.round(plan.account.usd * (1 - streakLoss(riskPct, 5) / 100))} $ de {plan.account.usd} $); la racha de la base sin filtros (13 stops) en −{streakLoss(riskPct, 13)} %. Con 55 % de acierto, una racha de 5 ocurre más o menos una vez cada 100 operaciones: unos dos años al ritmo medido. Es tu decisión; la pestaña solo hace las cuentas.
+        </p>
+      )}
       <ul className="divide-y divide-border">
         {list.map((p) => {
           const dir = p.diff > 0 ? 1 : p.diff < 0 ? -1 : 0;
@@ -92,8 +121,8 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
                 })()}
                 {p.stops && dir !== 0 && (
                   <p className="text-gray-300">
-                    Stop por estructura (10 velas H4): <span className="font-mono">{fmtPx(p.stops.estructura, p.digits)}</span>{p.stops.estructura_sizing ? ` · ${p.stops.estructura_sizing.risk_pips} pips · ${p.stops.estructura_sizing.lots} lotes (${p.stops.estructura_sizing.risk_usd} $)` : ''}
-                    {' · '}Stop en el día anterior: <span className="font-mono">{fmtPx(p.stops.diario, p.digits)}</span>{p.stops.diario_sizing ? ` · ${p.stops.diario_sizing.risk_pips} pips · ${p.stops.diario_sizing.lots} lotes (${p.stops.diario_sizing.risk_usd} $)` : ''}
+                    Stop por estructura (10 velas H4): <span className="font-mono">{fmtPx(p.stops.estructura, p.digits)}</span>{fmtSize(p.stops.estructura_sizing)}
+                    {' · '}Stop en el día anterior: <span className="font-mono">{fmtPx(p.stops.diario, p.digits)}</span>{fmtSize(p.stops.diario_sizing)}
                     {sz && <span className="text-gray-500"> · el más ajustado hoy: {sz}</span>}
                   </p>
                 )}
