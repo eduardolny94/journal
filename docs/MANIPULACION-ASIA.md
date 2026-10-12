@@ -54,3 +54,27 @@ vela H1 vuelve a cerrar dentro antes de las 11:00 NY, entrar en contra (hacia el
   los tres años positivos) y la muestra (n = 523). Sigue siendo intradía, no la operativa swing C4L.
 - Consecuencia para el swing: en estos tres pares, **no entrar en la rotura de Londres a favor del sesgo**; esperar a
   que vuelva al rango o al cruce H4.
+
+## Sesgo del día anterior + Asia en contra + vuelta (medido el 13-10-2026)
+
+Pregunta del usuario: "el día anterior cerró bajista (sesgo); al día siguiente sube, manipula Asia y vuelve a bajar".
+Script `server/scripts/sesgo-dia-anterior.mjs`, 32 activos, 2024-01 → 2026-10. Asia 17:00–02:00 NY.
+
+| Situación (todos los activos) | n | Desde el cierre de Asia, vuelve a favor del sesgo | Entrada operable a 2R |
+|---|---|---|---|
+| Cualquier día tras un día con dirección | 18.437 | 48,9 % | — |
+| Asia va en contra del sesgo | 9.264 | 49,3 % | entrada en Londres, stop en el extremo de Asia: 32 % · −0,10R |
+| Londres barre el extremo de Asia en contra y vuelve dentro | 7.262 | **41,9 %** | entrada a la vuelta, stop en la mecha: 34 % · −0,10R |
+| … con día anterior fuerte | 2.991 | 42,5 % | −0,14R |
+| … con el radar a favor del sesgo | 1.210 | 36 % | −0,22R |
+| Barre el extremo del día anterior en contra y vuelve | 4.039 | 33 % | −0,08R |
+
+- La vela del día anterior no predice el día siguiente (48,9 %, una moneda).
+- Que Asia vaya en contra no cambia nada (49,3 %). Los "mejores" pares (EURJPY 55,5 %, USDCAD, AUDNZD y NZDJPY 54 %,
+  n ≈ 280) no se distinguen del azar tras probar 32.
+- Cuando Londres rompe el extremo asiático en contra del sesgo, **lo más probable es que siga en contra** (58 %), no
+  que vuelva. En los cruces con yen (USDJPY, GBPJPY, CADJPY, AUDJPY) vuelve solo el 33–38 %.
+- Negativo los tres años en conjunto (−0,11R, −0,07R, −0,12R a 2R).
+- Única excepción que aguanta los tres años: **EURUSD**, entrada a la vuelta dentro del rango tras barrer Asia en
+  contra del día anterior, stop en la mecha (mediana 13 pips): 43 % a 2R, +0,15R (2024 +0,14R, 2025 +0,20R, 2026
+  +0,10R), n = 232, unas 7 al mes. Con el radar como filtro desaparece (n = 25, 0,00R). Ventaja pequeña.
