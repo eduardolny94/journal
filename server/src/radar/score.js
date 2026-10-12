@@ -499,6 +499,7 @@ function finishRadar(db, input, ctx) {
     const biasChange = biasChangeFor(db, sym, diff, input.backtest || null);
     if (nextEv.some((e) => e.impact === 'High' && e.at_utc <= in2h)) warnings.push({ kind: 'noticia_en_2h', text: `Dato de alto impacto en menos de 2 h (${nextEv.find((e) => e.impact === 'High' && e.at_utc <= in2h).title}): no abrir posiciones nuevas.` });
     for (const c of [base, quote]) if (byCode[c].pillars.posicionamiento.extreme) warnings.push({ kind: 'cot_extremo', text: `COT en extremo en ${c}: reducir tamaño, riesgo de giro brusco.` });
+    if (input.jump && input.jump.state === 'turbulento' && strength !== 'sin sesgo') warnings.push({ kind: 'regimen_turbulento', text: `Régimen turbulento desde ${input.jump.since} (modelo de salto estadístico): ${input.jump.evidence} Reducir tamaño o esperar.` });
     if (prices.status.stale) warnings.push({ kind: 'precios_stale', text: `Precios desactualizados (${prices.status.note}).` });
     if (!p) {
       return { symbol: sym, base, quote, main: MAIN_PAIRS.includes(sym), price: { bid: s ? s.bid : 0, ask: s ? s.ask : 0, spread_pips: s ? s.spread_pips : null, digits: s ? s.digits : 5, pip: s ? s.pip : 0.0001 }, diff, bias, strength, confidence,
@@ -591,7 +592,7 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   const pb = byCode[base].pillars;
   const pq = byCode[quote].pillars;
   const feat = signalFeatures({
-    symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null, vix3m: market.vix3m ? market.vix3m.value : null,
+    symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null, vix3m: market.vix3m ? market.vix3m.value : null, jumpTurb: !!(input.jump && input.jump.state === 'turbulento'),
     cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
     lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
     lastSurpriseBig: clamp(sign * ((dirBig[base] || 0) - (dirBig[quote] || 0)), -1, 1),

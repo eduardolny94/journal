@@ -10,15 +10,15 @@ export const FEATURE_NAMES = [
   'vix_tension', 'cot_extremo', 'noticia_24h', 'ultima_sorpresa', 'valor', 'tendencia_larga', 'sorpresas', 'par_usd', 'par_jpy',
   'taylor', 'descontado', 'real', 'tot',
   'ciclo', 'sorpresa_grande',
-  'miedo_contrario',
+  'miedo_contrario', 'regimen_salto',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 5;
+export const FEATURE_VERSION = 6;
 /**
  * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
  * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.
  */
-export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario'].includes(n));
+export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto'].includes(n));
 export const CANDIDATE_FEATURES = FEATURE_NAMES.filter((n) => !BASE_FEATURES.includes(n));
 export const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
 /** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
@@ -109,6 +109,8 @@ export function signalFeatures(ctx) {
     // 2024-2026 el lado pro-riesgo (AUD/NZD contra JPY/CHF) subió a 10 días el 66 % (p = 0,03, 11 episodios) y el sesgo
     // del radar a favor del refugio acertó el 33 %. +1 si la señal va a favor del riesgo en estrés, −1 si va al refugio.
     ctx.vix && ctx.vix3m && ctx.vix / ctx.vix3m >= 1 ? Math.sign(riskBeta(ctx.symbol)) * s : 0,
+    // Candidata (13-10-2026, scripts/regimenes.mjs): régimen turbulento del modelo de salto estadístico (regime-jump.js).
+    ctx.jumpTurb ? 1 : 0,
   ];
   return { x, atr, level };
 }
@@ -198,6 +200,7 @@ const REASON_TEXT = {
   tot: ['materias primas a favor', 'materias primas en contra'],
   ciclo: ['fase del ciclo a favor', 'fase del ciclo en contra'],
   sorpresa_grande: ['último dato grande (tipos, IPC, PIB, empleo) a favor', 'último dato grande en contra'],
+  regimen_salto: ['régimen turbulento (modelo de salto)', 'régimen de calma (modelo de salto)'],
   miedo_contrario: ['estrés en el VIX y señal a favor del riesgo (comprar el miedo)', 'estrés en el VIX y señal hacia el refugio'],
 };
 

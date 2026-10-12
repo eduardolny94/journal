@@ -14,6 +14,7 @@ import { setMeta, getMetaJson } from './store.js';
 import { calibrateLogit } from './quant.js';
 import { signalFeatures, buildConvictionModel, indexesOf } from './conviction.js';
 import { validateRadar } from './validation.js';
+import { JUMP_LEGS, dollarBasket, jumpLabels } from './regime-jump.js';
 import { runCycle } from './cycle.js';
 import { surpriseOf } from './sources/calendar.js';
 import { SYNTHETIC_CROSS_PAIRS, pairDigits as digitsOfPair } from './constants.js';
@@ -172,6 +173,14 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
     try { db.exec('ROLLBACK'); } catch { /* sin transacción */ }
     log(`no se pudieron guardar los cierres diarios: ${e.message}`);
   }
+  // Régimen por modelo de salto (walk-forward): etiqueta de cada fecha con datos hasta esa fecha.
+  const jumpByDate = new Map();
+  try {
+    const { dates: jd, ret: jr } = dollarBasket(Object.fromEntries(JUMP_LEGS.map(([s]) => [s, daily[s] || []])));
+    const jl = jumpLabels(jr); jd.forEach((d, i) => { if (jl[i] >= 0) jumpByDate.set(d, jl[i]); });
+  } catch (e) { log(`régimen de salto: ${e.message}`); }
+  const jumpDates = [...jumpByDate.keys()].sort();
+  const jumpAt = (date) => { let lo = 0, hi = jumpDates.length - 1, a = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (jumpDates[m] <= date) { a = m; lo = m + 1; } else hi = m - 1; } return a >= 0 ? jumpByDate.get(jumpDates[a]) : -1; };
   const marketKeys = ['vix', 'sp500', 'oil', 'dxy', 'copper', 'vix3m'];
   const idx = {};
   for (const key of [...pairsOk, ...marketKeys.map((k) => `market:${k}`)]) {
@@ -293,7 +302,7 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
       const dirBigB = lastDirBig[base] ? lastDirBig[base].dir : 0;
       const dirBigQ = lastDirBig[quote] ? lastDirBig[quote].dir : 0;
       const feat = signalFeatures({
-        symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value, vix3m: market.vix3m.value,
+        symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value, vix3m: market.vix3m.value, jumpTurb: jumpAt(date) === 1,
         cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon: newsSoonCcy.has(base) || newsSoonCcy.has(quote),
         lastSurprise: clamp(sign * (dirB - dirQ), -1, 1),
         lastSurpriseBig: clamp(sign * (dirBigB - dirBigQ), -1, 1),

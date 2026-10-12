@@ -47,9 +47,9 @@ export function StatusChips({ status, computedAt, regime }: { status: RadarStatu
       {regime && (
         <SourceChip
           label={`Régimen · ${regime.key === 'tension' ? 'tensión' : 'calma'}`}
-          ok={regime.key === 'calma'}
-          warn={regime.key === 'tension'}
-          detail={`VIX ${regime.vix === null ? '—' : fmtNum(regime.vix, 1)} · pesos ${regime.weights_name === 'vigente' ? 'vigentes' : regime.weights_name.replace('_', ' ')}`}
+          ok={regime.key === 'calma' && regime.jump?.state !== 'turbulento'}
+          warn={regime.key === 'tension' || regime.jump?.state === 'turbulento'}
+          detail={`VIX ${regime.vix === null ? '—' : fmtNum(regime.vix, 1)}${regime.jump ? ` · modelo de salto: ${regime.jump.state} desde ${regime.jump.since}` : ''} · pesos ${regime.weights_name === 'vigente' ? 'vigentes' : regime.weights_name.replace('_', ' ')}`}
         />
       )}
       <span className="text-[11px] text-gray-500">Calculado {fmtSince(computedAt, now)}</span>

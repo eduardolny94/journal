@@ -5,6 +5,7 @@ import { getDb } from '../db.js';
 import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
 import { computeSwing } from './swing.js';
+import { JUMP_LEGS, currentJumpRegime } from './regime-jump.js';
 import { refreshYahoo, getPrices } from './sources/prices.js';
 import { refreshFred, latest } from './sources/fred.js';
 import { refreshCalendar, refreshCalendarHistory, nextEventByTitles } from './sources/calendar.js';
@@ -289,7 +290,9 @@ async function compute() {
   const backtest = lastBacktest(db);
   persistDailyCloses(db, prices, now);
   const closesAsOf = dailyClosesProvider(db);
-  const core = computeRadar(db, { prices, cot, expectations: expByCcy, manual, policy, now, weights, backtest, closesAsOf });
+  let jump = null;
+  try { jump = currentJumpRegime(Object.fromEntries(JUMP_LEGS.map(([s]) => [s, closesAsOf(s)]))); } catch (e) { console.warn('[radar] régimen de salto:', e.message); }
+  const core = computeRadar(db, { prices, cot, expectations: expByCcy, manual, policy, now, weights, backtest, closesAsOf, jump });
   let instruments = [];
   try {
     const usd = core.currencies.find((c) => c.code === 'USD');
@@ -318,7 +321,7 @@ async function compute() {
       cot: { ...state.sources.cot, report_date: cot.report_date },
       news: { ...state.sources.news, count: newsTop.length },
     },
-    regime: { key: regimeKey, label: REGIMES[regimeKey].label, vix: vixNow, weights_name: rsel ? rsel.name : 'vigente', weights, evidence: rsel ? rsel.evidence : null },
+    regime: { key: regimeKey, label: REGIMES[regimeKey].label, vix: vixNow, weights_name: rsel ? rsel.name : 'vigente', weights, evidence: rsel ? rsel.evidence : null, jump },
     currencies: core.currencies,
     pairs: core.pairs,
     instruments,

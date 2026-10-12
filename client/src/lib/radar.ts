@@ -589,6 +589,7 @@ export interface RadarRegime {
   weights_name: string;
   weights: Record<string, number>;
   evidence?: { in_sample: BacktestBucket; out_of_sample: BacktestBucket } | null;
+  jump?: { state: 'turbulento' | 'calma'; since: string; days: number; as_of: string; evidence: string } | null;
 }
 
 export interface RadarSnapshot {
