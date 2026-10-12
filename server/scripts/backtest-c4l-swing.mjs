@@ -245,7 +245,12 @@ for (const sym of SYMBOLS) {
     const hourNY = ((Number(String(b.key).split('|')[1]) * 4) - 7 + 24) % 24; // inicio de la vela H4 en hora de Nueva York
     const weekday = new Date(`${b.date}T00:00:00Z`).getUTCDay();
     const atrDrel = di >= 0 && F.atrD[di] && d1[di] ? F.atrD[di] / d1[di].c : null;
-    const ctx = { adx4, adxD, rsiDok, rsiDext, macdDok, distE200, e200slope, crossStrength, crosses30, donchian, dayEma8ok, d1age, w1age, hourNY, weekday, atrDrel };
+    // Literatura (12-10-2026): momentum de 1-12 meses (Moskowitz-Ooi-Pedersen; Menkhoff et al.) y escala por volatilidad (Harvey et al.).
+    const momOk = (n) => (di >= n && d1[di - n] ? Math.sign(d1[di].c - d1[di - n].c) === dir : null);
+    const mom63ok = momOk(63), mom126ok = momOk(126), mom250ok = momOk(250);
+    let volScale = 1;
+    if (di >= 120 && F.atrD[di]) { const hist = F.atrD.slice(Math.max(14, di - 250), di + 1).filter((v) => v !== null).sort((p, q) => p - q); const med = hist[Math.floor(hist.length / 2)]; if (med) volScale = Math.min(1.5, Math.max(0.25, med / F.atrD[di])); }
+    const ctx = { adx4, adxD, rsiDok, rsiDext, macdDok, distE200, e200slope, crossStrength, crosses30, donchian, dayEma8ok, d1age, w1age, hourNY, weekday, atrDrel, mom63ok, mom126ok, mom250ok, volScale: Math.round(volScale * 100) / 100 };
     for (const [stopKind, stop] of [['estructura', stopStruct], ['diario', stopDaily], ['fijo', stopFixed]]) {
       if (stop === null) continue;
       let risk = dir > 0 ? entry - stop : stop - entry;
@@ -466,6 +471,8 @@ if (process.argv.includes('--filtros')) {
     ['no viernes', (t) => t.weekday !== 5], ['no lunes', (t) => t.weekday !== 1],
     ['VWAP semanal a favor', (t) => t.vwapWok === true],
     ['volatilidad diaria alta (ATR > 0,7 %)', (t) => t.atrDrel > 0.007], ['volatilidad diaria baja (ATR ≤ 0,7 %)', (t) => t.atrDrel !== null && t.atrDrel <= 0.007],
+    ['momentum 3 meses a favor', (t) => t.mom63ok === true], ['momentum 6 meses a favor', (t) => t.mom126ok === true], ['momentum 12 meses a favor', (t) => t.mom250ok === true],
+    ['momentum 3 meses en contra', (t) => t.mom63ok === false], ['momentum 12 meses en contra', (t) => t.mom250ok === false],
   ];
   const cell = (list, key) => { const s = statsR(list, key); return s.n ? `${String(s.win).padStart(3)}% ${s.avg >= 0 ? '+' : ''}${s.avg.toFixed(2)}R` : '     —     '; };
   for (const [bname, bfn] of BASES) {
@@ -486,6 +493,10 @@ if (process.argv.includes('--filtros')) {
     }
     console.log(`  → base por año (BE 1,1→2R): ${years.map((y) => `${y} n=${baseY[y].n} ${baseY[y].win ?? '—'}% ${baseY[y].avg >= 0 ? '+' : ''}${baseY[y].avg ?? '—'}R`).join(' · ')}`);
     console.log(`  → filtros que mejoran el R en los TRES años (n ≥ 40): ${robust.length ? robust.join(' | ') : 'ninguno'}`);
+    // Escala por volatilidad (Harvey et al. 2018): tamaño × (mediana ATR diario 250 d / ATR diario hoy), acotado 0,25–1,5.
+    const eq = (L, key, scale) => { let e = 500, pk = 500, dd = 0; for (const t of [...L].sort((a, b) => (a.date < b.date ? -1 : 1))) { e *= 1 + 0.01 * t[key] * (scale ? t.volScale : 1); pk = Math.max(pk, e); dd = Math.max(dd, (pk - e) / pk); } return `${Math.round(e)} $ · DD ${(100 * dd).toFixed(1)} %`; };
+    const early = B.filter((t) => [t.adxD !== null && t.adxD < 20, t.crossStrength < 0.5, t.d1ok === true && t.d1age <= 10].filter(Boolean).length >= 2);
+    console.log(`  → escala por volatilidad · 2R puro · 500 $ al 1 %: base ${eq(B, 'r2_puro', false)} → escalada ${eq(B, 'r2_puro', true)} · «2 de 3» ${eq(early, 'r2_puro', false)} → escalada ${eq(early, 'r2_puro', true)} (escala media ${(early.reduce((a, t) => a + t.volScale, 0) / Math.max(1, early.length)).toFixed(2)})`);
   }
 }
 

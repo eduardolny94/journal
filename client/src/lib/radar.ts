@@ -296,6 +296,7 @@ export interface SwingQuality {
   cruce_atr: number | null; cruce_suave: boolean | null;
   diario_dias: number | null; diario_joven: boolean | null;
   puntos: number; temprana: boolean;
+  mom12m?: boolean | null;
 }
 export interface SwingPlan {
   as_of: string;

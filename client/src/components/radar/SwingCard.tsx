@@ -45,6 +45,7 @@ function QualityChips({ q }: { q: SwingPair['calidad'] }) {
       {chip(q.adx_ok, `ADX diario ${q.adx_d === null ? '—' : q.adx_d}`, 'Tendencia diaria aún no "hecha" (ADX 14 < 20): el cruce coge el arranque, no la persecución.')}
       {chip(q.cruce_suave, `cruce ${q.cruce_atr === null ? 'sin medir' : q.cruce_atr < 0.5 ? 'suave' : 'fuerte'}${q.cruce_atr === null ? '' : ` (${q.cruce_atr} ATR)`}`, 'El cierre del cruce queda a menos de 0,5 ATR de la media 18: entrada barata. Un cruce con vela enorme ya gastó recorrido.')}
       {chip(q.diario_joven, `diario ${q.diario_dias === null ? 'en contra' : `${q.diario_dias} d`}`, 'El diario 8/18 está a favor desde hace 10 días o menos: tendencia diaria joven.')}
+      {q.mom12m !== undefined && q.mom12m !== null && <span title="Informativo, no cuenta para el 2 de 3: el precio de hoy frente al de hace 12 meses va en la dirección de la entrada. La literatura (momentum de 1-12 meses) y nuestra medida (+0,13R sobre la semana; en contra −0,12R) lo apoyan." className={cn('rounded border px-1.5 py-0.5 text-[11px]', q.mom12m ? 'border-accent/40 text-accent' : 'border-border text-gray-500')}>12 m {q.mom12m ? 'a favor' : 'en contra'}</span>}
     </>
   );
 }

@@ -157,7 +157,9 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
     const cruceSuave = crossAtr === null ? null : crossAtr < EARLY_CROSS_ATR_MAX;
     const diarioJoven = dir === 0 ? null : diarioOk && d1.since !== null && d1.since <= EARLY_DAILY_MAX_DAYS;
     const puntos = [adxOk, cruceSuave, diarioJoven].filter((x) => x === true).length;
-    const calidad = { adx_d: round(adxD, 1), adx_ok: adxOk, cruce_atr: round(crossAtr, 2), cruce_suave: cruceSuave, diario_dias: diarioOk ? d1.since : null, diario_joven: diarioJoven, puntos, temprana: puntos >= 2 };
+    // Informativo (no cuenta): momentum de 12 meses a favor (Moskowitz-Ooi-Pedersen; medido +0,13R sobre la semana, docs/INVESTIGACION-ACADEMICA.md).
+    const mom12m = dir !== 0 && days.length > 250 ? Math.sign(days[days.length - 1].close - days[days.length - 251].close) === dir : null;
+    const calidad = { adx_d: round(adxD, 1), adx_ok: adxOk, cruce_atr: round(crossAtr, 2), cruce_suave: cruceSuave, diario_dias: diarioOk ? d1.since : null, diario_joven: diarioJoven, puntos, temprana: puntos >= 2, mom12m };
     // Objetivos de la regla del usuario (1,5R y 2R) y precio de +1,1R para pasar el stop a la entrada, desde el precio actual.
     const objetivos = (stop) => {
       if (stop === null || !price) return null;
