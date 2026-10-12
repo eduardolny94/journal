@@ -7,7 +7,7 @@ import {
 import { getSeries, changeOverDays, yoyFromIndex, seriesAsOf, shiftDays, ymd } from './sources/fred.js';
 import { yieldSeries } from './sources/yields.js';
 import { latestActual, eventsBetween, surpriseOf, categorize } from './sources/calendar.js';
-import { aggregateNyDays, aggregateH4, aggregateWeeks, atr, efficiencyRatio, trendByEma, trendWeekly, trendBySwings, momentumAtr, zscores, round, mean, NY } from './indicators.js';
+import { aggregateNyDays, aggregateH4, aggregateWeeks, atr, ema, efficiencyRatio, trendByEma, trendWeekly, trendBySwings, momentumAtr, zscores, round, mean, NY } from './indicators.js';
 import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
 import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
@@ -166,6 +166,10 @@ export function pairComputations(sym, s, now) {
   const dayReturns = (k) => (completed.length > k ? completed[completed.length - 1].close / completed[completed.length - 1 - k].close - 1 : null);
   const atrD = atr(completed.slice(-40), 14);
   const atrPct = atrD && completed.length ? atrD / completed[completed.length - 1].close : null;
+  // Distancia del último cierre a su EMA 20 en ATR diarios (medida de reversión validada el 13-10-2026).
+  const closesD = completed.map((d) => d.close);
+  const ema20 = closesD.length >= 20 ? ema(closesD, 20)[closesD.length - 1] : null;
+  const ext20 = ema20 !== null && atrD ? (closesD[closesD.length - 1] - ema20) / atrD : null;
   const mk = (k) => {
     const r = dayReturns(k);
     return r === null || !atrPct ? 0 : clamp(r / (atrPct * Math.sqrt(k)), -3, 3);
@@ -196,6 +200,7 @@ export function pairComputations(sym, s, now) {
     price,
     mom,
     momentum: { h1: round(momentumAtr(s.h1, 4)), h4: round(momentumAtr(h4, 6)), d1: round(momentumAtr(completed, 5)) },
+    ext20_atr: round(ext20),
     yesterday: yesterday ? { dir: yDir, range_vs_adr: round(yRangeVsAdr), close_pos: round(yClosePos), volume_vs_avg: null, strong } : null,
     levels: yesterday && prevWeek && todayRef ? {
       pd_high: yesterday.high, pd_low: yesterday.low, pd_mid: round((yesterday.high + yesterday.low) / 2, s.digits),
@@ -504,7 +509,15 @@ function finishRadar(db, input, ctx) {
       const h20 = v ? v.horizons.find((h) => h.horizon_d === 20) : null;
       warnings.push({ kind: 'contra_tendencia_20d', text: `Sesgo contra la tendencia de 20 días${h20 && h20.n >= 60 ? ` (históricamente solo ${fmt(h20.hit_rate, 0)} % a favor a 20 días, n=${h20.n})` : ''}: la peor combinación, no perseguir.` });
     }
-    const structure = { yesterday: p.yesterday, trend: p.trend, levels: p.levels, pos_pd: p.pos_pd, expected: p.expected };
+    // Sobreextensión (validado con permutaciones, docs/VALIDACION-RADAR.md): con el precio ya ≥ 2 ATR sobre su EMA 20 en
+    // la dirección del sesgo, el sesgo acertó solo el 40 % a 5 días y el 38 % a 10 (n ≈ 600, 2024-2026); a ≥ 3 ATR en
+    // cualquier dirección, el precio revirtió hacia la media a 10 días el 66 % de las veces (p = 0,04).
+    if (p.ext20_atr !== null && p.ext20_atr !== undefined) {
+      const e = p.ext20_atr; const sgn = diff > 0 ? 1 : -1;
+      if (strength !== 'sin sesgo' && e * sgn >= 2) warnings.push({ kind: 'sobreextendido', text: `Precio ya ${fmt(Math.abs(e), 1)} ATR ${e > 0 ? 'por encima' : 'por debajo'} de su media de 20 días, a favor del sesgo: así, el sesgo acertó solo el ${e * sgn >= 3 ? '33 % a 10 días (n=83)' : '38–40 % a 5–10 días (n≈600)'}. No perseguir: esperar retroceso.` });
+      else if (Math.abs(e) >= 3) warnings.push({ kind: 'reversion_media', text: `Precio ${fmt(Math.abs(e), 1)} ATR ${e > 0 ? 'por encima' : 'por debajo'} de su media de 20 días: en lo medido revirtió hacia la media a 10 días el 66 % de las veces${strength !== 'sin sesgo' && e * sgn <= -3 ? ', a favor del sesgo' : ''}.` });
+    }
+    const structure = { yesterday: p.yesterday, trend: p.trend, levels: p.levels, pos_pd: p.pos_pd, expected: p.expected, ext20_atr: p.ext20_atr ?? null };
     const dirUp = bias === 'alcista';
     if (strength !== 'sin sesgo' && ((p.trend.h4 !== 'lateral' && (p.trend.h4 === 'alcista') !== dirUp) || (p.trend.d1 !== 'lateral' && (p.trend.d1 === 'alcista') !== dirUp))) {
       warnings.push({ kind: 'contra_estructura', text: 'La estructura de 4 h o diaria va contra el sesgo macro: esperar confirmación.' });

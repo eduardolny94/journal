@@ -13,6 +13,7 @@ import { atr, round } from './indicators.js';
 import { setMeta, getMetaJson } from './store.js';
 import { calibrateLogit } from './quant.js';
 import { signalFeatures, buildConvictionModel, indexesOf } from './conviction.js';
+import { validateRadar } from './validation.js';
 import { runCycle } from './cycle.js';
 import { surpriseOf } from './sources/calendar.js';
 import { SYNTHETIC_CROSS_PAIRS, pairDigits as digitsOfPair } from './constants.js';
@@ -299,7 +300,7 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
         pillarDiff: pillarDiffs(pb, pq),
       });
       const atrPips = feat.atr ? feat.atr / pip : null;
-      convRows.push({ date, sym, x: feat.x, signed_pips: {}, r: {}, atr_pips: atrPips });
+      convRows.push({ date, sym, diff, x: feat.x, signed_pips: {}, r: {}, atr_pips: atrPips });
       const convRow = convRows[convRows.length - 1];
       for (const h of horizons) {
         if (i + h >= bars.length) continue;
@@ -446,8 +447,18 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
     log(`convicción: ${e.message}`);
   }
 
+  // Validación estadística (permutaciones + bootstrap): ¿bate el sesgo al azar? Para todos los usuarios.
+  let validation = null;
+  if (process.env.RADAR_VALIDATION !== '0') try {
+    validation = validateRadar(convRows, conviction, { horizons: horizons.filter((h) => [1, 5, 20].includes(h)) });
+    if (validation) for (const v of validation.sets.filter((x) => x.horizon_d === 5)) log(`validación ${v.label} 5 d: ${v.hit_rate}% · ${v.avg_r}R · p ${v.p_value} · ${v.verdict}`);
+  } catch (e) {
+    log(`validación: ${e.message}`);
+  }
+
   const report = {
     computed_at: new Date(now).toISOString(),
+    validation,
     duration_ms: Date.now() - t0,
     calibration_logit: calibrationLogit,
     conviction,

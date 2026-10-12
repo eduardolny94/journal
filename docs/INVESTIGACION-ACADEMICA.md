@@ -133,3 +133,45 @@ Todo entra a peso 0 y se adopta solo si el nivel A mejora ≥ 2 puntos en los tr
 - Kaminski, Lo (2014) https://dspace.mit.edu/entities/publication/bb69ca4b-0cdc-487f-831d-63b2e84fafee · Harvey et al. (2018)
   https://alphaarchitect.com/volatility-targeting-improves-risk-adjusted-returns/ · Krohn, Mueller, Whelan (fixings)
   https://www.wu.ac.at/fileadmin/wu/d/ri/isk/VSFX_2022/Paper/Session_III_1a_Krohn__foreign_Exchange_Fixings_Returns_Around_The_Clock_0712.pdf
+
+## 8. BERT, Ornstein-Uhlenbeck, Simons y reversión a la media (13-10-2026)
+
+**BERT / FinBERT para noticias.** En acciones, los modelos de lenguaje baten a los diccionarios (Kirtac y Germano
+2024: OPT > BERT ≈ FinBERT ≫ Loughran-McDonald). En divisas la evidencia es floja: FinBERT solo acierta en torno al
+56 % en EURUSD y "el poder predictivo sigue siendo débil" (HICSS 2021); además un titular bueno para el CAD es malo
+para USDCAD, así que el tono hay que asignarlo por divisa, no por titular. **Decisión:** no meter FinBERT. Lo que mueve
+las divisas en las noticias es la sorpresa frente al consenso (Andersen et al. 2003), que ya medimos con el
+calendario; el tono de bancos centrales se lee a mano con la guía DCM FX. Si se añade algo, sería un modelo de lenguaje
+que clasifique por divisa, como candidata a peso 0.
+
+**Ornstein-Uhlenbeck.** `server/scripts/reversion-ou.mjs`: OU ajustado cada día con 120 días (AR(1) del log-precio).
+- La "vida media" estimada sale con reversión el 98 % de los días (mediana 14 días): es el sesgo conocido de estimar
+  AR(1) en muestras cortas sobre un paseo aleatorio, no prueba de reversión.
+- Reversión pura con z_OU: p = 0,47–0,70 frente al azar. Con el sesgo del radar, el "retroceso OU" no mejora al azar
+  (p = 0,32) y z_OU no añade nada encima de la medida EMA que ya usa el radar. **Decisión: OU no entra.**
+
+**Reversión a la media con la medida del radar (distancia a la EMA 20 en ATR):**
+- A ≥ 3 ATR, ir contra la desviación: +0,61 ATR a 10 días (66 %, p = 0,037) y +0,91 ATR a 20 días (p = 0,019),
+  positivo los tres años. A ≥ 2 ATR: +0,60 ATR a 20 días (p = 0,03).
+- Con el radar: si el precio ya está ≥ 2 ATR a favor del sesgo, el sesgo acierta el 40 % a 5 días y el 38 % a 10
+  (n ≈ 600); a ≥ 3 ATR, el 33 % a 10 días. "Extendido a favor" es peor que el azar con p = 0,015.
+- **Aplicado:** aviso "sobreextendido" (≥ 2 ATR a favor del sesgo: no perseguir) y "reversión a la media" (≥ 3 ATR) en
+  cada par del radar, para todos. La capa de convicción ya incluía `extension_ema`: queda validada.
+
+**Reglas atribuidas a Jim Simons / Renaissance** (Zuckerman, "The Man Who Solved the Market"; fuentes secundarias):
+
+| Regla | ¿La seguimos? |
+|---|---|
+| Empezar por los datos, no por la teoría | Sí: toda idea (de vídeos, papers o del usuario) se mide antes de entrar. |
+| Muchas ventajas pequeñas, apenas por encima del 50 % | Sí: el radar acierta 52–61 % y el valor está en sumar señales (convicción). |
+| Un solo modelo que integra todas las señales | Sí: la capa de convicción combina los pilares en una probabilidad. |
+| Probar si una señal nueva paga sus costes antes de añadirla | Sí: candidatas a peso 0 y regla de los tres cortes; ahora además permutaciones. |
+| No intervenir a mano en el modelo | Parcial: el tono de bancos centrales es manual (con nota y caducidad). |
+| Datos limpios y sin mirar el futuro | Ahora sí: fuga del sesgo del mismo día corregida en el backtest C4L. |
+| Tamaño pequeño por apuesta, apalancamiento controlado | Es lo contrario de operar al 10–15 %: el Monte Carlo lo cuantifica. |
+| Reversión a la media a corto plazo | Medida: solo en extremos (≥ 3 ATR) y como aviso de "no perseguir". |
+
+Fuentes: Kirtac y Germano (2024) https://arxiv.org/pdf/2412.19245 · HICSS 2021 https://aisel.aisnet.org/hicss-54/da/machine_learning_in_finance/5
+· sentimiento macro FX con FinBERT https://arxiv.org/pdf/2505.16136 · OU en divisas (Temnov) https://arxiv.org/pdf/1507.01610
+· tesis Boeker (UCL) https://discovery.ucl.ac.uk/id/eprint/10137352/ · reversión vs momentum semanal (Massey) https://mro.massey.ac.nz/items/ed9dd335-ab49-41ba-818c-b2cc14a59568/full
+· lecciones del libro de Zuckerman https://awealthofcommonsense.com/2019/11/non-intuitive-lessons-from-the-man-who-solved-the-market/

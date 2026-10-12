@@ -104,3 +104,14 @@ cruce 0,35: +1,03R, n=34) es ruido de muestra pequeña; no se adopta. Edad del d
 4. Riesgo: con la incertidumbre medida, 1–2 % por operación es lo que el Monte Carlo sostiene sin ruina; 10–15 %
    pone la probabilidad de perder la mitad de la cuenta en un año entre el 1,4 % (en el mejor plan, si la ventaja es
    real) y el 35 %.
+
+## 5. Validación dentro del radar (para todos los usuarios)
+
+`server/src/radar/validation.js` corre con cada backtest semanal (13 s en total, sin subir la memoria; se puede
+apagar con `RADAR_VALIDATION=0`). Guarda en el informe `validation`: por señal (fuerza ≥ 2, ≥ 3, convicción A/B y A
+fuera de muestra) y horizonte (1, 5, 20 días): acierto, R en ATR, IC 90 % por bootstrap mensual, p-valor por
+desplazamiento circular (400 permutaciones) y veredicto ("bate al azar", "indicios", "sin ventaja demostrada"); y la
+superficie umbral × horizonte. Se muestra en Radar → Comparativa → "¿Bate al azar?".
+
+Primera corrida (13-10-2026): fuerza ≥ 2 y ≥ 3 sin ventaja demostrada en ningún horizonte; **convicción A/B a 1 día
+bate al azar** (61 %, +0,08R, IC [+0,02, +0,14], p = 0,04); convicción A a 5 días, indicios (68 %, +0,55R, p = 0,08).

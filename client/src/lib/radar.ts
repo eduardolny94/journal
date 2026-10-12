@@ -1572,8 +1572,20 @@ export interface BacktestBucket {
   avg_win_pips: number | null;
   avg_loss_pips: number | null;
 }
+export interface ValidationSet {
+  key: 'fuerza2' | 'fuerza3' | 'convAB' | 'convA'; label: string; horizon_d: number; from?: string;
+  n: number; hit_rate?: number | null; avg_r?: number | null; ci90?: [number | null, number | null]; p_value?: number | null; null_p95?: number | null;
+  verdict?: 'demostrada' | 'indicios' | 'sin_ventaja';
+}
+export interface RadarValidation {
+  computed_at: string; from: string; to: string; pairs: number; permutations: number; bootstrap: number;
+  sets: ValidationSet[];
+  surface: Array<{ min_diff: number; horizon_d: number; n: number; hit_rate: number | null; avg_r: number | null }>;
+  method: string[];
+}
 export interface BacktestReport {
   computed_at: string;
+  validation?: RadarValidation | null;
   duration_ms: number;
   from: string;
   to: string;

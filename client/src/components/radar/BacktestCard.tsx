@@ -8,7 +8,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Link } from 'react-router-dom';
 import { Badge } from '../ui/Badge';
-import { fetchBacktest, fetchMethodReport, fmtLocalDateTime, runBacktest, strengthWord, biasLabel, biasVariant, convictionOf, flagOf, type BacktestBucket, type BacktestReport, type MethodReport, type MethodStats, type RadarPair } from '../../lib/radar';
+import { fetchBacktest, fetchMethodReport, fmtLocalDateTime, runBacktest, strengthWord, biasLabel, biasVariant, convictionOf, flagOf, type BacktestBucket, type BacktestReport, type RadarValidation, type MethodReport, type MethodStats, type RadarPair } from '../../lib/radar';
 
 let cache: Promise<BacktestReport | null> | null = null;
 function loadBacktest(force = false): Promise<BacktestReport | null> {
@@ -41,6 +41,60 @@ function pct(b: BacktestBucket | null | undefined): string {
 function pctClass(b: BacktestBucket | null | undefined): string {
   if (!b || b.hit_rate === null || b.n < 30) return 'text-gray-400';
   return b.hit_rate >= 55 ? 'text-profit' : b.hit_rate < 45 ? 'text-loss' : 'text-gray-200';
+}
+
+const VERDICT: Record<string, { label: string; cls: string; help: string }> = {
+  demostrada: { label: 'Bate al azar', cls: 'border-profit/40 text-profit', help: 'p < 0,05 y el intervalo de confianza entero por encima de cero.' },
+  indicios: { label: 'Indicios', cls: 'border-warn/40 text-warn', help: 'p entre 0,05 y 0,10: puede ser ventaja o suerte; falta muestra.' },
+  sin_ventaja: { label: 'Sin ventaja demostrada', cls: 'border-border text-gray-400', help: 'El azar con la misma estructura lo iguala con frecuencia (p ≥ 0,10).' },
+};
+const sgn = (v: number | null | undefined, k = 2) => (v === null || v === undefined ? '—' : `${v >= 0 ? '+' : ''}${fmtNum(v, k)}`);
+
+/** ¿Bate el radar al azar? Permutaciones (desplazamiento circular) y bootstrap mensual, calculado con cada backtest. */
+function ValidationBlock({ v }: { v: RadarValidation }) {
+  const hs = [...new Set(v.sets.map((s) => s.horizon_d))].sort((a, b) => a - b);
+  const keys: Array<RadarValidation['sets'][number]['key']> = ['fuerza2', 'fuerza3', 'convAB', 'convA'];
+  const label = (k: string) => v.sets.find((s) => s.key === k)?.label ?? k;
+  return (
+    <div className="rounded-md border border-border bg-bg/40 p-3">
+      <p className="text-xs font-semibold text-gray-200">¿Bate al azar? Validación estadística</p>
+      <p className="mt-0.5 text-[11px] text-gray-500">
+        Cada señal se compara con {v.permutations} versiones al azar que conservan su estructura (la serie del sesgo desplazada en el tiempo). p = probabilidad de que el azar lo iguale. R = movimiento en ATR diarios a favor; IC 90 % por bootstrap mensual.
+      </p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left text-xs">
+          <thead className="text-[10px] uppercase tracking-wider text-gray-500">
+            <tr>
+              <th className="px-2 py-1">Señal</th>
+              {hs.map((h) => <th key={h} className="px-2 py-1 text-right">{h} d · acierto · R · IC 90 % · p</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {keys.filter((k) => v.sets.some((s) => s.key === k)).map((k) => (
+              <tr key={k} className="border-t border-border/60 text-gray-200">
+                <td className="px-2 py-1">{label(k)}</td>
+                {hs.map((h) => {
+                  const s = v.sets.find((x) => x.key === k && x.horizon_d === h);
+                  if (!s || s.hit_rate === undefined || s.hit_rate === null) return <td key={h} className="px-2 py-1 text-right text-gray-600">{s ? `n=${s.n}, pocas` : '—'}</td>;
+                  const vd = VERDICT[s.verdict ?? 'sin_ventaja'];
+                  return (
+                    <td key={h} className="px-2 py-1 text-right tnum">
+                      {fmtNum(s.hit_rate, 0)} % · {sgn(s.avg_r)}R · [{sgn(s.ci90?.[0])}, {sgn(s.ci90?.[1])}] · p {fmtNum(s.p_value ?? 1, 2)}
+                      <span title={vd.help} className={cn('ml-1.5 rounded border px-1 py-0.5 text-[10px]', vd.cls)}>{vd.label}</span>
+                      <span className="block text-[10px] text-gray-500">n={s.n}{s.from ? ` · desde ${s.from}` : ''}</span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-[11px] text-gray-400">
+        Lectura: el sesgo por fuerza, solo, apenas se separa del azar; la ventaja está en la capa de convicción A/B y en usar el sesgo como filtro de dirección de entradas técnicas (en la operativa swing, el filtro del radar supera al azar con p = 0,016).
+      </p>
+    </div>
+  );
 }
 
 /** Frase corta para la tarjeta del par: qué pasó históricamente con esta fuerza. */
@@ -104,6 +158,8 @@ export function BacktestCard() {
             {report.pillar_missing_pct !== null ? ` · pilares sin dato ${fmtNum(report.pillar_missing_pct, 1)} %` : ''}
             {report.running ? ' · recalculando…' : ''}
           </p>
+
+          {report.validation && <ValidationBlock v={report.validation} />}
 
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {report.summary.map((s) => (
