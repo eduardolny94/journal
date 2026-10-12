@@ -347,3 +347,7 @@ Salida `simExit`: objetivo fijo con escalones de protección sobre velas H1 (sto
 Aplicado en la pestaña Swing (`swing.js`, `SwingCard.tsx`): chips ADX diario / cruce / diario joven, distintivo
 «Entrada temprana 2/3 o 3/3» en los cruces recientes, orden por puntos dentro de cada estado, objetivos 1,5R y 2R y
 precio de +1,1R calculados desde el precio actual con el stop más ajustado.
+
+> **Corrección 13-10-2026:** las cifras de las secciones C4L anteriores usaban el sesgo del radar del mismo día (fuga de
+> hasta un día). Sin fuga: semana + radar 39 % · +0,17R (n=318); "2 de 3" 51 % · +0,52R a 2R y 59 % · +0,47R a 1,5R
+> (n=75); semana + radar A/B 57 % · +0,69R (n=35). Detalle, permutaciones y Monte Carlo en `docs/VALIDACION-RADAR.md`.

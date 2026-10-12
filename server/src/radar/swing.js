@@ -60,7 +60,7 @@ function adxLast(bars, n = 14) {
   return a;
 }
 // Filtros de "entrada temprana" medidos el 10-10-2026 (docs/ESTRATEGIA-SWING-H4.md): los tres mejoran el R a 2R en
-// 2024, 2025 y 2026 sobre "semanal + radar". Con 2 de 3: 55 % a 2R (+0,65R), 60 % a 1,5R (+0,50R), n=80.
+// 2024, 2025 y 2026 sobre "semanal + radar". Con 2 de 3 (sesgo sin fuga, 13-10-2026): 51 % a 2R (+0,52R), 59 % a 1,5R (+0,47R), n=75.
 export const EARLY_ADX_MAX = 20;        // ADX diario (14) por debajo: la tendencia diaria aún no está "hecha"
 export const EARLY_CROSS_ATR_MAX = 0.5; // cierre del cruce a menos de 0,5 ATR H4 de la media 18: cruce suave, no persecución
 export const EARLY_DAILY_MAX_DAYS = 10; // diario 8/18 a favor desde hace ≤ 10 días: tendencia diaria joven
@@ -189,7 +189,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
     as_of: new Date(now).toISOString(),
     account: { usd: accountUsd, risk_pct: riskPct, max_pairs: SWING_MAX_PAIRS },
     rules: { be_trigger_r: BE_TRIGGER_R, targets_r: TARGETS_R, early: { adx_max: EARLY_ADX_MAX, cross_atr_max: EARLY_CROSS_ATR_MAX, daily_max_days: EARLY_DAILY_MAX_DAYS } },
-    evidence: { text: 'Cruce 8/18 en H4 con semanal 8/18 alineada y sesgo del radar a favor, stop en el día anterior y objetivo 2R: 40 % de acierto, +0,21R (n=374, 2024-2026, 14 pares). Con 2 de 3 señales de entrada temprana (ADX diario < 20, cruce suave < 0,5 ATR, diario a favor desde ≤ 10 días): 55 % a 2R (+0,65R) y 60 % a 1,5R (+0,50R), n=80, positivo los tres años. Pasar el stop a la entrada en +1,1R cuesta entre 5 y 8 puntos de acierto y deja el R igual. El cruce sin el radar pierde (−0,04R).' },
+    evidence: { text: 'Medido 2024-2026 en 14 pares con el sesgo del radar del día anterior (sin información del futuro). Cruce 8/18 en H4 con la semana 8/18 alineada y el radar a favor, stop en el día anterior y objetivo 2R: 39 % de acierto, +0,17R (n=318); el radar mejora al azar con p = 0,02. Con 2 de 3 señales de entrada temprana (ADX diario < 20, cruce suave < 0,5 ATR, diario a favor ≤ 10 días): 51 % a 2R (+0,52R) y 59 % a 1,5R (+0,47R), n=75, positivo los tres años; descontando los 42 filtros probados, p = 0,17: prometedor, no demostrado. Pasar el stop a la entrada en +1,1R resta entre 5 y 8 puntos de acierto y deja el R igual. El cruce sin el radar no gana.' },
     selected: selected.map((r) => r.symbol),
     pairs: rows,
   };

@@ -146,12 +146,17 @@ function alignmentIndex(frames, date) {
 const biasRows = db.prepare('SELECT date, symbol, diff FROM radar_daily_bias ORDER BY symbol, date').all();
 const biasBy = {};
 for (const r of biasRows) { (biasBy[r.symbol] ||= []).push(r); }
-function biasAt(sym, date) {
+// Sin fuga (13-10-2026): el sesgo de la fecha d se calcula con datos hasta las 23:59 UTC de d, y una vela H4 de la fecha
+// de servidor d empieza a las 17:00 NY de d−1. Solo se usa el sesgo de fechas ANTERIORES a la de la vela (cerrado antes
+// de que la vela cierre). --con-fuga reproduce el cálculo antiguo (mismo día) para comparar.
+const LEAK = process.argv.includes('--con-fuga');
+function biasRowAt(sym, date) {
   const rows = biasBy[sym]; if (!rows) return null;
   let lo = 0, hi = rows.length - 1, ans = null;
-  while (lo <= hi) { const m = (lo + hi) >> 1; if (rows[m].date <= date) { ans = rows[m]; lo = m + 1; } else hi = m - 1; }
-  return ans && (new Date(date) - new Date(ans.date)) / 86400000 <= 5 ? ans.diff : null;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (LEAK ? rows[m].date <= date : rows[m].date < date) { ans = rows[m]; lo = m + 1; } else hi = m - 1; }
+  return ans && (new Date(date) - new Date(ans.date)) / 86400000 <= 5 ? ans : null;
 }
+function biasAt(sym, date) { const r = biasRowAt(sym, date); return r ? r.diff : null; }
 let tierBy = null;
 try {
   const j = JSON.parse(readFileSync(path.join(DATA, 'conviccion-diaria.json'), 'utf8'));
@@ -221,7 +226,8 @@ for (const sym of SYMBOLS) {
     const w1ok = wi >= 0 && F.w8[wi] !== null && F.w18[wi] !== null ? (dir > 0 ? F.w8[wi] > F.w18[wi] : F.w8[wi] < F.w18[wi]) : null;
     const diff = biasAt(sym, b.date);
     const radarOk = diff === null ? null : (Math.sign(diff) === dir && Math.abs(diff) >= 3);
-    const tier = tierBy ? tierBy[`${sym}|${b.date}`] || null : null;
+    const bRow = biasRowAt(sym, b.date);
+    const tier = tierBy && bRow ? tierBy[`${sym}|${bRow.date}`] || null : null;
     const radarAB = tierBy ? (radarOk === true && (tier === 'A' || tier === 'B')) : null;
     const trending = topTrendingAt(b.date).has(sym);
     const vwW = vwapW[b.last]; const vwM = vwapM[b.last];

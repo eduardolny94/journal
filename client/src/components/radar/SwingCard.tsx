@@ -33,9 +33,9 @@ function sizeFor(s: SwingSizing | null, accountUsd: number, riskPct: number): { 
   const lots = Math.max(0.01, Math.floor(((accountUsd * riskPct) / 100 / (s.risk_pips * s.pip_value_usd)) * 100) / 100);
   return { lots, risk_usd: Math.round(lots * s.risk_pips * s.pip_value_usd * 100) / 100 };
 }
-/** Lo que pierde la cuenta con la peor racha medida (5 stops seguidos con «2 de 3»; 13 en la base sin filtros). */
+/** Lo que pierde la cuenta con la peor racha medida (6 stops seguidos con «2 de 3»; 11 en la base sin filtros; sesgo sin fuga). */
 function streakLoss(riskPct: number, n: number): number { return Math.round((1 - Math.pow(1 - riskPct / 100, n)) * 100); }
-/** Las tres señales de entrada temprana medidas (10-10-2026): con 2 de 3, 55 % a 2R y 60 % a 1,5R. */
+/** Las tres señales de entrada temprana medidas (10-10-2026): con 2 de 3, 51 % a 2R y 59 % a 1,5R (sesgo sin fuga). */
 function QualityChips({ q }: { q: SwingPair['calidad'] }) {
   const chip = (ok: boolean | null, label: string, title: string) => (
     <span key={label} title={title} className={cn('rounded border px-1.5 py-0.5 text-[11px]', ok === true ? 'border-profit/40 text-profit' : ok === false ? 'border-border text-gray-500 line-through decoration-gray-600' : 'border-border text-gray-600')}>{label}</span>
@@ -76,7 +76,7 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
     >
       {riskPct >= 3 && (
         <p className="border-b border-border bg-loss/5 px-4 py-2 text-[11px] text-loss">
-          Al {riskPct} % por operación, la peor racha medida con «2 de 3» (5 stops seguidos) deja la cuenta en −{streakLoss(riskPct, 5)} % ({Math.round(plan.account.usd * (1 - streakLoss(riskPct, 5) / 100))} $ de {plan.account.usd} $); la racha de la base sin filtros (13 stops) en −{streakLoss(riskPct, 13)} %. Con 55 % de acierto, una racha de 5 ocurre más o menos una vez cada 100 operaciones: unos dos años al ritmo medido. Es tu decisión; la pestaña solo hace las cuentas.
+          Al {riskPct} % por operación, la peor racha medida con «2 de 3» (6 stops seguidos) deja la cuenta en −{streakLoss(riskPct, 6)} % ({Math.round(plan.account.usd * (1 - streakLoss(riskPct, 6) / 100))} $ de {plan.account.usd} $); la racha de la base sin filtros (11 stops) en −{streakLoss(riskPct, 11)} %. Monte Carlo de un año al 10 %: drawdown mediano 47 %, 1 de cada 14 años termina en pérdida; al 15 %, drawdown mediano 62 %. Es tu decisión; la pestaña solo hace las cuentas.
         </p>
       )}
       <ul className="divide-y divide-border">
@@ -94,8 +94,8 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
                 <span className={cn('block text-xs font-semibold uppercase tracking-wide', dir > 0 ? 'text-profit' : dir < 0 ? 'text-loss' : 'text-gray-500')}>{dir > 0 ? 'solo compras' : dir < 0 ? 'solo ventas' : 'sin dirección'} · fuerza {p.level}/5</span>
                 <span className="flex flex-wrap gap-1">
                   <Badge variant={e.variant} size="sm" title={e.help}>{e.label}</Badge>
-                  {p.estado === 'entrada' && p.calidad.temprana && <Badge variant="profit" size="sm" title="Junta 2 de las 3 señales tempranas medidas: 55 % de acierto a 2R (+0,65R) y 60 % a 1,5R (+0,50R), n=80, positivo los tres años.">Entrada temprana {p.calidad.puntos}/3</Badge>}
-                  {p.estado === 'entrada' && !p.calidad.temprana && <Badge variant="outline" size="sm" title="Solo 0 o 1 señal temprana: en lo medido, 40 % a 2R (+0,21R). Operar con tamaño menor o dejarla pasar.">Señales tempranas {p.calidad.puntos}/3</Badge>}
+                  {p.estado === 'entrada' && p.calidad.temprana && <Badge variant="profit" size="sm" title="Junta 2 de las 3 señales tempranas medidas: 51 % de acierto a 2R (+0,52R) y 59 % a 1,5R (+0,47R), n=75, positivo los tres años.">Entrada temprana {p.calidad.puntos}/3</Badge>}
+                  {p.estado === 'entrada' && !p.calidad.temprana && <Badge variant="outline" size="sm" title="Solo 0 o 1 señal temprana: en lo medido, 39 % a 2R (+0,17R). Operar con tamaño menor o dejarla pasar.">Señales tempranas {p.calidad.puntos}/3</Badge>}
                 </span>
               </button>
               <div className="min-w-0 flex-1 space-y-1 text-xs">
