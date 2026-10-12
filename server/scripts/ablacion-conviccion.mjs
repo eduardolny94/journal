@@ -21,7 +21,7 @@ const rows = report.conv_rows;
 console.log(`\n${rows.length} filas (día × par) en ${Math.round((Date.now() - t0) / 1000)} s\n`);
 
 const idx = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
-const NEW = ['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande'];
+const NEW = ['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario'];
 const BASE = FEATURE_NAMES.filter((n) => !NEW.includes(n));
 const configs = [
   { name: 'base (16, v1)', mask: idx(BASE), lambda: LAMBDA },

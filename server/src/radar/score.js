@@ -591,7 +591,7 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   const pb = byCode[base].pillars;
   const pq = byCode[quote].pillars;
   const feat = signalFeatures({
-    symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null,
+    symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null, vix3m: market.vix3m ? market.vix3m.value : null,
     cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
     lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
     lastSurpriseBig: clamp(sign * ((dirBig[base] || 0) - (dirBig[quote] || 0)), -1, 1),

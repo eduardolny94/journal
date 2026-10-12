@@ -10,14 +10,15 @@ export const FEATURE_NAMES = [
   'vix_tension', 'cot_extremo', 'noticia_24h', 'ultima_sorpresa', 'valor', 'tendencia_larga', 'sorpresas', 'par_usd', 'par_jpy',
   'taylor', 'descontado', 'real', 'tot',
   'ciclo', 'sorpresa_grande',
+  'miedo_contrario',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 4;
+export const FEATURE_VERSION = 5;
 /**
  * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
  * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.
  */
-export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande'].includes(n));
+export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario'].includes(n));
 export const CANDIDATE_FEATURES = FEATURE_NAMES.filter((n) => !BASE_FEATURES.includes(n));
 export const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
 /** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
@@ -61,6 +62,10 @@ function efficiency(closes, n = 20) {
  *                       newsSoon, lastSurprise (−1|0|1 ya alineado), lastSurpriseBig (ídem, solo tipos/IPC/PIB/empleo),
  *                       pillarDiff {valor, tendencia, sorpresas, …, ciclo}, symbol }
  */
+// Exposición al apetito por riesgo de un par: + si sube con risk-on (base pro-riesgo o cotizada refugio).
+const RISK_BETA = { AUD: 1, NZD: 1, CAD: 0.5, GBP: 0.3, EUR: 0, USD: -0.5, CHF: -1, JPY: -1 };
+function riskBeta(symbol) { if (!symbol || symbol.length < 6) return 0; return (RISK_BETA[symbol.slice(0, 3)] ?? 0) - (RISK_BETA[symbol.slice(3, 6)] ?? 0); }
+
 export function signalFeatures(ctx) {
   const s = ctx.diff > 0 ? 1 : -1;
   const bars = ctx.bars || [];
@@ -100,6 +105,10 @@ export function signalFeatures(ctx) {
     // Fase 3 (método Curto): fase del ciclo (base menos cotizada) y último dato de los cuatro que cambian tendencias.
     clamp(((pd.ciclo || 0) * s) / 4, -1, 1),
     clamp(ctx.lastSurpriseBig || 0, -1, 1),
+    // Candidata (13-10-2026, scripts/volatilidad-sentimiento.mjs): con la curva del VIX invertida (VIX ≥ VIX3M), en
+    // 2024-2026 el lado pro-riesgo (AUD/NZD contra JPY/CHF) subió a 10 días el 66 % (p = 0,03, 11 episodios) y el sesgo
+    // del radar a favor del refugio acertó el 33 %. +1 si la señal va a favor del riesgo en estrés, −1 si va al refugio.
+    ctx.vix && ctx.vix3m && ctx.vix / ctx.vix3m >= 1 ? Math.sign(riskBeta(ctx.symbol)) * s : 0,
   ];
   return { x, atr, level };
 }
@@ -189,6 +198,7 @@ const REASON_TEXT = {
   tot: ['materias primas a favor', 'materias primas en contra'],
   ciclo: ['fase del ciclo a favor', 'fase del ciclo en contra'],
   sorpresa_grande: ['último dato grande (tipos, IPC, PIB, empleo) a favor', 'último dato grande en contra'],
+  miedo_contrario: ['estrés en el VIX y señal a favor del riesgo (comprar el miedo)', 'estrés en el VIX y señal hacia el refugio'],
 };
 
 /** Las 3 condiciones que más suman y las 2 que más restan, en castellano, para explicar un nivel. */

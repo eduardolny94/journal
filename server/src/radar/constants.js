@@ -124,6 +124,7 @@ export const YAHOO_MARKET_SYMBOLS = {
   oil: 'CL=F',
   dxy: 'DX-Y.NYB',
   copper: 'HG=F', // términos de intercambio de AUD y NZD
+  vix3m: '^VIX3M', // curva del VIX: VIX/VIX3M ≥ 1 = estrés (candidata "miedo_contrario", 13-10-2026)
 };
 
 /** Intervalos de refresco (ms) de cada bloque de datos. */

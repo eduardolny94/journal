@@ -172,7 +172,7 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
     try { db.exec('ROLLBACK'); } catch { /* sin transacción */ }
     log(`no se pudieron guardar los cierres diarios: ${e.message}`);
   }
-  const marketKeys = ['vix', 'sp500', 'oil', 'dxy', 'copper'];
+  const marketKeys = ['vix', 'sp500', 'oil', 'dxy', 'copper', 'vix3m'];
   const idx = {};
   for (const key of [...pairsOk, ...marketKeys.map((k) => `market:${k}`)]) {
     if (!daily[key]) continue;
@@ -236,7 +236,7 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
       const bars = daily[k];
       return { value: bars[i].close, prev: i > 0 ? bars[i - 1].close : null, closes: withCloses ? bars.slice(Math.max(0, i - 30), i + 1).map((b) => b.close) : [] };
     };
-    const market = { vix: mk('vix', false), sp500: mk('sp500', true), oil: mk('oil', true), dxy: mk('dxy', true), copper: mk('copper', true) };
+    const market = { vix: mk('vix', false), sp500: mk('sp500', true), oil: mk('oil', true), dxy: mk('dxy', true), copper: mk('copper', true), vix3m: mk('vix3m', false) };
     const cot = cotRows(db, date);
     const policy = policyAsOf(db, date);
     const events = eventsBetween(db, new Date(asOfMs - Math.max(SURPRISE_DAYS, 90) * 86400000).toISOString(), new Date(asOfMs).toISOString());
@@ -293,7 +293,7 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
       const dirBigB = lastDirBig[base] ? lastDirBig[base].dir : 0;
       const dirBigQ = lastDirBig[quote] ? lastDirBig[quote].dir : 0;
       const feat = signalFeatures({
-        symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value,
+        symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value, vix3m: market.vix3m.value,
         cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon: newsSoonCcy.has(base) || newsSoonCcy.has(quote),
         lastSurprise: clamp(sign * (dirB - dirQ), -1, 1),
         lastSurpriseBig: clamp(sign * (dirBigB - dirBigQ), -1, 1),
