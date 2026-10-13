@@ -16,6 +16,26 @@ import { ConvictionBar, ImpactDots, ScoreValue, SectionHeader, useNow } from './
 
 // ---------- Pares con más convicción ----------
 
+/**
+ * Veredicto para operar hoy (13-10-2026): la fuerza del sesgo es dirección de fondo, no señal. Se puede operar solo con
+ * nivel A/B y sin avisos que, medidos, hunden el acierto (sobreextendido 38–40 %, régimen turbulento 39 %), ni con un
+ * dato fuerte en menos de 2 h o la estructura en contra.
+ */
+export function tradeVerdict(p: RadarPair): { ok: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  const kinds = new Set((p.warnings ?? []).map((w) => w.kind));
+  const tier = p.conviction?.tier ?? null;
+  if (tier !== 'A' && tier !== 'B') reasons.push(tier ? `nivel ${tier}${p.conviction ? ` (${Math.round(p.conviction.p5)} %)` : ''}` : 'sin nivel');
+  if (kinds.has('sobreextendido')) {
+    const ext = (p as unknown as { structure?: { ext20_atr?: number | null } }).structure?.ext20_atr;
+    reasons.push(`sobreextendido${ext !== null && ext !== undefined ? ` (${ext > 0 ? '+' : ''}${fmtNum(ext, 1)} ATR)` : ''}`);
+  }
+  if (kinds.has('regimen_turbulento')) reasons.push('régimen turbulento');
+  if (kinds.has('noticia_en_2h')) reasons.push('dato fuerte en < 2 h');
+  if (kinds.has('contra_estructura')) reasons.push('estructura 4 h/diaria en contra');
+  return { ok: reasons.length === 0, reasons };
+}
+
 export function ConvictionCards({ pairs, currencies }: { pairs: RadarPair[]; currencies: RadarCurrency[] }) {
   const navigate = useNavigate();
   const sorted = sortByAbsDiff(pairs);
@@ -26,7 +46,7 @@ export function ConvictionCards({ pairs, currencies }: { pairs: RadarPair[]; cur
       <SectionHeader
         eyebrow="Terminal de activos"
         title="Pares con el sesgo más claro esta semana"
-        right={<span className="max-w-md text-[11px] text-gray-500" title={STRENGTH_HELP}>Fuerza del sesgo = cuánto más fuerte está una divisa que la otra en lo macro (0 a 5). No es probabilidad de acierto.</span>}
+        right={<span className="max-w-md text-[11px] text-gray-500" title={STRENGTH_HELP}>Fuerza del sesgo = cuánto más fuerte está una divisa que la otra en lo macro (0 a 5). Es la dirección de fondo, no una señal de entrada: mira "Para operar hoy" en cada tarjeta.</span>}
       />
       <div className="grid gap-3 md:grid-cols-3">
         {top.map((p, i) => {
@@ -58,6 +78,14 @@ export function ConvictionCards({ pairs, currencies }: { pairs: RadarPair[]; cur
               <ConvictionBar n={n} dir={dir} className="mt-3" />
               <p className="mt-3 text-xs text-gray-300">{biasSentence(p)}</p>
               {topDrivers(p, currencies).length > 0 && <p className="mt-1 text-[11px] text-gray-500">Lo que empuja: {topDrivers(p, currencies).join(', ')}.</p>}
+              {(() => {
+                const v = tradeVerdict(p);
+                return (
+                  <p className={cn('mt-3 rounded-md border px-2.5 py-1.5 text-xs font-medium', v.ok ? 'border-profit/40 bg-profit/10 text-profit' : 'border-loss/40 bg-loss/10 text-loss')}>
+                    {v.ok ? `Para operar hoy: sí, nivel ${p.conviction?.tier} y sin avisos.` : `Para operar hoy: no · ${v.reasons.join(' · ')}.`}
+                  </p>
+                );
+              })()}
             </button>
           );
         })}
@@ -73,6 +101,7 @@ export function ConvictionCards({ pairs, currencies }: { pairs: RadarPair[]; cur
                 <span className={cn('h-1.5 w-1.5 rounded-full', signed > 0 ? 'bg-profit' : signed < 0 ? 'bg-loss' : 'bg-gray-500')} />
                 <span className="text-gray-200">{p.symbol}</span>
                 <span className={cn('tnum', signed > 0 ? 'text-profit' : signed < 0 ? 'text-loss' : 'text-gray-400')}>{fmtSignedInt0(signed)}</span>
+                {n >= 2 && tradeVerdict(p).ok && <span title="Nivel A/B y sin avisos: operable hoy" className="rounded bg-profit/15 px-1 text-[10px] font-semibold text-profit">operable</span>}
               </button>
             );
           })}
