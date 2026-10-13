@@ -7,7 +7,8 @@ import { Info, TrendingUp } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/cn';
-import { flagOf, type SwingFrame, type SwingPair, type SwingPlan, type SwingSizing } from '../../lib/radar';
+import { flagOf, type RadarPair, type RadarRegime, type SwingFrame, type SwingPair, type SwingPlan, type SwingSizing } from '../../lib/radar';
+import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react';
 import { TierBadge } from './QueOperarCard';
 
 const ESTADO: Record<SwingPair['estado'], { label: string; variant: 'profit' | 'warn' | 'accent' | 'outline' | 'loss'; help: string }> = {
@@ -47,6 +48,77 @@ function QualityChips({ q }: { q: SwingPair['calidad'] }) {
       {chip(q.diario_joven, `diario ${q.diario_dias === null ? 'en contra' : `${q.diario_dias} d`}`, 'El diario 8/18 está a favor desde hace 10 días o menos: tendencia diaria joven.')}
       {q.mom12m !== undefined && q.mom12m !== null && <span title="Informativo, no cuenta para el 2 de 3: el precio de hoy frente al de hace 12 meses va en la dirección de la entrada. La literatura (momentum de 1-12 meses) y nuestra medida (+0,13R sobre la semana; en contra −0,12R) lo apoyan." className={cn('rounded border px-1.5 py-0.5 text-[11px]', q.mom12m ? 'border-accent/40 text-accent' : 'border-border text-gray-500')}>12 m {q.mom12m ? 'a favor' : 'en contra'}</span>}
     </>
+  );
+}
+
+type Check = { key: string; label: string; ok: boolean | null; detail: string };
+/**
+ * Checklist del día (13-10-2026), personal del dueño: las condiciones que los datos respaldan para entrar en swing.
+ * Nivel A/B (la parte del bias que bate al azar), semana 8/18 a favor, cruce H4 a favor, sin sobreextensión
+ * (≥ 2 ATR a favor del sesgo: 38–40 %) y régimen en calma (modelo de salto; turbulento: 39 % y −0,22R).
+ */
+export function SwingChecklist({ plan, pairs, regime }: { plan: SwingPlan | null; pairs: RadarPair[]; regime: RadarRegime | null }) {
+  const navigate = useNavigate();
+  if (!plan) return null;
+  const jump = regime?.jump ?? null;
+  const calm = jump ? jump.state !== 'turbulento' : null;
+  const rows = plan.pairs
+    .filter((p) => p.estado !== 'sin_sesgo')
+    .map((p) => {
+      const rp = pairs.find((x) => x.symbol === p.symbol);
+      const kinds = new Set((rp?.warnings ?? []).map((w) => w.kind));
+      const ext = (rp as unknown as { structure?: { ext20_atr?: number | null } } | undefined)?.structure?.ext20_atr ?? null;
+      const checks: Check[] = [
+        { key: 'nivel', label: 'Nivel A/B', ok: p.tier === 'A' || p.tier === 'B', detail: p.tier ? `nivel ${p.tier}${p.p5 !== null ? ` · ${p.p5} %` : ''}` : 'sin nivel' },
+        { key: 'semana', label: 'Semana a favor', ok: p.weekly.ok, detail: p.weekly.ok ? '8/18 semanal alineada' : 'semanal en contra' },
+        { key: 'h4', label: 'Cruce H4 a favor', ok: p.estado === 'entrada' ? true : p.estado === 'en_curso' ? null : false, detail: p.estado === 'entrada' ? `cruce hace ${p.h4.since ?? '?'} velas` : p.estado === 'en_curso' ? 'a favor, cruce antiguo: esperar retroceso' : 'esperando cruce' },
+        { key: 'ext', label: 'Sin sobreextensión', ok: !kinds.has('sobreextendido'), detail: ext === null ? '—' : `${ext >= 0 ? '+' : ''}${ext.toFixed(1)} ATR de su media 20` },
+        { key: 'regimen', label: 'Régimen en calma', ok: calm, detail: jump ? `${jump.state} desde ${jump.since}` : 'sin dato' },
+      ];
+      const fails = checks.filter((c) => c.ok === false).length;
+      const partial = checks.filter((c) => c.ok === null).length;
+      return { p, checks, fails, partial };
+    })
+    .sort((a, b) => a.fails - b.fails || a.partial - b.partial || (b.p.calidad?.puntos ?? 0) - (a.p.calidad?.puntos ?? 0) || Math.abs(b.p.diff) - Math.abs(a.p.diff));
+  const all = rows.filter((r) => r.fails === 0 && r.partial === 0);
+  const near = rows.filter((r) => !(r.fails === 0 && r.partial === 0) && r.fails + r.partial === 1);
+  const Icon = ({ ok }: { ok: boolean | null }) => (ok === true ? <CheckCircle2 className="h-3.5 w-3.5 text-profit" /> : ok === null ? <CircleDashed className="h-3.5 w-3.5 text-warn" /> : <XCircle className="h-3.5 w-3.5 text-loss" />);
+  const Row = ({ r }: { r: (typeof rows)[number] }) => {
+    const dir = r.p.diff > 0 ? 1 : -1;
+    return (
+      <li className="flex flex-wrap items-start gap-x-4 gap-y-1.5 px-4 py-3">
+        <button onClick={() => navigate(`/radar/${r.p.symbol}`)} className="min-w-[150px] text-left">
+          <span className="block text-sm font-semibold text-gray-100">{r.p.base && r.p.quote ? `${flagOf(r.p.base)}${flagOf(r.p.quote)} ` : ''}{r.p.symbol}</span>
+          <span className={cn('block text-xs font-semibold uppercase tracking-wide', dir > 0 ? 'text-profit' : 'text-loss')}>{dir > 0 ? 'compras' : 'ventas'} · fuerza {r.p.level}/5</span>
+          {r.p.calidad && <span className="text-[11px] text-gray-500">entrada temprana {r.p.calidad.puntos}/3</span>}
+        </button>
+        <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+          {r.checks.map((c) => (
+            <span key={c.key} title={c.detail} className={cn('flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px]', c.ok === true ? 'border-profit/40 text-gray-200' : c.ok === null ? 'border-warn/40 text-warn' : 'border-loss/40 text-loss')}>
+              <Icon ok={c.ok} /> {c.label}<span className="text-gray-500">· {c.detail}</span>
+            </span>
+          ))}
+        </div>
+      </li>
+    );
+  };
+  return (
+    <Card
+      title={<span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-profit" /> Checklist de hoy · solo tú lo ves</span>}
+      subtitle="Las condiciones que los datos respaldan: nivel A/B (la parte del bias que bate al azar), semana 8/18 a favor, cruce H4 a favor, sin sobreextensión (≥ 2 ATR a favor del sesgo acierta 38–40 %) y régimen en calma (en turbulento el bias acierta 39 % y el swing −0,22R). Amarillo = a medias."
+      flush
+    >
+      <p className="border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-wider text-profit">Cumplen todo ({all.length})</p>
+      <ul className="divide-y divide-border">
+        {all.map((r) => <Row key={r.p.symbol} r={r} />)}
+        {all.length === 0 && <li className="px-4 py-3 text-sm text-gray-500">Hoy ningún par cumple las cinco. No operar también es una decisión medida.</li>}
+      </ul>
+      <p className="border-y border-border px-4 py-2 text-xs font-semibold uppercase tracking-wider text-warn">Les falta una ({near.length})</p>
+      <ul className="divide-y divide-border">
+        {near.slice(0, 8).map((r) => <Row key={r.p.symbol} r={r} />)}
+        {near.length === 0 && <li className="px-4 py-3 text-sm text-gray-500">Ninguno a una condición.</li>}
+      </ul>
+    </Card>
   );
 }
 

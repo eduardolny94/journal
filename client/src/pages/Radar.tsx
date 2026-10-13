@@ -1,7 +1,8 @@
 // Radar de divisas, índices y metales (privado): panel global tipo terminal con pestañas y favoritos.
 import FavoritesPicker from '../components/radar/FavoritesPicker';
 import QueOperarCard from '../components/radar/QueOperarCard';
-import SwingCard from '../components/radar/SwingCard';
+import SwingCard, { SwingChecklist } from '../components/radar/SwingCard';
+import { useOwner } from '../store/session';
 import ImpactCard from '../components/radar/ImpactCard';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -35,7 +36,9 @@ const TABS = [
 
 export default function Radar() {
   const [params, setParams] = useSearchParams();
-  const tab = TABS.some((t) => t.key === params.get('tab')) ? (params.get('tab') as string) : 'panel';
+  const owner = useOwner();
+  const tabs = TABS.filter((t) => t.key !== 'swing' || owner);
+  const tab = tabs.some((t) => t.key === params.get('tab')) ? (params.get('tab') as string) : 'panel';
   const [snap, setSnap] = useState<RadarSnapshot | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -118,7 +121,7 @@ export default function Radar() {
         <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">Precios de muestra: Yahoo Finance no responde ahora mismo. El resto de datos es real; los niveles y el momentum pueden estar desactualizados.</p>
       )}
       {error && <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-xs text-loss">{error}</p>}
-      <TabBar tabs={TABS} value={tab} onChange={(k) => setParams(k === 'panel' ? {} : { tab: k })} />
+      <TabBar tabs={tabs} value={tab} onChange={(k) => setParams(k === 'panel' ? {} : { tab: k })} />
 
       {tab === 'panel' && (
         <div className="space-y-6">
@@ -178,8 +181,9 @@ export default function Radar() {
         </div>
       )}
 
-      {tab === 'swing' && (
+      {tab === 'swing' && owner && (
         <div className="space-y-4">
+          <SwingChecklist plan={snap.swing ?? null} pairs={snap.pairs} regime={snap.regime ?? null} />
           <SwingCard plan={snap.swing ?? null} />
         </div>
       )}

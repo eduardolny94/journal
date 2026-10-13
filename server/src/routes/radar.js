@@ -12,6 +12,14 @@ import { computeAccuracy } from '../radar/accuracy.js';
 import { lastBacktest } from '../radar/backtest.js';
 import { runBacktestNow, backtestStatus } from '../radar/engine.js';
 import { getPrices } from '../radar/sources/prices.js';
+import { isOwner } from '../services/admin.js';
+
+/** El apartado Swing es personal del dueño (13-10-2026): al resto se le envía sin él. */
+function forUser(req, payload) {
+  if (!payload || isOwner(getDb(), req.user)) return payload;
+  if (payload.snapshot) return { ...payload, snapshot: { ...payload.snapshot, swing: null } };
+  return 'swing' in payload ? { ...payload, swing: null } : payload;
+}
 
 const router = Router();
 const CATEGORIES = ['tasas', 'inflacion', 'empleo', 'crecimiento', 'confianza', 'comercio', 'vivienda', 'energia', 'discursos', 'otros'];
@@ -39,18 +47,18 @@ function listParam(v, allowed, upper = false) {
 }
 
 // GET /api/radar
-router.get('/', async (_req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    res.json(await getSnapshot());
+    res.json(forUser(req, await getSnapshot()));
   } catch (err) {
     next(err);
   }
 });
 
 // POST /api/radar/refresh
-router.post('/refresh', async (_req, res, next) => {
+router.post('/refresh', async (req, res, next) => {
   try {
-    res.json(await forceRefresh());
+    res.json(forUser(req, await forceRefresh()));
   } catch (err) {
     next(err);
   }

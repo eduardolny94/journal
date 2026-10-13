@@ -151,6 +151,11 @@ export function useAdminEnabled(): boolean {
   return useSession((s) => s.features.admin);
 }
 
+/** true si el usuario es el dueño de la plataforma (apartados personales como Swing). */
+export function useOwner(): boolean {
+  return useSession((s) => s.features.owner);
+}
+
 /** true si el usuario tiene activado el Radar de divisas (función privada). */
 export function useRadarEnabled(): boolean {
   const enabled = useSession((s) => s.features.radar);

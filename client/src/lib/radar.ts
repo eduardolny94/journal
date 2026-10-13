@@ -827,6 +827,12 @@ export function warningLabel(kind: WarningKind | string): string {
       return 'MT5 desconectado';
     case 'precios_stale':
       return 'Precios desactualizados';
+    case 'sobreextendido':
+      return 'Sobreextendido';
+    case 'reversion_media':
+      return 'Lejos de su media';
+    case 'regimen_turbulento':
+      return 'Régimen turbulento';
     default:
       return String(kind);
   }
