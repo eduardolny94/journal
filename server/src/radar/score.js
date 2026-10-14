@@ -7,6 +7,7 @@ import {
 import { getSeries, changeOverDays, yoyFromIndex, seriesAsOf, shiftDays, ymd } from './sources/fred.js';
 import { yieldSeries } from './sources/yields.js';
 import { latestActual, eventsBetween, surpriseOf, categorize } from './sources/calendar.js';
+import { isBigFour, lastSurpriseDirections } from './surprise-direction.js';
 import { aggregateNyDays, aggregateH4, aggregateWeeks, atr, ema, efficiencyRatio, trendByEma, trendWeekly, trendBySwings, momentumAtr, zscores, round, mean, NY } from './indicators.js';
 import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
@@ -525,7 +526,7 @@ function finishRadar(db, input, ctx) {
     }
     if (s.spread_pips !== null && s.spread_pips > 3) warnings.push({ kind: 'spread_alto', text: `Spread alto (${fmt(s.spread_pips, 1)} pips).` });
     const reasons = [...reasonsFor(byCode[base], input.cot.byCurrency[base], market), ...reasonsFor(byCode[quote], input.cot.byCurrency[quote], market)];
-    const conviction = convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, closesAsOf: input.closesAsOf });
+    const conviction = convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, recent: recentPublished, closesAsOf: input.closesAsOf });
     if (risk.spRet !== null) reasons.push(`Riesgo global: S&P ${risk.spRet >= 0 ? '+' : ''}${fmt(risk.spRet, 1)} % en 20 días, VIX ${fmt(risk.vix, 1)}: ${risk.riskOn > 0.3 ? 'apoya AUD/NZD/CAD y pesa sobre JPY/CHF' : risk.riskOn < -0.3 ? 'apoya USD/JPY/CHF y pesa sobre AUD/NZD' : 'sin sesgo de riesgo claro'}`);
     return {
       symbol: sym, base, quote, main: MAIN_PAIRS.includes(sym),
@@ -561,14 +562,10 @@ export function pillarDiffs(pb, pq) {
 }
 
 /** Los cuatro datos que "cambian tendencias" según Curto: tipos, IPC, PIB y empleo (NFP, paro). */
-export function isBigFour(ev) {
-  const cat = ev.category || categorize(ev.title);
-  if (cat === 'tasas' || cat === 'inflacion' || cat === 'empleo') return true;
-  return /\bGDP\b|\bPIB\b/i.test(String(ev.title || ''));
-}
+export { isBigFour } from './surprise-direction.js';
 
 /** Nivel A/B/C de un par con el modelo del backtest (mismas condiciones que en la reconstrucción histórica). */
-function convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, closesAsOf }) {
+function convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, recent, closesAsOf }) {
   const bt = input.backtest && input.backtest.conviction ? input.backtest.conviction : null;
   const model5 = bt && bt.h5 ? bt.h5.model : null;
   if (!model5 || !diff || typeof closesAsOf !== 'function') return null;
@@ -582,13 +579,11 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   const sign = diff > 0 ? 1 : -1;
   const in24h = new Date(input.now || Date.now()).getTime() + 24 * 3600_000;
   const newsSoon = nextEv.some((e) => e.impact === 'High' && new Date(e.at_utc).getTime() <= in24h);
-  const dir = {};
-  const dirBig = {};
-  for (const e of [...lastEv].reverse()) {
-    if (!e.favors || e.impact === 'Low') continue;
-    dir[e.currency] = e.favors === e.currency ? 1 : -1;
-    if (isBigFour(e)) dirBig[e.currency] = dir[e.currency];
-  }
+  // Última sorpresa por divisa leyendo juntos los componentes simultáneos (general + subyacente, etc.): opuestos → mixta.
+  const nowMs = input.now || Date.now();
+  const sd = lastSurpriseDirections(recent || lastEv, db, { fromMs: nowMs - 48 * 3600_000, toMs: nowMs });
+  const dir = Object.fromEntries(Object.entries(sd.dir).map(([c, v]) => [c, v.dir]));
+  const dirBig = Object.fromEntries(Object.entries(sd.dirBig).map(([c, v]) => [c, v.dir]));
   const pb = byCode[base].pillars;
   const pq = byCode[quote].pillars;
   const feat = signalFeatures({

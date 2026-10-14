@@ -6,9 +6,11 @@ import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLI
 import { computeInstruments } from './instruments.js';
 import { computeSwing } from './swing.js';
 import { JUMP_LEGS, currentJumpRegime } from './regime-jump.js';
+import { readingOfDay, FEDWATCH_LOG_KEY } from './dataReading.js';
+import { isBigFour } from './surprise-direction.js';
 import { refreshYahoo, getPrices } from './sources/prices.js';
 import { refreshFred, latest } from './sources/fred.js';
-import { refreshCalendar, refreshCalendarHistory, nextEventByTitles } from './sources/calendar.js';
+import { refreshCalendar, refreshCalendarHistory, nextEventByTitles, eventsBetween } from './sources/calendar.js';
 import { fedProbabilities } from './sources/fedwatch.js';
 import { refreshYieldsOfficial, refreshYieldsLive } from './sources/yields.js';
 import { runBacktest, lastBacktest } from './backtest.js';
@@ -199,12 +201,22 @@ let fedwatchLastTry = 0;
  * cargada a mano siempre prevalece mientras esté vigente. Así el pivote de la semana y el pilar "Fed" del oro y los
  * índices no dicen "sin expectativa cargada" cuando el radar ya sabe lo que descuenta el mercado.
  */
+/** Tras un dato grande de EE. UU. (tipos, inflación, empleo, PIB) hay que volver a leer FedWatch: antes → después. */
+function fedwatchResyncDue(db, now) {
+  const log = getMetaJson(db, FEDWATCH_LOG_KEY, []) || [];
+  const lastAt = log.length ? new Date(log[log.length - 1].at).getTime() : 0;
+  const recent = eventsBetween(db, new Date(now - 3 * 3600_000).toISOString(), new Date(now - 20 * 60_000).toISOString(), { countries: ['USD'] })
+    .filter((e) => e.impact === 'High' && isBigFour(e) && e.actual !== null && e.actual !== undefined && e.actual !== '');
+  return recent.some((e) => new Date(e.at_utc).getTime() > lastAt);
+}
+
 async function syncFedwatchExpectation(db, now) {
   const row = getExpectation(db, 'USD');
   const ageMs = row && row.updated_at ? now - new Date(row.updated_at).getTime() : Infinity;
   const isAuto = !!(row && row.source === FEDWATCH_SOURCE);
-  if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000) return; // manual vigente
-  if (isAuto && ageMs < FEDWATCH_EVERY_MS) return;
+  const resync = fedwatchResyncDue(db, now);
+  if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000 && !resync) return; // manual vigente
+  if (isAuto && ageMs < FEDWATCH_EVERY_MS && !resync) return;
   if (now - fedwatchLastTry < FEDWATCH_RETRY_MS) return;
   fedwatchLastTry = now;
   try {
@@ -216,6 +228,12 @@ async function syncFedwatchExpectation(db, now) {
     const hike = pct((m.p_hike_25 || 0) + (m.p_hike_50 || 0));
     const cut = pct((m.p_cut_25 || 0) + (m.p_cut_50 || 0));
     const hold = Math.round((100 - hike - cut) * 10) / 10;
+    const snap = { at: new Date(now).toISOString(), meeting_date: m.date, prob_hike: hike, prob_cut: cut, prob_hold: hold, expected_bp: Math.round(m.change_bp || 0) };
+    // Registro (últimas 90 lecturas) para mostrar FedWatch antes → después de cada dato grande.
+    const log = (getMetaJson(db, FEDWATCH_LOG_KEY, []) || []).filter((x) => x && x.at);
+    const last = log[log.length - 1];
+    if (!last || last.prob_hike !== snap.prob_hike || last.prob_cut !== snap.prob_cut || last.meeting_date !== snap.meeting_date || now - new Date(last.at).getTime() > 6 * 3600_000) setMeta(db, FEDWATCH_LOG_KEY, [...log, snap].slice(-90), now);
+    if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000) return; // manual vigente: solo se registra
     setExpectation(db, 'USD', {
       meeting_date: m.date,
       prob_hike: hike,
@@ -308,6 +326,8 @@ async function compute() {
   } catch (e) {
     console.warn('[radar] swing:', e.message);
   }
+  let datoDelDia = null;
+  try { datoDelDia = readingOfDay(db, prices, { now }); } catch (e) { console.warn('[radar] lectura del dato:', e.message); }
   const week = weekPlan(db, { now: nowDate, expectations, pairs: core.pairs, cotByCurrency: cot.byCurrency, market, news: listNews(db, { limit: 60 }) });
   const newsTop = listNews(db, { limit: 5, minUrgency: 7 });
   const snapshot = {
@@ -328,6 +348,7 @@ async function compute() {
     upcoming: core.upcoming,
     que_operar: core.que_operar || null,
     swing,
+    dato_del_dia: datoDelDia,
     cot: cot.rows,
     expectations,
     week,

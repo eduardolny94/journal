@@ -42,6 +42,22 @@ Contraste: `server/scripts/ipc-oro.mjs` (27 CPI desde jun-2024 con oro; 31 con l
 
 ## Qué aplica el radar (ya) y qué cambia
 
+**Aplicado el 14-10-2026 a partir de la guía:**
+
+1. **Lectura combinada de los componentes** (`surprise-direction.js`): el IPC general y el subyacente (o nóminas y paro)
+   publicados a la misma hora se leen juntos: mismo signo → esa dirección; signos opuestos → lectura mixta (0). Antes,
+   con varios componentes simultáneos, la condición `ultima_sorpresa` tomaba el último en orden de base de datos.
+   Medido con el backtest completo (nivel A a 5 días, tres cortes): 67,7 → 68,7 %, 54,6 → 55,4 %, 50,8 → 51,6 %;
+   nivel B 57,6 → 58,6 %. Mejora en los tres cortes: se adopta.
+2. **Tarjeta "Lectura del dato"** en el Panel (para todos): antes del dato, consenso y anterior de cada componente y lo
+   que descuenta FedWatch; después, sorpresa por componente en σ, lectura combinada (caliente / fría / mixta / en
+   consenso), reacción de la primera hora en los pares de la divisa (en ATR, con o contra la sorpresa), FedWatch antes
+   → después y lo medido para ese tipo de dato. Con el protocolo de la guía desplegable.
+3. **FedWatch antes → después** (`fedwatch_log` en `radar_meta`): cada lectura se registra y, tras un dato grande de
+   EE. UU., se vuelve a leer a los 20 minutos aunque no toque por cadencia.
+4. **No se aplica:** la matriz de escenarios del oro (contradice lo medido) y "el subyacente decide" como desempate
+   (sin casos para medirlo: cuando discrepen, el radar dirá "mixta" en vez de elegir).
+
 - **Ya:** sorpresa estandarizada frente al consenso por indicador (`surpriseOf`, con z-score histórico), `ultima_sorpresa`
   como condición del modelo de convicción, `sorpresa_grande` medida (no adoptada), aviso "nada nuevo 2 h antes",
   aviso de reacción en contra en la 1.ª hora, FedWatch propio antes y después.

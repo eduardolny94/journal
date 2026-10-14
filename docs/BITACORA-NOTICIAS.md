@@ -53,3 +53,5 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
 - Guía DCM FX "IPC y el oro" leída y contrastada: sorpresa > nivel (cierto), primer latigazo engaña (cierto),
   subyacente decide y CPI caliente hunde el oro (no confirmados en 2024–2026).
 - Pendiente: anotar dato, sorpresa y reacción (dólar, 2 años, oro) al cierre.
+- Aplicado de la guía: lectura combinada general+subyacente en `ultima_sorpresa` (mejora el nivel A en los tres cortes),
+  tarjeta "Lectura del dato" en el Panel y registro FedWatch antes → después.

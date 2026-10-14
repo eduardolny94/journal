@@ -1,6 +1,7 @@
 // Radar de divisas, índices y metales (privado): panel global tipo terminal con pestañas y favoritos.
 import FavoritesPicker from '../components/radar/FavoritesPicker';
 import QueOperarCard from '../components/radar/QueOperarCard';
+import DatoDelDiaCard from '../components/radar/DatoDelDiaCard';
 import SwingCard, { SwingChecklist } from '../components/radar/SwingCard';
 import { useOwner } from '../store/session';
 import ImpactCard from '../components/radar/ImpactCard';
@@ -126,6 +127,7 @@ export default function Radar() {
       {tab === 'panel' && (
         <div className="space-y-6">
           <WorldMap currencies={snap.currencies} onSelect={(c) => setSelected(c)} updatedLabel={`Actualizado ${fmtSince(snap.computed_at, now)}`} />
+          {snap.dato_del_dia && <DatoDelDiaCard data={snap.dato_del_dia} />}
           <QueOperarCard data={snap.que_operar ?? null} pairs={snap.pairs} favorites={favorites} />
           <ConvictionCards pairs={snap.pairs} currencies={snap.currencies} />
           {/* Dos filas horizontales: noticias y calendario con alturas parejas; debajo, volatilidad y sentimiento. */}

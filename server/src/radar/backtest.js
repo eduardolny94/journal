@@ -15,6 +15,7 @@ import { calibrateLogit } from './quant.js';
 import { signalFeatures, buildConvictionModel, indexesOf } from './conviction.js';
 import { validateRadar } from './validation.js';
 import { JUMP_LEGS, dollarBasket, jumpLabels } from './regime-jump.js';
+import { lastSurpriseDirections } from './surprise-direction.js';
 import { runCycle } from './cycle.js';
 import { surpriseOf } from './sources/calendar.js';
 import { SYNTHETIC_CROSS_PAIRS, pairDigits as digitsOfPair } from './constants.js';
@@ -257,17 +258,10 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
     const cur = computeCurrencies(db, { now: asOfMs, market, pairData, cot, policy, manual: {}, expectations: {}, events, lag_days: MONTHLY_LAG_DAYS, closesAsOf });
     // Condiciones del día para la capa de convicción: datos fuertes en las próximas 24 h y último dato publicado (48 h).
     const newsSoonCcy = new Set(eventsBetween(db, new Date(asOfMs).toISOString(), new Date(asOfMs + 24 * 3600_000).toISOString()).filter((e) => e.impact === 'High').map((e) => e.country));
-    const lastDir = {};
-    const lastDirBig = {};
-    for (const ev of events) {
-      if (!ev.actual || ev.impact === 'Low') continue;
-      const t = new Date(ev.at_utc).getTime();
-      if (t < asOfMs - 48 * 3600_000 || t > asOfMs) continue;
-      const sp = surpriseOf(ev, db);
-      if (!sp.favors) continue;
-      lastDir[ev.country] = { t, dir: sp.favors === ev.country ? 1 : -1 };
-      if (isBigFour(ev)) lastDirBig[ev.country] = lastDir[ev.country];
-    }
+    // Última sorpresa por divisa con los componentes simultáneos leídos juntos (opuestos → 0): docs/LECTURA-IPC.md.
+    const sd = lastSurpriseDirections(events, db, { fromMs: asOfMs - 48 * 3600_000, toMs: asOfMs });
+    const lastDir = Object.fromEntries(Object.entries(sd.dir).map(([c, v]) => [c, { t: v.t, dir: v.dir }]));
+    const lastDirBig = Object.fromEntries(Object.entries(sd.dirBig).map(([c, v]) => [c, { t: v.t, dir: v.dir }]));
     const pillarsByCcy = {};
     for (const c of cur.currencies) {
       pillarsByCcy[c.code] = pillarKeys.map((k) => c.pillars[k].value);

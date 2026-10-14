@@ -307,6 +307,19 @@ export interface SwingPlan {
   pairs: SwingPair[];
 }
 
+export interface FedwatchSnap { at: string; meeting_date: string; prob_hike: number; prob_cut: number; prob_hold: number; expected_bp: number }
+export interface DatoComponent { title: string; category: string; actual: string | null; forecast: string | null; previous: string | null; surprise: number | null; z: number | null; norm: number | null; favors: string | null; dir: 1 | -1 | 0 }
+export interface DatoPublicado {
+  currency: CurrencyCode; at_utc: string; minutes_ago: number; category: string; components: DatoComponent[]; reading: string; dir: number;
+  reaction: { pairs: Array<{ symbol: string; pips: number; atr: number }>; mean_atr: number; verdict: string } | null;
+  fedwatch: { before: FedwatchSnap | null; after: FedwatchSnap | null } | null; measured: string;
+}
+export interface DatoDelDia {
+  as_of: string; published: DatoPublicado[];
+  next: { title: string; currency: CurrencyCode; at_utc: string; minutes: number; forecast: string | null; previous: string | null; category: string; siblings: Array<{ title: string; forecast: string | null; previous: string | null }>; measured: string; fedwatch_before: FedwatchSnap | null } | null;
+  protocol: string[];
+}
+
 export interface NextEvent {
   title: string;
   currency: string;
@@ -610,6 +623,7 @@ export interface RadarSnapshot {
   news_top: NewsItem[];
   que_operar?: QueOperar | null;
   swing?: SwingPlan | null;
+  dato_del_dia?: DatoDelDia | null;
 }
 
 export interface RadarPairDetail {
@@ -687,6 +701,7 @@ export function normalizeSnapshot(raw: unknown): RadarSnapshot {
     upcoming: asArray<NextEvent>(r.upcoming),
     que_operar: (r.que_operar as QueOperar | null | undefined) ?? null,
     swing: ((r as { swing?: SwingPlan | null }).swing ?? null),
+    dato_del_dia: ((r as { dato_del_dia?: DatoDelDia | null }).dato_del_dia ?? null),
     cot: asArray<CotRow>(r.cot),
     expectations: asArray<Expectation>(r.expectations),
     week: r.week ?? null,
