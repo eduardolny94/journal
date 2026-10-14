@@ -42,3 +42,14 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
 - **Lección**: unas actas de una reunión ya "superada" por los datos no mueven nada aunque suenen duras. Lo operable
   está en la probabilidad de diciembre: si cae por debajo del 50 %, el dólar pierde el motor; si sube, confirma.
   Próxima comprobación: decisión del 28-oct y datos de inflación de octubre.
+
+## 2026-10-14 · CPI de EE. UU. de septiembre (previo al dato, 14:30 Madrid)
+
+- Consenso: general 0,6 % m/m (ant. 0,4 %), 3,6 % a/a (ant. 3,4 %); subyacente 0,2 % m/m (ant. 0,3 %), 2,5 % a/a (ant. 2,4 %).
+- Descontado antes: 2 años en 4,72 %, FedWatch propio 28-oct mantener 82 %, dic subida 25 pb 76 %. Dólar la divisa más
+  fuerte del radar (+2,95), euro la más débil (−2,81); DXY +1,9 % en 20 d, EURUSD 2,5 ATR bajo su media 20 (sobreextendido).
+- Lectura previa (docs/LECTURA-IPC.md): la barra del consenso es alta (salto de 0,4 a 0,6); riesgo asimétrico hacia
+  sorpresa fría. Regla medida: la 1.ª vela sigue la sorpresa 76 %; el resto del día no la continúa (39 %).
+- Guía DCM FX "IPC y el oro" leída y contrastada: sorpresa > nivel (cierto), primer latigazo engaña (cierto),
+  subyacente decide y CPI caliente hunde el oro (no confirmados en 2024–2026).
+- Pendiente: anotar dato, sorpresa y reacción (dólar, 2 años, oro) al cierre.
