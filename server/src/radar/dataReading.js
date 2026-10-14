@@ -4,7 +4,7 @@
 // FedWatch antes → después y lo que dicen nuestras mediciones (docs/CPI-LONDRES.md, docs/LECTURA-IPC.md).
 import { eventsBetween, surpriseOf, categorize } from './sources/calendar.js';
 import { isBigFour } from './surprise-direction.js';
-import { getMetaJson } from './store.js';
+import { getMetaJson, getExpectation } from './store.js';
 import { PAIRS, splitPair } from './constants.js';
 
 const H = 3600_000;
@@ -20,6 +20,31 @@ const LABELS = {
   empleo: { 1: 'fuerte', '-1': 'débil' },
   tasas: { 1: 'más dura', '-1': 'más blanda' },
   default: { 1: 'a favor', '-1': 'en contra' },
+};
+/** Escenarios antes del dato, por tipo, con lo medido (docs/CPI-LONDRES.md, docs/LECTURA-IPC.md). */
+const SCENARIOS = {
+  inflacion: (ccy) => [
+    { caso: 'General y subyacente por encima del consenso (caliente)', lectura: `${ccy} arriba en la primera hora (76 % de las veces); el resto del día no lo continúa (39 %).` },
+    { caso: 'General y subyacente por debajo (frío)', lectura: `${ccy} abajo en la primera hora; euro, libra y oro suelen subir. Mismo matiz: la primera hora no es tendencia.` },
+    { caso: 'En línea con el consenso', lectura: 'Sin sorpresa: sin ventaja medible; manda el flujo y lo que ya estaba descontado.' },
+    { caso: 'General y subyacente en direcciones opuestas', lectura: 'Lectura mixta: no tomar dirección por el titular. Nunca ha ocurrido en 2024-2026, no hay medida.' },
+    { caso: 'Oro', lectura: 'En 2024-2026 subió el 69-86 % de los días de CPI, con dato caliente o frío: el CPI no manda sobre el oro.' },
+  ],
+  empleo: (ccy) => [
+    { caso: 'Nóminas por encima y paro por debajo (fuerte)', lectura: `${ccy} arriba en la primera hora (82 %) y en el día (76 %).` },
+    { caso: 'Nóminas por debajo y paro por encima (débil)', lectura: `${ccy} abajo; la primera hora y el día van con la sorpresa 3 de cada 4 veces.` },
+    { caso: 'Nóminas y paro en direcciones opuestas', lectura: 'Lectura mixta: esperar a la revisión de tipos (bono a 2 años, FedWatch).' },
+  ],
+  tasas: (ccy) => [
+    { caso: 'Decisión o guía más dura de lo descontado', lectura: `${ccy} arriba; la primera vela se continuó el 64 % después y al día siguiente.` },
+    { caso: 'Más blanda de lo descontado', lectura: `${ccy} abajo, con la misma continuación.` },
+    { caso: 'Como lo descontado', lectura: 'Manda el tono del comunicado y la rueda de prensa, no la cifra.' },
+  ],
+  default: (ccy) => [
+    { caso: 'Por encima del consenso', lectura: `${ccy} arriba en la primera hora, 3 de cada 4 veces.` },
+    { caso: 'Por debajo', lectura: `${ccy} abajo en la primera hora.` },
+    { caso: 'En línea', lectura: 'Sin ventaja medible.' },
+  ],
 };
 const round = (v, k = 2) => (v === null || v === undefined || !Number.isFinite(v) ? null : Number(v.toFixed(k)));
 
@@ -38,6 +63,15 @@ function reactionPips(s, atMs) {
   if (k < 1 || k + 1 >= bars.length) return null;
   if (bars[k + 1].time < t) return null; // la vela siguiente aún no existe
   return (bars[k + 1].close - bars[k - 1].close) / s.pip;
+}
+
+/** Sin registro todavía: la expectativa USD vigente (manual o automática) como "antes". */
+function fedwatchFromExpectation(db) {
+  try {
+    const e = getExpectation(db, 'USD');
+    if (!e || e.prob_hike === null || e.prob_hike === undefined) return null;
+    return { at: e.updated_at, meeting_date: e.meeting_date, prob_hike: Number(e.prob_hike), prob_cut: Number(e.prob_cut), prob_hold: Number(e.prob_hold), expected_bp: Number(e.expected_bp || 0) };
+  } catch { return null; }
 }
 
 export function readingOfDay(db, prices, { now = Date.now() } = {}) {
@@ -81,6 +115,6 @@ export function readingOfDay(db, prices, { now = Date.now() } = {}) {
     return { currency: g.ccy, at_utc: new Date(g.t).toISOString(), minutes_ago: Math.round((now - g.t) / 60_000), category: cat, components: comps, reading, dir, reaction, fedwatch, measured: MEASURED[cat] || MEASURED.default };
   });
   const nextEv = events.filter((e) => new Date(e.at_utc).getTime() > now).sort((a, b) => (a.at_utc < b.at_utc ? -1 : 1))[0] || null;
-  const next = nextEv ? { title: nextEv.title, currency: nextEv.country, at_utc: nextEv.at_utc, minutes: Math.round((new Date(nextEv.at_utc).getTime() - now) / 60_000), forecast: nextEv.forecast, previous: nextEv.previous, category: nextEv.category || categorize(nextEv.title), siblings: events.filter((e) => e.at_utc === nextEv.at_utc && e.country === nextEv.country && e.title !== nextEv.title).map((e) => ({ title: e.title, forecast: e.forecast, previous: e.previous })), measured: MEASURED[nextEv.category || categorize(nextEv.title)] || MEASURED.default, fedwatch_before: log.length ? log[log.length - 1] : null } : null;
+  const next = nextEv ? { title: nextEv.title, currency: nextEv.country, at_utc: nextEv.at_utc, minutes: Math.round((new Date(nextEv.at_utc).getTime() - now) / 60_000), forecast: nextEv.forecast, previous: nextEv.previous, category: nextEv.category || categorize(nextEv.title), siblings: events.filter((e) => e.at_utc === nextEv.at_utc && e.country === nextEv.country && e.title !== nextEv.title).map((e) => ({ title: e.title, forecast: e.forecast, previous: e.previous })), measured: MEASURED[nextEv.category || categorize(nextEv.title)] || MEASURED.default, fedwatch_before: log.length ? log[log.length - 1] : fedwatchFromExpectation(db), scenarios: (SCENARIOS[nextEv.category || categorize(nextEv.title)] || SCENARIOS.default)(nextEv.country) } : null;
   return { as_of: new Date(now).toISOString(), published, next, protocol: ['Antes: consenso y anterior de cada componente; qué descuenta el mercado (FedWatch, bono a 2 años).', 'Al dato: sorpresa exacta de cada componente; si general y subyacente discrepan, la lectura es mixta.', 'Primera hora: ¿va con la sorpresa? (3 de cada 4 veces sí). No es tendencia: el resto del día la continúa el 39 %.', 'Después: ¿cambió FedWatch y el bono a 2 años? Si el precio se mueve sin que cambien, suele ser flujo que no dura.'] };
 }

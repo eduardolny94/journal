@@ -69,7 +69,12 @@ export default function DatoDelDiaCard({ data }: { data: DatoDelDia }) {
           <p className="text-sm font-semibold text-gray-100">{flagOf(next.currency)} Próximo: {next.title} · {fmtLocalDateTime(next.at_utc)} <span className="text-gray-500">· en {next.minutes < 90 ? `${next.minutes} min` : `${Math.round(next.minutes / 60)} h`}</span></p>
           <p className="mt-1 text-xs text-gray-300">Previsión <span className="tnum font-semibold">{next.forecast ?? '—'}</span> · anterior <span className="tnum">{next.previous ?? '—'}</span>{next.siblings.map((s) => <span key={s.title}> · {s.title}: previsión <span className="tnum font-semibold">{s.forecast ?? '—'}</span>, anterior <span className="tnum">{s.previous ?? '—'}</span></span>)}</p>
           {next.fedwatch_before && next.currency === 'USD' && <p className="mt-1 text-[11px] text-gray-400">Descontado ahora (FedWatch): {fw(next.fedwatch_before)}.</p>}
-          <p className="mt-1 text-[11px] text-gray-500">{next.measured} Regla: nada nuevo 2 h antes.</p>
+          {next.scenarios && next.scenarios.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[11px]">
+              {next.scenarios.map((s) => <li key={s.caso} className="flex gap-2"><span className="shrink-0 text-gray-200">{s.caso}:</span><span className="text-gray-400">{s.lectura}</span></li>)}
+            </ul>
+          )}
+          <p className="mt-1 text-[11px] text-gray-500">{next.measured} Regla: nada nuevo 2 h antes. Tras el dato esta tarjeta se rellena sola con la sorpresa, la lectura y la reacción (calendario cada 5 min, FedWatch a los 20 min).</p>
         </div>
       )}
       <div className="divide-y divide-border">{data.published.map((p) => <Published key={`${p.currency}|${p.at_utc}`} p={p} />)}</div>

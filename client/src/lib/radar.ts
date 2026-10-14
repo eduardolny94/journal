@@ -316,7 +316,7 @@ export interface DatoPublicado {
 }
 export interface DatoDelDia {
   as_of: string; published: DatoPublicado[];
-  next: { title: string; currency: CurrencyCode; at_utc: string; minutes: number; forecast: string | null; previous: string | null; category: string; siblings: Array<{ title: string; forecast: string | null; previous: string | null }>; measured: string; fedwatch_before: FedwatchSnap | null } | null;
+  next: { title: string; currency: CurrencyCode; at_utc: string; minutes: number; forecast: string | null; previous: string | null; category: string; siblings: Array<{ title: string; forecast: string | null; previous: string | null }>; measured: string; fedwatch_before: FedwatchSnap | null; scenarios?: Array<{ caso: string; lectura: string }> } | null;
   protocol: string[];
 }
 
