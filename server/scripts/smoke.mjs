@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { currentTradingDay, tradingDayStartIso } from '../src/services/tradingDay.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverDir = path.resolve(__dirname, '..');
@@ -96,8 +97,24 @@ const PNG_1x1 = Buffer.from(
   'base64',
 );
 
-const nowIso = () => new Date().toISOString();
-const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
+const minutesBefore = (iso, m) => new Date(new Date(iso).getTime() - m * 60_000).toISOString();
+
+// Zona horaria y hora de corte de la cuenta de prueba (reset 17:00 Nueva York, como futuros).
+const SMOKE_ACCOUNT = { timezone: 'America/New_York', day_reset_hour: 17 };
+
+// Horas de entrada/salida de las operaciones de prueba, SIEMPRE dentro del día de trading
+// actual de la cuenta. El status (today_pnl, bloqueo diario) mira el día de trading de "ahora";
+// si usáramos simplemente "hace 10 minutos", justo después de las 17:00 NY la salida caería en
+// el día anterior y la prueba fallaría según la hora a la que se ejecute.
+function tradeTimes() {
+  const dayStartMs = new Date(tradingDayStartIso(currentTradingDay(SMOKE_ACCOUNT), SMOKE_ACCOUNT)).getTime();
+  // Salida hace 10 minutos, pero nunca antes de 21 min tras el inicio del día de trading
+  // (así entrada y salida quedan dentro del día; como mucho unos minutos en el futuro,
+  // que el servidor tolera).
+  const exitMs = Math.max(Date.now() - 10 * 60_000, dayStartMs + 21 * 60_000);
+  const entryMs = exitMs - 20 * 60_000;
+  return { entry_time: new Date(entryMs).toISOString(), exit_time: new Date(exitMs).toISOString() };
+}
 
 try {
   await waitForServer();
@@ -184,7 +201,7 @@ try {
   await test('crear cuenta con reglas de riesgo', async () => {
     const r = await api('POST', '/accounts', {
       name: 'Lucid 50K', firm: 'Lucid Trading', platform: 'tradovate', account_type: 'evaluacion', size: 50000,
-      currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17,
+      currency: 'USD', ...SMOKE_ACCOUNT,
       daily_max_loss: 500, weekly_max_loss: 1500, max_trades_per_day: 3,
     });
     assert(r.status === 201 || r.status === 200, `status ${r.status}: ${JSON.stringify(r.data)}`);
@@ -235,7 +252,7 @@ try {
 
   const baseTrade = () => ({
     account_id: accountId, symbol: 'MNQ', side: 'long', qty: 2, entry_price: 19250.25, exit_price: 19240.0,
-    entry_time: minutesAgo(30), exit_time: minutesAgo(10), fees: 2.5, risk_amount: 200, rating: 3, notes: 'prueba',
+    ...tradeTimes(), fees: 2.5, risk_amount: 200, rating: 3, notes: 'prueba',
     tag_ids: tagId ? [tagId] : [],
   });
 
@@ -320,7 +337,8 @@ try {
     assert(p.status === 200, `PUT status ${p.status}: ${JSON.stringify(p.data).slice(0, 200)}`);
     const tr = p.data.trade ?? p.data;
     assert(Math.abs(tr.pnl - -100) < 0.01 && tr.notes === 'editada', 'la edición no se aplicó');
-    const bad = await api('PUT', `/trades/${id}`, { ...baseTrade(), exit_time: minutesAgo(60) });
+    const t = baseTrade();
+    const bad = await api('PUT', `/trades/${id}`, { ...t, exit_time: minutesBefore(t.entry_time, 60) });
     assert(bad.status === 400, `exit < entry debería dar 400 (dio ${bad.status})`);
   });
 
