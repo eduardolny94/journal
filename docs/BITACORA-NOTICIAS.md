@@ -62,3 +62,10 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
 - Radar tras el dato: USD +3,59 (antes +2,95), EUR −2,92; EURUSD −6,5 nivel C. El sesgo de fondo se refuerza; la
   operación sigue sin cumplir el checklist (nivel C, extensión). Tono Fed (+1 halcón) coherente, sin cambio.
 - Pendiente: FedWatch antes → después (relectura automática a las 14:50) y cierre del día.
+- **Reacción hora completa:** dólar +1,10 ATR de media en los 7 pares: EURUSD −75 pips, GBPUSD −94, USDCAD +79, USDCHF +54,
+  USDJPY +50, AUDUSD −49, NZDUSD −41.
+- **FedWatch antes → después:** subida el 28-oct 18 % → **46 %** (mantener 82 % → 54 %, +12 pb descontados). El dato sí
+  movió las expectativas de la Fed: no es solo flujo. La expectativa manual del 7-oct queda sustituida por la automática
+  (regla nueva: tras un dato grande, la lectura posterior prevalece sobre una manual anterior al dato).
+- Radar: USD +3,66. Lectura de la semana: dólar fuerte confirmado por datos y por tipos; el checklist swing sigue sin
+  par válido (EURUSD nivel C y extendido tras el movimiento).

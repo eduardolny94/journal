@@ -207,7 +207,8 @@ function fedwatchResyncDue(db, now) {
   const lastAt = log.length ? new Date(log[log.length - 1].at).getTime() : 0;
   const recent = eventsBetween(db, new Date(now - 3 * 3600_000).toISOString(), new Date(now - 20 * 60_000).toISOString(), { countries: ['USD'] })
     .filter((e) => e.impact === 'High' && isBigFour(e) && e.actual !== null && e.actual !== undefined && e.actual !== '');
-  return recent.some((e) => new Date(e.at_utc).getTime() > lastAt);
+  const pending = recent.filter((e) => new Date(e.at_utc).getTime() > lastAt).map((e) => new Date(e.at_utc).getTime());
+  return pending.length ? { eventMs: Math.max(...pending), title: recent.find((e) => new Date(e.at_utc).getTime() === Math.max(...pending))?.title || 'dato' } : null;
 }
 
 async function syncFedwatchExpectation(db, now) {
@@ -215,6 +216,8 @@ async function syncFedwatchExpectation(db, now) {
   const ageMs = row && row.updated_at ? now - new Date(row.updated_at).getTime() : Infinity;
   const isAuto = !!(row && row.source === FEDWATCH_SOURCE);
   const resync = fedwatchResyncDue(db, now);
+  // Una expectativa manual anterior a un dato grande queda desfasada: tras releer FedWatch, la automática la sustituye.
+  const manualStale = !!(row && !isAuto && resync && row.updated_at && new Date(row.updated_at).getTime() < resync.eventMs);
   if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000 && !resync) return; // manual vigente
   if (isAuto && ageMs < FEDWATCH_EVERY_MS && !resync) return;
   if (now - fedwatchLastTry < FEDWATCH_RETRY_MS) return;
@@ -233,7 +236,7 @@ async function syncFedwatchExpectation(db, now) {
     const log = (getMetaJson(db, FEDWATCH_LOG_KEY, []) || []).filter((x) => x && x.at);
     const last = log[log.length - 1];
     if (!last || last.prob_hike !== snap.prob_hike || last.prob_cut !== snap.prob_cut || last.meeting_date !== snap.meeting_date || now - new Date(last.at).getTime() > 6 * 3600_000) setMeta(db, FEDWATCH_LOG_KEY, [...log, snap].slice(-90), now);
-    if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000) return; // manual vigente: solo se registra
+    if (row && !isAuto && ageMs <= EXPECTATION_MAX_AGE_DAYS * 86400000 && !manualStale) return; // manual vigente: solo se registra
     setExpectation(db, 'USD', {
       meeting_date: m.date,
       prob_hike: hike,
@@ -241,7 +244,7 @@ async function syncFedwatchExpectation(db, now) {
       prob_hold: hold,
       expected_bp: Math.round(m.change_bp || 0),
       source: FEDWATCH_SOURCE,
-      note: `Automática: futuros de fondos federales (${m.method}). Si cargas una a mano, prevalece ${EXPECTATION_MAX_AGE_DAYS} días.`,
+      note: `Automática: futuros de fondos federales (${m.method})${manualStale ? ` · sustituye a la manual del ${String(row.updated_at).slice(0, 10)} tras ${resync.title}` : ''}. Si cargas una a mano, prevalece ${EXPECTATION_MAX_AGE_DAYS} días.`,
     }, new Date(now));
   } catch (err) {
     console.warn(`[radar] FedWatch automático: ${err.message || err}`);

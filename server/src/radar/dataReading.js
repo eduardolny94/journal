@@ -108,7 +108,8 @@ export function readingOfDay(db, prices, { now = Date.now() } = {}) {
     const reaction = meanAtr === null ? null : { pairs: rx, mean_atr: round(meanAtr), verdict: dir === 0 ? (Math.abs(meanAtr) < 0.05 ? 'sin reacción' : meanAtr > 0 ? `a favor de ${g.ccy}` : `en contra de ${g.ccy}`) : Math.abs(meanAtr) < 0.05 ? 'sin reacción' : Math.sign(meanAtr) === dir ? 'con la sorpresa' : 'contra la sorpresa' };
     let fedwatch = null;
     if (g.ccy === 'USD' && log.length) {
-      const before = [...log].reverse().find((x) => new Date(x.at).getTime() < g.t) || null;
+      let before = [...log].reverse().find((x) => new Date(x.at).getTime() < g.t) || null;
+      if (!before) { const e = fedwatchFromExpectation(db); if (e && e.at && new Date(e.at).getTime() < g.t) before = e; }
       const after = log.find((x) => new Date(x.at).getTime() >= g.t + 15 * 60_000) || null;
       if (before || after) fedwatch = { before, after };
     }
