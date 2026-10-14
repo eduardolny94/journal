@@ -55,3 +55,10 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
 - Pendiente: anotar dato, sorpresa y reacción (dólar, 2 años, oro) al cierre.
 - Aplicado de la guía: lectura combinada general+subyacente en `ultima_sorpresa` (mejora el nivel A en los tres cortes),
   tarjeta "Lectura del dato" en el Panel y registro FedWatch antes → después.
+- **Dato (14:30):** general 0,6 % m/m (= consenso), 3,7 % a/a (cons. 3,6 %); subyacente 0,3 % m/m (cons. 0,2 %, z +1,06),
+  2,6 % a/a (cons. 2,5 %). Lectura del radar: **caliente** (3 de 4 componentes por encima, ninguno por debajo).
+- **Reacción 1.ª hora (parcial, 14:37):** dólar arriba en los 7 pares, media +0,69 ATR: EURUSD −54 pips (1,1142),
+  GBPUSD −49, USDCHF +44, USDJPY +36, USDCAD +35. Con la sorpresa, como el 76 % de las veces.
+- Radar tras el dato: USD +3,59 (antes +2,95), EUR −2,92; EURUSD −6,5 nivel C. El sesgo de fondo se refuerza; la
+  operación sigue sin cumplir el checklist (nivel C, extensión). Tono Fed (+1 halcón) coherente, sin cambio.
+- Pendiente: FedWatch antes → después (relectura automática a las 14:50) y cierre del día.
