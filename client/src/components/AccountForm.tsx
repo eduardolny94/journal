@@ -62,6 +62,7 @@ interface FormState {
   daily_max_loss: string;
   weekly_max_loss: string;
   max_trades_per_day: string;
+  hard_lock: boolean;
   is_archived: boolean;
   outcome: Outcome;
   purchased_at: string;
@@ -84,6 +85,7 @@ const EMPTY: FormState = {
   daily_max_loss: '',
   weekly_max_loss: '',
   max_trades_per_day: '',
+  hard_lock: false,
   is_archived: false,
   outcome: 'activa',
   purchased_at: '',
@@ -108,6 +110,7 @@ function fromAccount(a: Account | null | undefined): FormState {
     daily_max_loss: a.daily_max_loss !== null && a.daily_max_loss !== undefined ? String(a.daily_max_loss) : '',
     weekly_max_loss: a.weekly_max_loss !== null && a.weekly_max_loss !== undefined ? String(a.weekly_max_loss) : '',
     max_trades_per_day: a.max_trades_per_day !== null && a.max_trades_per_day !== undefined ? String(a.max_trades_per_day) : '',
+    hard_lock: !!a.hard_lock,
     is_archived: !!a.is_archived,
     outcome: (a.outcome as Outcome) || 'activa',
     purchased_at: a.purchased_at ?? '',
@@ -219,6 +222,7 @@ export default function AccountForm({ open, onClose, account, onSaved, allAccoun
         daily_max_loss: numOrNull(form.daily_max_loss),
         weekly_max_loss: numOrNull(form.weekly_max_loss),
         max_trades_per_day: numOrNull(form.max_trades_per_day),
+        hard_lock: form.hard_lock,
         is_archived: form.is_archived ? 1 : 0,
         outcome: form.outcome,
         purchased_at: form.purchased_at || null,
@@ -427,6 +431,20 @@ export default function AccountForm({ open, onClose, account, onSaved, allAccoun
               error={errors.max_trades_per_day}
             />
           </div>
+          <label className="mt-3 flex items-start gap-2 rounded-md border border-loss/40 bg-loss/5 p-3 text-sm text-gray-200 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-border bg-bg accent-accent"
+              checked={form.hard_lock}
+              onChange={(e) => set('hard_lock', e.target.checked)}
+            />
+            <span>
+              <span className="font-semibold">Bloqueo estricto</span>
+              <span className="block text-xs text-gray-400">
+                Al tocar un límite la cuenta se bloquea hasta el próximo reinicio del día y no hay vuelta atrás: ni «registrar igual», ni desbloqueo manual, ni subir el límite mientras dure. Desactivarlo tarda hasta el siguiente reinicio. Con el guardián de MetaTrader (Cuentas → Sincronizar) además se cierran las posiciones y no se puede abrir ninguna.
+              </span>
+            </span>
+          </label>
         </section>
 
         {account && (

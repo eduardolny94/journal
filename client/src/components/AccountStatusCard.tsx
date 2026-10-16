@@ -147,6 +147,9 @@ export default function AccountStatusCard({ account, status, onLock, onUnlock, c
               <p className="text-xs text-gray-400 mt-0.5">
                 Se desbloquea el {fmtDateTime(status.lock_until)} (hora local)
               </p>
+              {status.hard_lock && (
+                <p className="mt-1 text-xs font-medium text-loss">Bloqueo estricto: sin desbloqueo manual ni operaciones nuevas hasta entonces.</p>
+              )}
               <p className="mt-1 flex items-center gap-1.5 text-lg font-semibold tnum text-gray-100">
                 <Timer className="h-4 w-4 text-loss" aria-hidden /> {formatCountdown(remainingMs)}
               </p>
@@ -158,6 +161,8 @@ export default function AccountStatusCard({ account, status, onLock, onUnlock, c
               </Badge>
               <p className="mt-2 text-xs text-gray-400">
                 Día de trading: <span className="text-gray-200 tnum">{status.trading_day}</span>
+                {status.hard_lock && <span className="ml-2 rounded border border-loss/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-loss">bloqueo estricto</span>}
+                {status.hard_lock_off_at && <span className="ml-2 text-[11px] text-gray-500">(estricto se desactiva el {fmtDateTime(status.hard_lock_off_at)})</span>}
               </p>
             </>
           )}

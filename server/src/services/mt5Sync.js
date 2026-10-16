@@ -2,7 +2,7 @@
 // el balance de la cuenta con un token por cuenta. Nunca se usan ni se guardan contraseñas del bróker.
 import crypto from 'node:crypto';
 import { alignmentFor } from '../radar/engine.js';
-import { evaluateAccountRisk } from './risk.js';
+import { evaluateAccountRisk, wasLockedAt } from './risk.js';
 import { tradingDayFor, zonedTimeToUtc } from './tradingDay.js';
 
 const TOKEN_PREFIX = 'gtfx';
@@ -144,7 +144,7 @@ export function applySync(db, account, body) {
   const insert = db.prepare(
     `INSERT INTO trades (user_id, account_id, symbol, side, qty, entry_price, exit_price, entry_time, exit_time,
        trading_day, pnl, fees, notes, violated_lock, source, external_id, bias_diff, bias_alignment)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, 'sync:mt5', ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, 'sync:mt5', ?, ?, ?)`,
   );
   const exists = db.prepare('SELECT 1 AS x FROM trades WHERE account_id = ? AND external_id = ?');
   let imported = 0;
@@ -171,7 +171,7 @@ export function applySync(db, account, body) {
         // sin radar disponible: la operación se guarda igual
       }
       try {
-        insert.run(account.user_id, account.id, d.symbol, d.side, d.qty, d.entry_price, d.exit_price, d.entry_time, d.exit_time, tradingDayFor(d.exit_time, account), d.pnl, d.fees, d.external_id, bias.bias_diff, bias.bias_alignment);
+        insert.run(account.user_id, account.id, d.symbol, d.side, d.qty, d.entry_price, d.exit_price, d.entry_time, d.exit_time, tradingDayFor(d.exit_time, account), d.pnl, d.fees, wasLockedAt(db, account.id, d.entry_time) ? 1 : 0, d.external_id, bias.bias_diff, bias.bias_alignment);
         imported += 1;
       } catch (e) {
         if (/UNIQUE constraint failed/i.test(e.message)) duplicates += 1;
@@ -189,5 +189,5 @@ export function applySync(db, account, body) {
   }
 
   const status = evaluateAccountRisk(db, account.id);
-  return { ok: true, imported, duplicates, errors, locked: !!status.locked, lock_reason: status.lock_reason || null, lock_until: status.lock_until || null };
+  return { ok: true, imported, duplicates, errors, locked: !!status.locked, hard_lock: !!status.hard_lock, action: status.locked && status.hard_lock ? 'cerrar_todo' : 'ninguna', lock_reason: status.lock_reason || null, lock_until: status.lock_until || null };
 }

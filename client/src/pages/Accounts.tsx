@@ -274,7 +274,7 @@ export default function Accounts() {
                   setActionError(null);
                   setLockTarget(account);
                 }}
-                onUnlock={() => {
+                onUnlock={account.status?.locked && account.status?.hard_lock ? undefined : () => {
                   setActionError(null);
                   setUnlockTarget(account);
                 }}

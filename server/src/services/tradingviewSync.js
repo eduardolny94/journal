@@ -10,7 +10,7 @@
 // La extensión envía siempre el historial visible completo (no solo lo nuevo): las compras y ventas se emparejan
 // FIFO en cada envío y las operaciones que ya existen se descartan por su identificador.
 import { alignmentFor } from '../radar/engine.js';
-import { evaluateAccountRisk } from './risk.js';
+import { evaluateAccountRisk, wasLockedAt } from './risk.js';
 import { tradingDayFor } from './tradingDay.js';
 import { normalizeRows } from './csvParsers.js';
 import { SyncError } from './mt5Sync.js';
@@ -50,7 +50,7 @@ export function applyTradingviewSync(db, account, body) {
   const insert = db.prepare(
     `INSERT INTO trades (user_id, account_id, symbol, side, qty, entry_price, exit_price, entry_time, exit_time,
        trading_day, pnl, fees, notes, violated_lock, source, external_id, bias_diff, bias_alignment)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, 'sync:tradingview', ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, 'sync:tradingview', ?, ?, ?)`,
   );
   const exists = db.prepare('SELECT 1 AS x FROM trades WHERE account_id = ? AND external_id = ?');
   let imported = 0;
@@ -68,7 +68,7 @@ export function applyTradingviewSync(db, account, body) {
       let bias = { bias_diff: null, bias_alignment: null };
       try { bias = alignmentFor(d.symbol, d.side); } catch { /* sin radar disponible */ }
       try {
-        insert.run(account.user_id, account.id, d.symbol, d.side, d.qty, d.entry_price, d.exit_price, d.entry_time, d.exit_time, tradingDayFor(d.exit_time, account), d.pnl, d.fees, d.external_id, bias.bias_diff, bias.bias_alignment);
+        insert.run(account.user_id, account.id, d.symbol, d.side, d.qty, d.entry_price, d.exit_price, d.entry_time, d.exit_time, tradingDayFor(d.exit_time, account), d.pnl, d.fees, wasLockedAt(db, account.id, d.entry_time) ? 1 : 0, d.external_id, bias.bias_diff, bias.bias_alignment);
         imported += 1;
       } catch (e) {
         if (/UNIQUE constraint failed/i.test(e.message)) duplicates += 1;

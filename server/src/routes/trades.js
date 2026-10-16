@@ -5,7 +5,7 @@ import path from 'node:path';
 import { getDb } from '../db.js';
 import { upload, publicPathFor, removeUploadedFile, UPLOADS_DIR } from '../upload.js';
 import { tradingDayFor } from '../services/tradingDay.js';
-import { evaluateAccountRisk, isLocked } from '../services/risk.js';
+import { evaluateAccountRisk, isLocked , hardLockActive } from '../services/risk.js';
 import { alignmentFor } from '../radar/engine.js';
 
 const router = Router();
@@ -389,11 +389,15 @@ router.post('/', (req, res, next) => {
 
     const force = body.force === true || body.force === 'true' || body.force === 1;
     const locked = isLocked(account);
-    if (locked && !force) {
+    const hard = locked && hardLockActive(account);
+    if (locked && (!force || hard)) {
       const status = evaluateAccountRisk(db, account.id);
       return res.status(423).json({
-        error: 'La cuenta está bloqueada por tu regla de riesgo. Puedes registrar la operación igualmente marcándola como violación de la regla.',
+        error: hard
+          ? 'Bloqueo estricto: la cuenta está bloqueada por tu regla de riesgo y no admite más operaciones hasta el próximo reinicio del día. No hay forma de saltarlo.'
+          : 'La cuenta está bloqueada por tu regla de riesgo. Puedes registrar la operación igualmente marcándola como violación de la regla.',
         locked: true,
+        hard_lock: hard,
         status,
       });
     }

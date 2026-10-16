@@ -15,7 +15,7 @@ import path from 'node:path';
 import { alignmentFor } from '../radar/engine.js';
 import { getDb } from '../db.js';
 import { tradingDayFor } from '../services/tradingDay.js';
-import { evaluateAccountRisk } from '../services/risk.js';
+import { evaluateAccountRisk, wasLockedAt } from '../services/risk.js';
 import {
   CsvError,
   MAX_ROWS,
@@ -235,7 +235,7 @@ router.post('/commit', csvUpload, (req, res, next) => {
     const insert = db.prepare(
       `INSERT INTO trades (user_id, account_id, symbol, side, qty, entry_price, exit_price, entry_time, exit_time,
          trading_day, pnl, fees, notes, violated_lock, source, external_id, bias_diff, bias_alignment)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?)`,
     );
 
     let imported = 0;
@@ -268,6 +268,7 @@ router.post('/commit', csvUpload, (req, res, next) => {
             tradingDay,
             d.pnl,
             d.fees,
+            wasLockedAt(db, account.id, d.entry_time) ? 1 : 0,
             sourceTag,
             d.external_id,
             bias.bias_diff,

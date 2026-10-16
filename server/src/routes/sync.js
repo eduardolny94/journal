@@ -11,6 +11,7 @@ import { getDb } from '../db.js';
 import { SyncError, accountForToken, applySync } from '../services/mt5Sync.js';
 import { applyTradingviewSync } from '../services/tradingviewSync.js';
 import { requireSubscription } from '../services/subscriptions.js';
+import { evaluateAccountRisk } from '../services/risk.js';
 
 const router = Router();
 const isTest = process.env.NODE_ENV === 'test';
@@ -38,6 +39,16 @@ router.post('/mt5', tokenAuth, requireSubscription(getDb), (req, res, next) => {
     res.json(applySync(getDb(), req.syncAccount, req.body || {}));
   } catch (err) {
     if (err instanceof SyncError) return res.status(err.status).json({ error: err.message, code: err.code });
+    next(err);
+  }
+});
+
+// GET /api/sync/mt5/estado → el guardián (GTFX_JournalGuard) pregunta si debe cerrar todo y no dejar operar.
+router.get('/mt5/estado', tokenAuth, requireSubscription(getDb), (req, res, next) => {
+  try {
+    const status = evaluateAccountRisk(getDb(), req.syncAccount.id);
+    res.json({ ok: true, locked: !!status.locked, hard_lock: !!status.hard_lock, action: status.locked && status.hard_lock ? 'cerrar_todo' : 'ninguna', lock_reason: status.lock_reason || null, lock_until: status.lock_until || null, trading_day: status.trading_day, next_reset: status.next_reset });
+  } catch (err) {
     next(err);
   }
 });

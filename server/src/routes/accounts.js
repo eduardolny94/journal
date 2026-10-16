@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
 import { createSyncToken, revokeSyncToken, stripSyncSecrets } from '../services/mt5Sync.js';
-import { evaluateAccountRisk, listLockEvents, LOCK_REASON_LABELS } from '../services/risk.js';
+import { evaluateAccountRisk, listLockEvents, LOCK_REASON_LABELS, hardLockActive, isLocked } from '../services/risk.js';
 import { currentTradingDay, nextResetIso } from '../services/tradingDay.js';
 import { OUTCOMES } from '../services/finanzas.js';
 import { removeOwnedUpload } from '../upload.js';
@@ -118,7 +118,34 @@ function parseAccountInput(db, userId, body, existing = null) {
     }
   }
 
-  return { name, firm, platform, account_type, size, currency, timezone, day_reset_hour, ...risk, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split, parent_account_id };
+  const hard_lock = b.hard_lock === undefined ? (existing ? !!Number(existing.hard_lock) : false) : (b.hard_lock === true || b.hard_lock === 1 || b.hard_lock === 'true' || b.hard_lock === '1');
+  return { name, firm, platform, account_type, size, currency, timezone, day_reset_hour, ...risk, hard_lock, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split, parent_account_id };
+}
+
+/**
+ * Bloqueo estricto en vigor y cuenta bloqueada: no se puede subir ni quitar un límite, ni desactivar el estricto.
+ * Devuelve los valores de hard_lock / hard_lock_off_at que hay que guardar.
+ */
+function guardHardLock(account, next, now = new Date()) {
+  const active = hardLockActive(account, now);
+  const locked = isLocked(account, now);
+  if (active && locked) {
+    const loosened = (key) => {
+      if (!(key in next)) return false;
+      const was = account[key] === null || account[key] === undefined ? null : Number(account[key]);
+      const to = next[key] === null || next[key] === undefined ? null : Number(next[key]);
+      return was !== null && (to === null || to > was);
+    };
+    if (loosened('daily_max_loss') || loosened('weekly_max_loss') || loosened('max_trades_per_day')) {
+      throw new HttpError(423, 'Bloqueo estricto: mientras la cuenta está bloqueada no puedes subir ni quitar un límite. Espera al próximo reinicio del día.');
+    }
+    if (next.hard_lock === false) throw new HttpError(423, 'Bloqueo estricto: no se puede desactivar mientras la cuenta está bloqueada. Espera al próximo reinicio del día.');
+  }
+  if (next.hard_lock === undefined) return { hard_lock: Number(account.hard_lock) ? 1 : 0, hard_lock_off_at: account.hard_lock_off_at || null };
+  if (next.hard_lock) return { hard_lock: 1, hard_lock_off_at: null };
+  // Desactivar: nunca en caliente. Queda programado para el siguiente reinicio del día de trading.
+  if (active) return { hard_lock: 1, hard_lock_off_at: account.hard_lock_off_at || nextResetIso(account, now) };
+  return { hard_lock: 0, hard_lock_off_at: null };
 }
 
 /** Si la cuenta viene de una evaluación, la evaluación pasa a «superada» con la fecha del fondeo (si no la tenía). */
@@ -186,8 +213,8 @@ router.post('/', (req, res, next) => {
     const result = db
       .prepare(
         `INSERT INTO accounts (user_id, name, firm, platform, account_type, size, currency, timezone, day_reset_hour,
-           daily_max_loss, weekly_max_loss, max_trades_per_day, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split, parent_account_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           daily_max_loss, weekly_max_loss, max_trades_per_day, is_archived, outcome, purchased_at, funded_at, ended_at, profit_split, parent_account_id, hard_lock)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         req.user.id,
@@ -209,6 +236,7 @@ router.post('/', (req, res, next) => {
         data.ended_at,
         data.profit_split,
         data.parent_account_id,
+        data.hard_lock ? 1 : 0,
       );
     const newId = Number(result.lastInsertRowid);
     linkParent(db, req.user.id, newId);
@@ -240,10 +268,12 @@ router.put('/:id', (req, res, next) => {
     const db = getDb();
     const account = getOwnedAccount(db, req.user.id, req.params.id);
     const data = parseAccountInput(db, req.user.id, req.body, account);
+    const hl = guardHardLock(account, { daily_max_loss: data.daily_max_loss, weekly_max_loss: data.weekly_max_loss, max_trades_per_day: data.max_trades_per_day, hard_lock: data.hard_lock });
     db.prepare(
       `UPDATE accounts SET name = ?, firm = ?, platform = ?, account_type = ?, size = ?, currency = ?, timezone = ?,
          day_reset_hour = ?, daily_max_loss = ?, weekly_max_loss = ?, max_trades_per_day = ?, is_archived = ?,
-         outcome = ?, purchased_at = ?, funded_at = ?, ended_at = ?, profit_split = ?, parent_account_id = ?
+         outcome = ?, purchased_at = ?, funded_at = ?, ended_at = ?, profit_split = ?, parent_account_id = ?,
+         hard_lock = ?, hard_lock_off_at = ?
        WHERE id = ? AND user_id = ?`,
     ).run(
       data.name,
@@ -264,6 +294,8 @@ router.put('/:id', (req, res, next) => {
       data.ended_at,
       data.profit_split,
       data.parent_account_id,
+      hl.hard_lock,
+      hl.hard_lock_off_at,
       account.id,
       req.user.id,
     );
@@ -293,6 +325,7 @@ router.put('/:id/risk', (req, res, next) => {
     const db = getDb();
     const account = getOwnedAccount(db, req.user.id, req.params.id);
     const risk = parseRiskInput(req.body, account);
+    guardHardLock(account, { daily_max_loss: risk.daily_max_loss, weekly_max_loss: risk.weekly_max_loss, max_trades_per_day: risk.max_trades_per_day });
     db.prepare('UPDATE accounts SET daily_max_loss = ?, weekly_max_loss = ?, max_trades_per_day = ? WHERE id = ? AND user_id = ?').run(
       risk.daily_max_loss,
       risk.weekly_max_loss,
@@ -363,6 +396,7 @@ router.post('/:id/unlock', (req, res, next) => {
     const tradingDay = currentTradingDay(account);
     const wasLocked = !!account.lock_until;
     const previousReason = account.lock_reason;
+    if (isLocked(account) && hardLockActive(account)) throw new HttpError(423, 'Bloqueo estricto: esta cuenta no se puede desbloquear a mano. Se desbloquea sola en el próximo reinicio del día.');
 
     db.prepare('UPDATE accounts SET lock_until = NULL, lock_reason = NULL WHERE id = ? AND user_id = ?').run(account.id, req.user.id);
 

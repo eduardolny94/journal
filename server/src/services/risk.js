@@ -39,6 +39,39 @@ export function isLocked(account, now = new Date()) {
   return t > now.getTime();
 }
 
+/**
+ * ¿Tiene la cuenta el bloqueo estricto en vigor? Desactivarlo no es inmediato: queda programado para el siguiente
+ * reinicio del día (hard_lock_off_at), para que no se quite en caliente.
+ */
+export function hardLockActive(account, now = new Date()) {
+  if (!account || !Number(account.hard_lock)) return false;
+  if (account.hard_lock_off_at) {
+    const t = new Date(account.hard_lock_off_at).getTime();
+    if (Number.isFinite(t) && t <= now.getTime()) return false;
+  }
+  return true;
+}
+
+const sqliteStamp = (ms) => new Date(ms).toISOString().replace('T', ' ').slice(0, 19);
+const fromSqlite = (s) => new Date(String(s).includes('T') ? s : `${String(s).replace(' ', 'T')}Z`).getTime();
+
+/**
+ * ¿Estaba la cuenta bloqueada en el instante `iso`? Para marcar como «en bloqueo» las operaciones que llegan por
+ * sincronización o importación y se abrieron con la cuenta bloqueada.
+ */
+export function wasLockedAt(db, accountId, iso) {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return false;
+  const rows = db
+    .prepare('SELECT kind, created_at, lock_until FROM lock_events WHERE account_id = ? AND created_at <= ? ORDER BY created_at DESC, id DESC LIMIT 20')
+    .all(accountId, sqliteStamp(t));
+  for (const r of rows) {
+    if (r.kind === 'unlock') return false;
+    if (r.lock_until && new Date(r.lock_until).getTime() > t) return true;
+  }
+  return false;
+}
+
 /** Últimos N eventos de bloqueo de la cuenta (más recientes primero). */
 export function listLockEvents(db, accountId, limit = 20) {
   return db
@@ -177,6 +210,8 @@ export function evaluateAccountRisk(db, accountId) {
 
   return {
     locked,
+    hard_lock: hardLockActive(account, now),
+    hard_lock_off_at: account.hard_lock_off_at || null,
     lock_until: locked ? account.lock_until : null,
     lock_reason: locked ? account.lock_reason : null,
     trading_day: tradingDay,

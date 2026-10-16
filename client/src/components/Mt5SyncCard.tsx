@@ -252,6 +252,17 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
                 <li>Si tu firma exige avisar del uso de herramientas, dile que es un servicio local de solo lectura que exporta el historial a un diario de trading, sin credenciales ni operaciones.</li>
               </ul>
             </div>
+            <div className="rounded-lg border border-loss/40 bg-loss/5 p-3 text-xs text-gray-300">
+              <p className="font-semibold text-gray-100">Guardián del límite (bloqueo estricto dentro de MetaTrader)</p>
+              <p className="mt-1 text-gray-400">Un Asesor Experto que pregunta al journal cada 5 segundos. Si la cuenta está bloqueada con bloqueo estricto, cierra todas las posiciones, borra las pendientes y vuelve a cerrar al instante cualquier posición que abras, hasta el reinicio del día. Usa el mismo token que el servicio.</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-400">
+                <li>Activa «Bloqueo estricto» en la ficha de la cuenta (Cuentas → editar).</li>
+                <li>Descarga el código <a href="/descargas/GTFX_JournalGuard.mq5" download className="text-accent hover:underline">GTFX_JournalGuard.mq5</a> y ábrelo en MetaEditor (Archivo → Abrir) o pégalo en un Asesor Experto nuevo con ese nombre. Compila (F7).</li>
+                <li>En MetaTrader arrastra el EA «GTFX_JournalGuard» a cualquier gráfico de la cuenta, pega el token en sus parámetros y deja activado «Permitir trading automatizado» (botón AutoTrading en verde).</li>
+                <li>Mantén la URL del journal en «Permitir WebRequest» (paso 1 de arriba).</li>
+              </ol>
+              <p className="mt-2 text-gray-500">Límite físico: si quitas el EA o apagas AutoTrading, deja de vigilar. Lo que operes en bloqueo llega igual al journal y queda marcado como violación.</p>
+            </div>
             {origin !== 'https://journal.cesarzorrilla.com' && <p className="text-xs text-warn">Estás en {origin}: al añadir el servicio, cambia también el campo «JournalUrl» por esta dirección.</p>}
             <div className="flex flex-wrap gap-2 border-t border-border pt-3">
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('rotate')} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>Generar token nuevo</Button>

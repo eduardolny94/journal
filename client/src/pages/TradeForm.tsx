@@ -44,7 +44,7 @@ interface FormState {
 interface LockInfo {
   message: string;
   status: AccountStatus | null;
-}
+ hard?: boolean; }
 
 const MAX_NOTES = 5000;
 
@@ -229,8 +229,8 @@ export default function TradeForm({ trade, onSaved, onCancel }: TradeFormProps) 
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 423) {
-        const data = (err.data || {}) as { status?: AccountStatus };
-        setLockInfo({ message: err.message, status: data.status ?? null });
+        const data = (err.data || {}) as { status?: AccountStatus; hard_lock?: boolean };
+        setLockInfo({ message: err.message, status: data.status ?? null, hard: !!data.hard_lock });
       } else {
         setError((err as Error).message || 'No se pudo guardar la operación.');
       }
@@ -306,7 +306,7 @@ export default function TradeForm({ trade, onSaved, onCancel }: TradeFormProps) 
           <Lock className="h-4 w-4 mt-0.5 shrink-0" aria-hidden />
           <span>
             La cuenta «{account.name}» está bloqueada ({lockReasonLabel(account.status.lock_reason).toLowerCase()}
-            {account.status.lock_until ? ` hasta ${fmtDateTime(account.status.lock_until)}` : ''}). Al guardar se te pedirá confirmar que rompes tu regla.
+            {account.status.lock_until ? ` hasta ${fmtDateTime(account.status.lock_until)}` : ''}). {account.status.hard_lock ? 'Bloqueo estricto: no se puede registrar ninguna operación hasta entonces.' : 'Al guardar se te pedirá confirmar que rompes tu regla.'}
           </span>
         </p>
       )}
@@ -334,7 +334,9 @@ export default function TradeForm({ trade, onSaved, onCancel }: TradeFormProps) 
                 </ul>
               )}
               <p className="text-xs text-gray-400">
-                El bloqueo existe para protegerte. Si registras la operación igualmente quedará marcada como «en bloqueo» en tu historial.
+                {lockInfo.hard
+                  ? 'Bloqueo estricto: lo activaste tú para que no haya excepciones. La cuenta se desbloquea sola en el próximo reinicio del día.'
+                  : 'El bloqueo existe para protegerte. Si registras la operación igualmente quedará marcada como «en bloqueo» en tu historial.'}
               </p>
             </div>
           </div>
@@ -342,9 +344,9 @@ export default function TradeForm({ trade, onSaved, onCancel }: TradeFormProps) 
             <Button type="button" variant="secondary" size="sm" onClick={() => setLockInfo(null)} disabled={saving}>
               Cancelar
             </Button>
-            <Button type="button" variant="danger" size="sm" loading={saving} onClick={() => void submit(true)} leftIcon={<AlertTriangle className="h-4 w-4" />}>
+            {!lockInfo.hard && <Button type="button" variant="danger" size="sm" loading={saving} onClick={() => void submit(true)} leftIcon={<AlertTriangle className="h-4 w-4" />}>
               Registrar igual (romper mi regla)
-            </Button>
+            </Button>}
           </div>
         </div>
       )}

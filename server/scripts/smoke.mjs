@@ -710,6 +710,56 @@ try {
     assert(demote.status === 200 && demote.data.user.admin_level === null, 'volver a usuario normal');
   });
 
+  await test('bloqueo estricto: sin force, sin desbloqueo, sin subir límites, guardián con cerrar_todo', async () => {
+    const acc = await api('POST', '/accounts', { name: 'Estricta', firm: 'FTMO', platform: 'mt5', account_type: 'evaluacion', size: 50000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17, daily_max_loss: 500, max_trades_per_day: 5, hard_lock: true });
+    if (isStub(acc)) return SKIP;
+    assert(acc.status === 201 && acc.data.hard_lock === 1 && acc.data.status.hard_lock === true, `crear con estricto: ${acc.status} ${JSON.stringify(acc.data.status).slice(0, 200)}`);
+    const id = acc.data.id;
+    const tk = await api('POST', `/accounts/${id}/sync-token`);
+    assert(tk.status === 201, 'token del guardián');
+    const as = { token: tk.data.token };
+    const libre = await api('GET', '/sync/mt5/estado', undefined, as);
+    assert(libre.status === 200 && libre.data.locked === false && libre.data.action === 'ninguna', `estado libre ${JSON.stringify(libre.data)}`);
+    const lock = await api('POST', `/accounts/${id}/lock`, { hours: 2, reason: 'prueba' });
+    assert(lock.status === 200 && lock.data.status.locked === true, 'bloqueo manual');
+    const t = await api('POST', '/trades', { account_id: id, symbol: 'MNQ', side: 'long', qty: 1, entry_price: 1, exit_price: 2, ...tradeTimes(), pnl: 10, force: true });
+    assert(t.status === 423 && t.data.hard_lock === true, `force debe dar 423 con hard_lock: ${t.status} ${JSON.stringify(t.data).slice(0, 160)}`);
+    const un = await api('POST', `/accounts/${id}/unlock`, {});
+    assert(un.status === 423, `desbloqueo manual debe dar 423, dio ${un.status}`);
+    const up = await api('PUT', `/accounts/${id}/risk`, { daily_max_loss: 900 });
+    assert(up.status === 423, `subir el límite debe dar 423, dio ${up.status}`);
+    const quitar = await api('PUT', `/accounts/${id}/risk`, { daily_max_loss: null });
+    assert(quitar.status === 423, `quitar el límite debe dar 423, dio ${quitar.status}`);
+    const down = await api('PUT', `/accounts/${id}/risk`, { daily_max_loss: 300 });
+    assert(down.status === 200 && down.data.daily_max_loss === 300, `bajar el límite se permite: ${down.status}`);
+    const off = await api('PUT', `/accounts/${id}`, { hard_lock: false });
+    assert(off.status === 423, `desactivar el estricto en bloqueo debe dar 423, dio ${off.status}`);
+    const est = await api('GET', '/sync/mt5/estado', undefined, as);
+    assert(est.status === 200 && est.data.locked === true && est.data.hard_lock === true && est.data.action === 'cerrar_todo', `estado bloqueado ${JSON.stringify(est.data)}`);
+    const sync = await api('POST', '/sync/mt5', { account: { login: '777001', server: 'Demo', currency: 'USD', balance: 50000, equity: 50000, floating: 0, open_positions: 0, server_time: Math.floor(Date.now() / 1000), gmt_time: Math.floor(Date.now() / 1000) }, positions: [] }, as);
+    assert(sync.status === 200 && sync.data.action === 'cerrar_todo', `la sincronización también avisa cerrar_todo: ${JSON.stringify(sync.data)}`);
+    // Operación que llega por sincronización abierta en pleno bloqueo (tras el bloqueo): se guarda y queda marcada como violación.
+    await new Promise((r) => setTimeout(r, 3000));
+    const nowSec = Math.floor(Date.now() / 1000);
+    const s2 = await api('POST', '/sync/mt5', { account: { login: '777001', server: 'Demo', currency: 'USD', balance: 49950, equity: 49950, floating: 0, open_positions: 0, server_time: nowSec, gmt_time: nowSec }, positions: [{ id: '777', symbol: 'EURUSD', type: 'buy', volume: 0.1, open_price: 1.1, close_price: 1.099, open_time: nowSec - 1, close_time: nowSec, profit: -10, commission: 0, swap: 0, fee: 0 }] }, as);
+    assert(s2.status === 200 && s2.data.imported === 1, `importa en bloqueo ${JSON.stringify(s2.data)}`);
+    const list = await api('GET', `/trades?account_id=${id}`);
+    assert(list.data.items.length === 1 && Number(list.data.items[0].violated_lock) === 1, `la operación sincronizada en bloqueo va marcada: violated_lock=${list.data.items[0].violated_lock} entry=${list.data.items[0].entry_time} eventos=${JSON.stringify((await api('GET', `/accounts/${id}/status`)).data.events?.slice(0, 2))}`);
+    const del = await api('DELETE', `/accounts/${id}`);
+    assert(del.status === 200 || del.status === 204, `borrar cuenta estricta bloqueada: ${del.status} ${JSON.stringify(del.data).slice(0, 120)}`);
+  });
+
+  await test('bloqueo estricto: desactivarlo con la cuenta libre queda programado para el próximo reinicio', async () => {
+    const acc = await api('POST', '/accounts', { name: 'Estricta 2', platform: 'otro', account_type: 'personal', size: 1000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17, hard_lock: true });
+    if (isStub(acc)) return SKIP;
+    const id = acc.data.id;
+    const off = await api('PUT', `/accounts/${id}`, { hard_lock: false });
+    assert(off.status === 200 && off.data.hard_lock === 1 && off.data.hard_lock_off_at && off.data.status.hard_lock === true, `sigue activo hasta el reinicio: ${JSON.stringify({ hl: off.data.hard_lock, off: off.data.hard_lock_off_at, st: off.data.status.hard_lock })}`);
+    const on = await api('PUT', `/accounts/${id}`, { hard_lock: true });
+    assert(on.status === 200 && on.data.hard_lock === 1 && !on.data.hard_lock_off_at, 'volver a activar cancela la desactivación programada');
+    await api('DELETE', `/accounts/${id}`);
+  });
+
   await test('sincronización MT5: token, envío de posiciones, duplicados, otra cuenta de MT5 y revocación', async () => {
     const acc = await api('POST', '/accounts', { name: 'The5ers 100K', firm: 'The5ers', platform: 'mt5', account_type: 'evaluacion', size: 100000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17, daily_max_loss: 3000 });
     assert(acc.status === 201 && acc.data.sync && acc.data.sync.enabled === false && !('sync_token_hash' in acc.data), `cuenta sin secretos: ${JSON.stringify(acc.data.sync)}`);

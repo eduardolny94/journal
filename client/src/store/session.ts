@@ -18,6 +18,8 @@ export interface AccountStatus {
   locked: boolean;
   lock_until: string | null;
   lock_reason: string | null;
+  hard_lock?: boolean;
+  hard_lock_off_at?: string | null;
   trading_day: string;
   today_pnl: number;
   today_trades: number;
@@ -56,6 +58,8 @@ export interface Account {
   daily_max_loss: number | null;
   weekly_max_loss: number | null;
   max_trades_per_day: number | null;
+  hard_lock?: number;
+  hard_lock_off_at?: string | null;
   lock_until: string | null;
   lock_reason: string | null;
   is_archived: number;

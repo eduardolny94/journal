@@ -376,6 +376,9 @@ const COLUMN_MIGRATIONS = [
   { table: 'accounts', column: 'profit_split', ddl: 'REAL' },
   // Cuenta fondeada que viene de una evaluación (la firma da una cuenta nueva al pasar).
   { table: 'accounts', column: 'parent_account_id', ddl: 'INTEGER' },
+  // Bloqueo estricto (17-10-2026): sin «registrar igual», sin desbloqueo manual y sin subir límites mientras dure el bloqueo.
+  { table: 'accounts', column: 'hard_lock', ddl: 'INTEGER DEFAULT 0' },
+  { table: 'accounts', column: 'hard_lock_off_at', ddl: 'TEXT' },
   { table: 'trades', column: 'bias_diff', ddl: 'REAL' },
   { table: 'trades', column: 'bias_alignment', ddl: 'TEXT' },
   { table: 'radar_calendar', column: 'actual_inferred', ddl: 'INTEGER DEFAULT 0' },
