@@ -351,3 +351,36 @@ precio de +1,1R calculados desde el precio actual con el stop más ajustado.
 > **Corrección 13-10-2026:** las cifras de las secciones C4L anteriores usaban el sesgo del radar del mismo día (fuga de
 > hasta un día). Sin fuga: semana + radar 39 % · +0,17R (n=318); "2 de 3" 51 % · +0,52R a 2R y 59 % · +0,47R a 1,5R
 > (n=75); semana + radar A/B 57 % · +0,69R (n=35). Detalle, permutaciones y Monte Carlo en `docs/VALIDACION-RADAR.md`.
+
+## Cómo entra César en su gráfico y qué da esa entrada medida (18-10-2026)
+
+Leídas con el MCP de TradingView las 18 posiciones dibujadas en AUDJPY H4 (14 largos, 4 cortos, abril–octubre 2026):
+
+- **Entrada**: casi siempre en la primera vela H4 que cierra al otro lado de la EMA 8 (azul) tras un retroceso, con la
+  EMA 8 por encima de la media 18 o el precio por encima de la EMA 200 (no siempre las dos). No es el cruce 8/18, es el
+  precio cruzando la EMA.
+- **Stop**: fijo de ~80 pips en 16 de 18 (0,80–0,81), dos de 93–110. Equivale a 2–3 ATR14 de H4 (23–57 pips en esas fechas).
+- **Objetivo**: 2R en los largos (1,95–2,03); en los cortos 3,4R, 5R y 5,8R; dos largos con 0,85R y 1,0R.
+- Resultado de esos dibujos con velas MT5: 9 objetivos, 7 stops, 2 abiertas. Son dibujos sobre el gráfico (no un
+  registro de operaciones), así que llevan sesgo de retrospectiva, sobre todo los cortos con 5R puestos en el mínimo.
+
+**Backtest de la regla tal cual (`server/scripts/backtest-cruce-ema.mjs`)**: señal = cierre H4 cruza la EMA 8 (también
+la media 18 y el cruce 8/18), entrada al cierre, stops ATR ×2,5 / estructura (10 velas) / fijo 80 pips, objetivos 1,5R,
+2R, 3R y 2R con stop a la entrada en 1,1R, filtros EMA 8/18, EMA 200, radar.
+
+| Datos | Señal precio cruza EMA 8, 2R | sin filtro | 8/18 + EMA 200 a favor |
+|---|---|---|---|
+| 7 pares con yen 2024–2026, stop 80 pips | | 33 %, −0,03R (n = 4.625) | 35 %, +0,04R (n = 783) |
+| AUDJPY solo, stop 80 pips | | 31 %, −0,06R (n = 657) | 35 %, +0,04R (n = 115) |
+| 32 activos 2024–2026, stop ATR | | 33 %, −0,04R (n = 21.224) | 31 %, −0,10R (n = 3.660) |
+| 10 pares 2015–2026, stop ATR | | 33 %, −0,02R (n = 27.154) | 31 %, −0,07R (n = 4.709) |
+
+Con la media 18 o el cruce 8/18 en lugar de la EMA 8: lo mismo (32–36 %, −0,07 a +0,07R). Con stop a la entrada en 1,1R:
+25–27 % y R ≈ 0. Con el radar a favor: 29–34 %, de −0,14R a +0,12R según variante, sin un patrón estable. Los únicos
+bolsillos positivos (AUDJPY con EMA 8/18 a favor y stop de estructura: 39 %, +0,14R con 191 casos; media 18 con 8/18 +
+200 a favor y stop fijo: 44 %, +0,31R con 48 casos) desaparecen en los once años.
+
+**Conclusión**: el cruce del precio con la EMA en H4 con stop de 80 pips y objetivo 2R acierta 1 de cada 3 y queda en
+cero a largo plazo, igual que el cruce 8/18 (sección anterior). Lo que separa los 9 aciertos de 18 de los dibujos de
+un 33 % es la selección discrecional y la retrospectiva, no la regla. La ventaja medida sigue estando en operar solo
+con el sesgo del radar (nivel A/B) y stop de estructura, no en la mecánica del cruce.
