@@ -54,6 +54,7 @@ function load(sym) {
 }
 /** Simula sobre H1 desde la vela H4 i+1: stop antes que objetivo en la misma hora; escalones [[R alcanzado, nuevo stop en R]]. */
 function sim(h1, h4, i, dir, entry, risk, stop0, target, steps = []) {
+  sim.lastHit = -1;
   let stop = stop0; const done = steps.map(() => false);
   const lastIdx = Math.min(h1.length - 1, h4[Math.min(h4.length - 1, i + MAX_H4)].end);
   for (let j = h4[i].end + 1; j <= lastIdx; j++) {
@@ -61,11 +62,22 @@ function sim(h1, h4, i, dir, entry, risk, stop0, target, steps = []) {
     if (dir > 0 ? b.l <= stop : b.h >= stop) return (dir > 0 ? stop - entry : entry - stop) / risk;
     const fav = (dir > 0 ? b.h - entry : entry - b.h) / risk;
     const favH = (dir > 0 ? b.h - entry : entry - b.l) / risk;
-    if (favH >= target) return target;
+    if (favH >= target) { sim.lastHit = j; return target; }
     steps.forEach(([r, newR], k) => { if (!done[k] && favH >= r) { done[k] = true; stop = dir > 0 ? entry + newR * risk : entry - newR * risk; } });
     void fav;
   }
   const b = h1[lastIdx]; return Math.max(-1, (dir > 0 ? b.c - entry : entry - b.c) / risk);
+}
+/** Runner del 10 % tras tocar 2R: (a) stop en la entrada y salida al cierre H4 contra la media 18; (b) stop en +1R sin más salida. Devuelve R del runner desde la entrada. */
+function runner(D, hit, dir, entry, risk, mode) {
+  const h1 = D.h1, h4 = D.h4; let k = h4.findIndex((x) => x.end >= hit); const stop = mode === "stop1r" ? (dir > 0 ? entry + risk : entry - risk) : entry;
+  const lastIdx = Math.min(h1.length - 1, h4[Math.min(h4.length - 1, k + MAX_H4)].end);
+  for (let j = hit + 1; j <= lastIdx; j++) {
+    const b = h1[j];
+    if (dir > 0 ? b.l <= stop : b.h >= stop) return (dir > 0 ? stop - entry : entry - stop) / risk;
+    if (j === h4[k].end) { const kk = k; k++; if (mode === "sma18" && (dir > 0 ? h4[kk].c < D.s18[kk] : h4[kk].c > D.s18[kk])) return (dir > 0 ? h4[kk].c - entry : entry - h4[kk].c) / risk; }
+  }
+  const b = h1[lastIdx]; return (dir > 0 ? b.c - entry : entry - b.c) / risk;
 }
 const SIGNALS = ['precio_ema8', 'precio_sma18', 'cruce_8_18'];
 const STOPS = STOP_PIPS ? ['atr', 'estructura', 'fijo'] : ['atr', 'estructura'];
@@ -91,7 +103,9 @@ for (const sym of symbols) {
       const t = { sym, sig, date: D.h4[i].date, dir, f, r: {} };
       for (const sk of STOPS) {
         const risk = stops[sk]; const stop = dir > 0 ? entry - risk : entry + risk;
-        t.r[sk] = { r15: sim(D.h1, D.h4, i, dir, entry, risk, stop, 1.5), r2: sim(D.h1, D.h4, i, dir, entry, risk, stop, 2), r3: sim(D.h1, D.h4, i, dir, entry, risk, stop, 3), be: sim(D.h1, D.h4, i, dir, entry, risk, stop, 2, [[1.1, 0]]), riskPips: risk / pip };
+        const r2 = sim(D.h1, D.h4, i, dir, entry, risk, stop, 2); const hit2 = sim.lastHit;
+        const p90a = hit2 >= 0 ? 0.9 * 2 + 0.1 * runner(D, hit2, dir, entry, risk, "sma18") : r2; const p90b = hit2 >= 0 ? 0.9 * 2 + 0.1 * runner(D, hit2, dir, entry, risk, "stop1r") : r2;
+        t.r[sk] = { r15: sim(D.h1, D.h4, i, dir, entry, risk, stop, 1.5), r2, p90a, p90b, r3: sim(D.h1, D.h4, i, dir, entry, risk, stop, 3), be: sim(D.h1, D.h4, i, dir, entry, risk, stop, 2, [[1.1, 0]]), riskPips: risk / pip };
       }
       trades.push(t); busyUntil = D.h4[Math.min(D.h4.length - 1, i + 1)].end; // la siguiente señal solo tras la vela siguiente (sin solapar la misma vela)
     }
@@ -99,7 +113,7 @@ for (const sym of symbols) {
 }
 const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
 const st = (L, sk, k) => { const v = L.map((t) => t.r[sk][k]); if (!v.length) return '      —      '; return `${String(Math.round((100 * v.filter((x) => x > 0).length) / v.length)).padStart(3)} % ${mean(v) >= 0 ? '+' : ''}${mean(v).toFixed(2)}R`; };
-const row = (name, L, sk) => console.log(`  ${name.padEnd(36)} n=${String(L.length).padStart(5)} · 1,5R ${st(L, sk, 'r15')} · 2R ${st(L, sk, 'r2')} · 3R ${st(L, sk, 'r3')} · 2R+BE1,1 ${st(L, sk, 'be')} · stop medio ${L.length ? Math.round(mean(L.map((t) => t.r[sk].riskPips))) : 0} pips`);
+const row = (name, L, sk) => console.log(`  ${name.padEnd(36)} n=${String(L.length).padStart(5)} · 1,5R ${st(L, sk, 'r15')} · 2R ${st(L, sk, 'r2')} · 90/10 media18 ${st(L, sk, 'p90a')} · 90/10 stop+1R ${st(L, sk, 'p90b')} · 3R ${st(L, sk, 'r3')} · 2R+BE1,1 ${st(L, sk, 'be')} · stop medio ${L.length ? Math.round(mean(L.map((t) => t.r[sk].riskPips))) : 0} pips`);
 console.log(`\nCruces de EMA en H4 · ${symbols.length} activos · ${path.basename(DATA)} · desde ${FROM} · stop ATR ×${ATR_MULT}${STOP_PIPS ? ` · fijo ${STOP_PIPS} pips` : ''} · radar: ${Object.keys(biasBy).length ? 'sí' : 'no'}`);
 const FILTERS = [['sin filtro', () => true], ['EMA 8/18 a favor', (t) => t.f.ema], ['precio vs EMA 200 a favor', (t) => t.f.e200], ['EMA 8/18 + EMA 200 a favor', (t) => t.f.ema && t.f.e200], ['radar a favor (≥2)', (t) => t.f.radar], ['radar + EMA 200 a favor', (t) => t.f.radar && t.f.e200], ['radar en contra', (t) => t.f.radarContra]];
 for (const sig of SIGNALS) {
