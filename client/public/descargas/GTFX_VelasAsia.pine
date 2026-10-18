@@ -1,0 +1,151 @@
+//@version=6
+// GTFX · Velas de la rotura de Asia (Global Traders FX) · 18-10-2026
+// Marca las velas con mayor efectividad medida en AUDCAD / AUDCHF / CADCHF (2024–2026, 516 casos, radar a favor de la barrida):
+//   · 08:00 España (02:00 NY): la vela que más barre Asia y la que mejor paga → 69 % a 1R · 54 % a 2R (+0,48R).
+//     Si además cierra de vuelta dentro en esa misma vela: 72 % a 1R · 57 % a 2R (+0,66R).
+//   · 09:00 España: segunda oportunidad → 64 % a 1R · 56 % a 2R (+0,45R).
+//   · 10:00–11:00 España: ya solo vale como vela que CIERRA dentro tras una barrida anterior (48–55 % a 2R). Barridas nuevas: no.
+// Opcional: detecta la barrida del rango asiático (19:00–02:00 NY) y la vela H1 que cierra dentro, y marca entrada/stop/TP.
+// Úsalo en gráfico de 1 h o menor (15 m, 5 m).
+indicator("GTFX · Velas de Asia", "GTFX velas", overlay = true, max_labels_count = 500)
+
+NY = "America/New_York"
+ES = "Europe/Madrid"
+
+marcarHoras = input.bool(true, "Sombrear las velas con mayor efectividad (08:00 y 09:00 España)")
+marcarSenal = input.bool(true, "Marcar la barrida y la vela que cierra dentro (usa el rango 19:00–02:00 NY)")
+sesgo       = input.string("Sin sesgo", "Sesgo del radar para este par (fuerza ≥ 3)", options = ["Alcista", "Bajista", "Sin sesgo"], tooltip = "Alcista → solo vale la barrida del MÁXIMO (venta). Bajista → solo la del MÍNIMO (compra). Sin sesgo → marca las dos (no medido).")
+bufPips     = input.float(1.0, "Colchón del stop tras la mecha (pips)", minval = 0, step = 0.5)
+rr          = input.float(2.0, "Objetivo (R)", minval = 0.5, step = 0.5)
+c08         = input.color(color.new(#f5a524, 78), "Vela 08:00 (mejor)")
+c09         = input.color(color.new(#f5a524, 88), "Vela 09:00 (segunda)")
+c10         = input.color(color.new(#8b95a5, 92), "10:00–11:00 (solo cierre dentro)")
+cVenta      = input.color(#e5484d, "Venta")
+cCompra     = input.color(#30a46c, "Compra")
+
+pip = syminfo.mintick * (syminfo.pricescale >= 1000 ? 10 : 1)
+biasDir = sesgo == "Alcista" ? 1 : sesgo == "Bajista" ? -1 : 0
+hES = hour(time, ES)
+// Las velas del gráfico que pertenecen a cada hora de España (en 15 m son las cuatro velas de esa hora)
+es08 = hES == 8
+es09 = hES == 9
+es1011 = hES == 10 or hES == 11
+bgcolor(marcarHoras and es08 ? c08 : marcarHoras and es09 ? c09 : marcarHoras and es1011 ? c10 : na)
+
+// ── Detección opcional: barrida del rango asiático + cierre H1 dentro ────────────────────────────────────────────
+inAsia   = not na(time(timeframe.period, "1900-0200", NY))
+inBarre  = not na(time(timeframe.period, "0200-0400", NY))   // 08:00–09:59 España
+inVuelve = not na(time(timeframe.period, "0200-0600", NY))   // hasta las 12:00 España
+inFin    = not na(time(timeframe.period, "0200-1700", NY))
+hourClosed = (time_close % 3600000) == 0
+horaES(t) => str.tostring(hour(t, ES), "00") + ":" + str.tostring(minute(t, ES), "00")
+
+var float aH = na
+var float aL = na
+var int estado = 0      // 0 esperando barrida · 1 barrió · 2 señal activa · 3 sin señal · 4 cerrada
+var int lado = 0
+var float ext = na
+var float entry = na
+var float stop = na
+var float tp = na
+var string horaBarrida = ""
+var string motivo = ""
+var string resultado = ""
+
+if inAsia
+    if not inAsia[1]
+        aH := high
+        aL := low
+        estado := 0
+        lado := 0
+        ext := na
+        entry := na
+        stop := na
+        tp := na
+        horaBarrida := ""
+        motivo := ""
+        resultado := ""
+    else
+        aH := math.max(aH, high)
+        aL := math.min(aL, low)
+
+senalNueva = false
+if marcarSenal and not inAsia and not na(aH)
+    rango = aH - aL
+    if estado == 0
+        upB = high > aH
+        dnB = low < aL
+        if inBarre and upB and dnB
+            estado := 3
+            motivo := "Barrió los dos lados"
+        else if inBarre and (upB or dnB)
+            s = upB ? 1 : -1
+            if biasDir != 0 and biasDir != s
+                estado := 3
+                motivo := "Barrida contra el sesgo del radar"
+            else
+                lado := s
+                ext := s > 0 ? high : low
+                horaBarrida := horaES(time)
+                estado := 1
+                label.new(bar_index, s > 0 ? high : low, "Barre " + (s > 0 ? "máx " : "mín ") + horaBarrida, style = s > 0 ? label.style_label_down : label.style_label_up, color = color.new(#f5a524, 10), textcolor = color.black, size = size.small)
+        else if inFin and not inBarre and not inVuelve
+            estado := 3
+            motivo := "No barrió entre las 08:00 y las 09:59"
+    else if estado == 1
+        ext := lado > 0 ? math.max(ext, high) : math.min(ext, low)
+        if (lado > 0 and low < aL) or (lado < 0 and high > aH)
+            estado := 3
+            motivo := "Barrió los dos lados"
+        else if not inVuelve
+            estado := 3
+            motivo := "No cerró dentro antes de las 12:00"
+        else if hourClosed and (lado > 0 ? close < aH : close > aL)
+            tam = (lado > 0 ? ext - aH : aL - ext) / rango * 100
+            if tam > 100
+                estado := 3
+                motivo := "Barrida mayor que el rango: ruptura"
+            else
+                estado := 2
+                entry := close
+                stop := lado > 0 ? ext + bufPips * pip : ext - bufPips * pip
+                riesgo = math.abs(entry - stop)
+                tp := lado > 0 ? entry - rr * riesgo : entry + rr * riesgo
+                senalNueva := true
+                col = lado > 0 ? cVenta : cCompra
+                txt = (lado > 0 ? "VENTA " : "COMPRA ") + str.tostring(entry, format.mintick) + "\nstop " + str.tostring(stop, format.mintick) + " (" + str.tostring(riesgo / pip, "#.#") + " pips)\nTP " + str.tostring(rr, "#.#") + "R " + str.tostring(tp, format.mintick)
+                label.new(bar_index, entry, txt, style = label.style_label_left, color = color.new(col, 10), textcolor = color.white, size = size.small)
+    else if estado == 2
+        if lado > 0 ? high >= stop : low <= stop
+            estado := 4
+            resultado := "STOP"
+            label.new(bar_index, stop, "Stop", style = lado > 0 ? label.style_label_down : label.style_label_up, color = cVenta, textcolor = color.white, size = size.tiny)
+        else if lado > 0 ? low <= tp : high >= tp
+            estado := 4
+            resultado := "Objetivo " + str.tostring(rr, "#.#") + "R"
+            label.new(bar_index, tp, "Objetivo", style = lado > 0 ? label.style_label_up : label.style_label_down, color = cCompra, textcolor = color.white, size = size.tiny)
+        else if not inFin
+            estado := 4
+            resultado := "Cierre 17:00 NY"
+
+// Líneas de entrada / stop / objetivo mientras la operación está activa
+plot(estado == 2 ? entry : na, "Entrada", color = lado > 0 ? cVenta : cCompra, style = plot.style_linebr, linewidth = 2)
+plot(estado == 2 ? stop : na, "Stop", color = cVenta, style = plot.style_linebr)
+plot(estado == 2 ? tp : na, "Objetivo", color = cCompra, style = plot.style_linebr)
+
+alertcondition(senalNueva, "GTFX Asia · señal", "Barrida de Asia que cerró dentro: entrada en contra de la barrida")
+
+// ── Tabla ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+var table t = table.new(position.top_right, 2, 6, bgcolor = color.new(#111418, 10), border_color = color.new(#2a3038, 0), border_width = 1)
+fila(int i, string k, string v, color cv) =>
+    table.cell(t, 0, i, k, text_color = color.new(color.white, 40), text_size = size.small, text_halign = text.align_left)
+    table.cell(t, 1, i, v, text_color = cv, text_size = size.small, text_halign = text.align_left)
+if barstate.islast
+    estadoTxt = not marcarSenal ? "—" : estado == 0 ? (inAsia ? "Asia en curso · esperar la vela de las 08:00" : "Esperando la barrida (08:00–09:59)") : estado == 1 ? "Barrió el " + (lado > 0 ? "MÁXIMO" : "MÍNIMO") + " a las " + horaBarrida + " · esperar cierre H1 dentro" : estado == 2 ? (lado > 0 ? "VENTA activa" : "COMPRA activa") : estado == 3 ? "Sin señal hoy · " + motivo : "Cerrada · " + resultado
+    cEstado = estado == 2 ? (lado > 0 ? cVenta : cCompra) : estado == 1 ? #f5a524 : color.white
+    fila(0, "Hora España", horaES(timenow) + "  (NY " + str.tostring(hour(timenow, NY), "00") + ":" + str.tostring(minute(timenow, NY), "00") + ")", color.white)
+    fila(1, "08:00 (mejor)", "barre Asia · 69 % a 1R · 54 % a 2R", #f5a524)
+    fila(2, "09:00 (segunda)", "64 % a 1R · 56 % a 2R", #f5a524)
+    fila(3, "10:00–11:00", "solo como cierre dentro de una barrida anterior", color.new(color.white, 30))
+    fila(4, "Sesgo del radar", sesgo + (biasDir > 0 ? " → barrida del MÁXIMO = venta" : biasDir < 0 ? " → barrida del MÍNIMO = compra" : " → pon el sesgo"), biasDir == 0 ? color.orange : color.white)
+    fila(5, "Estado", estadoTxt, cEstado)
