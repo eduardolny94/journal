@@ -20,8 +20,10 @@ import { DatabaseSync } from 'node:sqlite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
-const DATA = path.join(ROOT, 'data', 'mt5');
-const FROM = (() => { const i = process.argv.indexOf('--desde'); return i >= 0 ? process.argv[i + 1] : '2024-01-01'; })();
+const argOf = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
+const DATA = path.resolve(ROOT, argOf('--dir', 'data/mt5'));
+const FROM = argOf('--desde', '2024-01-01');
+const ONLY = argOf('--pares', null) ? argOf('--pares', '').split(',').map((x) => x.trim().toUpperCase()) : null;
 const SPREAD = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5 };
 const SPREAD_PX = { XAUUSD: 0.3, US500F: 0.5, NAS100F: 1.5, US30F: 3 };
 const pipOf = (s) => (s === 'XAUUSD' ? 0.1 : SPREAD_PX[s] !== undefined ? 1 : s.endsWith('JPY') ? 0.01 : 0.0001);
@@ -66,7 +68,7 @@ function simulate(bars, startIdx, dir, entry, stop, targets, lastIdx) {
   return out;
 }
 
-const symbols = readdirSync(DATA).filter((f) => f.endsWith('_PERIOD_H1.csv')).map((f) => f.replace('_PERIOD_H1.csv', ''));
+const symbols = readdirSync(DATA).filter((f) => f.endsWith('_PERIOD_H1.csv')).map((f) => f.replace('_PERIOD_H1.csv', '')).filter((s) => !ONLY || ONLY.includes(s));
 const trades = [];
 for (const sym of symbols) {
   const D = load(sym); const sp = spreadOf(sym); const pip = pipOf(sym);
@@ -135,6 +137,7 @@ const pct = (a, n) => (n ? `${Math.round((100 * a) / n)} %` : '—');
 const st = (L, k) => { const v = L.map((t) => t[k]).filter((x) => x !== null && x !== undefined); if (!v.length) return '   —   '; return `${String(Math.round((100 * v.filter((x) => x > 0).length) / v.length)).padStart(3)} % ${mean(v) >= 0 ? '+' : ''}${mean(v).toFixed(2)}R`; };
 const row = (name, L) => console.log(`  ${name.padEnd(34)} n=${String(L.length).padStart(5)} · 50 % ${st(L, 'r_mid')} · lado opuesto ${st(L, 'r_opp')} · 1R ${st(L, 'r1')} · 2R ${st(L, 'r2')} · obj. opuesto medio ${L.length ? mean(L.map((t) => t.oppR)).toFixed(2) : '—'}R · stop ${L.length ? Math.round(mean(L.map((t) => t.riskPips))) : '—'} pips`);
 const valid = trades.filter((t) => !t.noReturn);
+const YEARS = [...new Set(valid.map((t) => t.year))].sort();
 console.log(`\nCRT en Londres · ${symbols.length} activos · desde ${FROM} · ${valid.length} setups con vuelta dentro (${trades.filter((t) => t.noReturn).length} barridas que no volvieron)\n`);
 for (const model of ['A_H4_1-5-9', 'A_H4cierre_1-5-9', 'B_H4_21-1-5', 'B_H4cierre_21-1-5', 'C_diario_Londres']) {
   const M = valid.filter((t) => t.model === model);
@@ -148,10 +151,10 @@ for (const model of ['A_H4_1-5-9', 'A_H4cierre_1-5-9', 'B_H4_21-1-5', 'B_H4cierr
   row('radar a favor de la entrada', M.filter((t) => t.radarOk));
   row('radar en contra de la entrada', M.filter((t) => t.radarAgainst));
   row('radar a favor + barrida ≥ 0,1 ATR', M.filter((t) => t.radarOk && t.sweepAtr >= 0.1));
-  console.log('  por año (lado opuesto):', ['2024', '2025', '2026'].map((y) => `${y} ${st(M.filter((t) => t.year === y), 'r_opp')}`).join(' · '));
+  console.log('  por año (lado opuesto):', YEARS.map((y) => `${y} ${st(M.filter((t) => t.year === y), 'r_opp')}`).join(' · '));
   console.log('  por hora NY de la entrada (lado opuesto):', [...new Set(M.map((t) => t.hourNY))].sort((a, b) => a - b).map((h) => `${h}h ${st(M.filter((t) => t.hourNY === h), 'r_opp')} (${M.filter((t) => t.hourNY === h).length})`).join(' · '));
   console.log('  por par (lado opuesto · 1R), ordenado por acierto al lado opuesto:');
   const bySym = symbols.map((s) => ({ s, L: M.filter((t) => t.sym === s) })).filter((x) => x.L.length >= 25).sort((a, b) => { const w = (L) => L.filter((t) => t.r_opp > 0).length / L.length; return w(b.L) - w(a.L); });
-  for (const { s, L } of bySym) console.log(`    ${s.padEnd(8)} n=${String(L.length).padStart(4)} · lado opuesto ${st(L, 'r_opp')} · 1R ${st(L, 'r1')} · 2R ${st(L, 'r2')} · por año opuesto ${['2024', '2025', '2026'].map((y) => { const Y = L.filter((t) => t.year === y); return Y.length >= 8 ? `${Math.round((100 * Y.filter((t) => t.r_opp > 0).length) / Y.length)} %` : '—'; }).join('/')}`);
+  for (const { s, L } of bySym) console.log(`    ${s.padEnd(8)} n=${String(L.length).padStart(4)} · lado opuesto ${st(L, 'r_opp')} · 1R ${st(L, 'r1')} · 2R ${st(L, 'r2')} · por año opuesto ${YEARS.map((y) => { const Y = L.filter((t) => t.year === y); return Y.length >= 8 ? `${Math.round((100 * Y.filter((t) => t.r_opp > 0).length) / Y.length)} %` : '—'; }).join('/')}`);
   console.log('');
 }
