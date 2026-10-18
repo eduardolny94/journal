@@ -59,3 +59,37 @@ for (const [key] of H4) {
   const rows = Object.entries(P[key] || {}).map(([s, a]) => ({ s, a })).sort((x, y) => (y.a.insideDay / (y.a.inside || 1)) - (x.a.insideDay / (x.a.inside || 1)));
   for (const { s, a } of rows) console.log(`    ${s.padEnd(8)} ${String(a.days).padStart(5)} · barre ${pct(a.sweep, a.days)} · manipula ${pct(a.inside, a.sweep)} · completa ${pct(a.insideDay, a.inside)} (n=${a.inside}) · misma H4 ${pct(a.insideSame, a.inside)}`);
 }
+
+// Ejemplos recientes de la vela L1 (07:00–11:00 España) que barre Asia, cierra dentro y luego el precio completa el rango:
+//   node server/scripts/crt-h4-londres.mjs --dir data/mt5 --ejemplos AUDCAD,AUDCHF,CADCHF --n 4
+const ae = process.argv.indexOf('--ejemplos');
+if (ae >= 0) {
+  const ES = (h) => ((h - 1 + 24) % 24);
+  const N = Number(argOf('--n', 4));
+  for (const sym of process.argv[ae + 1].split(',')) {
+    const D = load(sym); const dec = sym.endsWith('JPY') ? 3 : 5; const f = (x) => x.toFixed(dec); const pip = sym.endsWith('JPY') ? 0.01 : 0.0001;
+    const out = [];
+    for (const d of [...D.dates].reverse()) {
+      const bars = D.byDay.get(d); if (!bars || bars.length < 18) continue;
+      const asia = bars.filter((b) => b.hour >= 4 && b.hour <= 7); if (asia.length < 3) continue;
+      const aH = Math.max(...asia.map((b) => b.h)), aL = Math.min(...asia.map((b) => b.l));
+      const C = bars.filter((b) => b.hour >= 8 && b.hour <= 11); if (C.length < 3) continue;
+      const cH = Math.max(...C.map((b) => b.h)), cL = Math.min(...C.map((b) => b.l)), cC = C[C.length - 1].c;
+      const up = cH > aH, dn = cL < aL; if (up === dn) continue; const side = up ? 1 : -1;
+      if (!(side > 0 ? cC < aH : cC > aL)) continue;
+      const opp = side > 0 ? aL : aH; const rest = bars.filter((b) => b.hour > 11 && b.hour <= 23);
+      const hitBar = rest.find((b) => (side > 0 ? b.l <= opp : b.h >= opp));
+      const sweepBar = C.find((b) => (side > 0 ? b.h > aH : b.l < aL));
+      out.push({ d, aH, aL, side, ext: side > 0 ? cH : cL, cC, sweepBar, hitBar, C });
+      if (out.length >= N) break;
+    }
+    console.log(`\n== ${sym} · últimos ${out.length} días en que la H4 de 07:00–11:00 España barrió Asia y cerró dentro ==`);
+    for (const e of out) {
+      const lado = e.side > 0 ? 'barrió el MÁXIMO' : 'barrió el MÍNIMO';
+      const mecha = Math.round(Math.abs(e.ext - (e.side > 0 ? e.aH : e.aL)) / pip);
+      const res = e.hitBar ? `COMPLETÓ el rango: tocó ${f(e.side > 0 ? e.aL : e.aH)} en la vela de las ${String(ES(e.hitBar.hour)).padStart(2, '0')}:00 ES` : 'NO completó el rango antes de las 23:00 ES';
+      console.log(`  ${e.d} · Asia ${f(e.aL)}–${f(e.aH)} (${Math.round((e.aH - e.aL) / pip)} pips) · ${lado} a las ${String(ES(e.sweepBar.hour)).padStart(2, '0')}:00 ES hasta ${f(e.ext)} (mecha ${mecha} pips) · la H4 cerró en ${f(e.cC)}, dentro · ${res}`);
+      console.log(`      velas H1 de la H4: ${e.C.map((b) => `${String(ES(b.hour)).padStart(2, '0')}:00 O${f(b.o)} H${f(b.h)} L${f(b.l)} C${f(b.c)}`).join(' | ')}`);
+    }
+  }
+}
