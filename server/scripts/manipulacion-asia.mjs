@@ -11,7 +11,7 @@
 //     objetivo el otro lado del rango asiático, 1R, 2R; si no toca nada, cierre a las 17:00 NY;
 //   - lo mismo con el sesgo del radar a favor de la entrada (radar_daily_bias, fuerza ≥ 2, point-in-time).
 // Uso: node server/scripts/manipulacion-asia.mjs [--desde 2024-01-01] [--par EURUSD]
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -124,7 +124,8 @@ for (const sym of symbols) {
       return Math.max(-1, (dir > 0 ? close - entry : entry - close) / risk);
     };
     const diff = biasAt(sym, date);
-    st.trades.push({ date, dir, r1: sim(1), r2: sim(2), rRange: tgtRange > 0.3 ? sim(tgtRange) : null, tgtRange, toClose: Math.max(-1, Math.min(10, sim(99))), radarOk: diff !== null && Math.sign(diff) === dir && Math.abs(diff) >= 3, radarAgainst: diff !== null && Math.sign(diff) === -dir && Math.abs(diff) >= 3, riskPips: risk / pipOf(sym) });
+    st.trades.push({ sym, date, dir, r1: sim(1), r2: sim(2), rRange: tgtRange > 0.3 ? sim(tgtRange) : null, tgtRange, toClose: Math.max(-1, Math.min(10, sim(99))), radarOk: diff !== null && Math.sign(diff) === dir && Math.abs(diff) >= 3, radarAgainst: diff !== null && Math.sign(diff) === -dir && Math.abs(diff) >= 3, riskPips: risk / pipOf(sym), diff,
+      aH, aL, ext, entry, stop, tp1: dir > 0 ? entry + risk : entry - risk, tp2: dir > 0 ? entry + 2 * risk : entry - 2 * risk, sweepHourServer: post[firstIdx].hour, entryHourServer: post[entryIdx].hour, bars });
   }
   results.push({ sym, ...st });
 }
@@ -157,3 +158,27 @@ console.log('\nSeguir la rotura (sin radar) por año, activos con 2R positivo:')
 for (const r of results.filter((x) => (agg(x.breaks, 'r2').avg ?? -9) > 0.05)) console.log(`  ${r.sym.padEnd(8)} ${['2024', '2025', '2026'].map((y) => `${y} ${fmt(agg(r.breaks.filter((t) => t.date.startsWith(y)), 'r2'))}`).join(' | ')}`);
 const fx3 = results.filter((x) => ['AUDCAD', 'AUDCHF', 'CADCHF'].includes(x.sym)).flatMap((x) => x.trades.filter((t) => t.radarAgainst));
 console.log(`\nAUDCAD + AUDCHF + CADCHF · barrida a favor del radar que vuelve dentro → entrada en contra: 1R ${fmt(agg(fx3, 'r1'))} · 2R ${fmt(agg(fx3, 'r2'))} · al cierre ${fmt(agg(fx3, 'toClose'))} · por mes ${(fx3.length / 33).toFixed(1)} señales`);
+
+// Ejemplos detallados del patrón con ventaja (barrida a favor del radar que vuelve dentro → entrada en contra):
+//   node server/scripts/manipulacion-asia.mjs --ejemplos AUDCAD,AUDCHF,CADCHF --n 6 [--json-ejemplos ruta.json]
+const ae = process.argv.indexOf('--ejemplos');
+if (ae >= 0) {
+  const syms = process.argv[ae + 1].split(',');
+  const an = process.argv.indexOf('--n'); const N = an >= 0 ? Number(process.argv[an + 1]) : 6;
+  const ES = (h) => ((h - 1 + 24) % 24); // servidor = NY + 7 → España = servidor − 1
+  const dump = [];
+  for (const sym of syms) {
+    const r = results.find((x) => x.sym === sym); if (!r) continue;
+    const L = r.trades.filter((t) => t.radarAgainst).slice(-N);
+    const dec = sym.endsWith('JPY') ? 3 : 5;
+    console.log(`\n== ${sym} · últimos ${L.length} casos (barrida del rango asiático A FAVOR del radar que vuelve dentro antes de las 17:00 España → entrada en contra) ==`);
+    for (const t of L) {
+      const lado = t.dir > 0 ? 'barrió el MÍNIMO de Asia → COMPRA' : 'barrió el MÁXIMO de Asia → VENTA';
+      const res = t.r2 >= 2 ? 'OBJETIVO 2R ✔' : t.r2 <= -1 ? 'STOP ✘' : `cierre a ${t.r2 >= 0 ? '+' : ''}${t.r2.toFixed(2)}R`;
+      console.log(`  ${t.date} · radar ${t.diff > 0 ? '+' : ''}${t.diff} · Asia ${t.aL.toFixed(dec)}–${t.aH.toFixed(dec)} · ${lado} · barrida ${String(ES(t.sweepHourServer)).padStart(2, '0')}:00 ES hasta ${t.ext.toFixed(dec)} · vuelve dentro y entra al cierre de las ${String(ES(t.entryHourServer)).padStart(2, '0')}:00 ES en ${t.entry.toFixed(dec)} · stop ${t.stop.toFixed(dec)} (${Math.round(t.riskPips)} pips) · 1R ${t.tp1.toFixed(dec)} · 2R ${t.tp2.toFixed(dec)} → ${res}${t.r1 >= 1 ? ' (1R tocado)' : ''}`);
+      dump.push({ sym, ...t, bars: t.bars.map((b) => ({ ...b, es: ES(b.hour) })) });
+    }
+  }
+  const aj = process.argv.indexOf('--json-ejemplos');
+  if (aj >= 0) writeFileSync(process.argv[aj + 1], JSON.stringify(dump));
+}
