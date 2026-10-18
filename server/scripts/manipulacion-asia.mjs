@@ -182,3 +182,22 @@ if (ae >= 0) {
   const aj = process.argv.indexOf('--json-ejemplos');
   if (aj >= 0) writeFileSync(process.argv[aj + 1], JSON.stringify(dump));
 }
+
+// ¿A qué hora conviene esperar? Reparto por hora (España) de la barrida y de la vela que vuelve dentro, para el patrón
+// con ventaja en los tres pares:  node server/scripts/manipulacion-asia.mjs --horas AUDCAD,AUDCHF,CADCHF
+const ah = process.argv.indexOf('--horas');
+if (ah >= 0) {
+  const syms = process.argv[ah + 1].split(',');
+  const ES = (h) => ((h - 1 + 24) % 24);
+  const L = results.filter((r) => syms.includes(r.sym)).flatMap((r) => r.trades.filter((t) => t.radarAgainst));
+  const line = (name, T) => console.log(`  ${name.padEnd(26)} n=${String(T.length).padStart(4)} · 1R ${fmt(agg(T, 'r1'))} · 2R ${fmt(agg(T, 'r2'))} · al cierre ${fmt(agg(T, 'toClose'))}`);
+  console.log(`\n== ${syms.join(' + ')} · barrida de Asia a favor del radar que vuelve dentro → entrada en contra · por hora de ESPAÑA ==`);
+  console.log('  Hora de la barrida (primera vela H1 que sale del rango asiático):');
+  for (let h = 0; h < 24; h++) { const T = L.filter((t) => ES(t.sweepHourServer) === h); if (T.length >= 8) line(`    barre a las ${String(h).padStart(2, '0')}:00`, T); }
+  console.log('  Hora de la vela que CIERRA de vuelta dentro (la entrada se toma a su cierre, es decir, a la hora siguiente):');
+  for (let h = 0; h < 24; h++) { const T = L.filter((t) => ES(t.entryHourServer) === h); if (T.length >= 8) line(`    vuelve dentro a las ${String(h).padStart(2, '0')}:00`, T); }
+  console.log('  Velas entre la barrida y la vuelta dentro:');
+  for (const [name, f] of [['misma vela (0 h)', (d) => d === 0], ['1 vela', (d) => d === 1], ['2–3 velas', (d) => d >= 2 && d <= 3], ['4 o más', (d) => d >= 4]]) line(`    ${name}`, L.filter((t) => f(t.entryHourServer - t.sweepHourServer)));
+  console.log('  Tamaño de la barrida respecto al rango asiático:');
+  for (const [name, f] of [['≤ 25 % del rango', (x) => x <= 0.25], ['25–50 %', (x) => x > 0.25 && x <= 0.5], ['50–100 %', (x) => x > 0.5 && x <= 1], ['> 100 %', (x) => x > 1]]) line(`    ${name}`, L.filter((t) => f((t.dir > 0 ? t.aL - t.ext : t.ext - t.aH) / (t.aH - t.aL))));
+}
