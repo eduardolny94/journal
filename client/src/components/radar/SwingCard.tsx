@@ -199,6 +199,15 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
                     {sz && <span className="text-gray-500"> · el más ajustado hoy: {sz}</span>}
                   </p>
                 )}
+                {p.vrr && dir !== 0 && (
+                  <p className="text-gray-300" title="Protrader 5 (Curto): último verde-rojo-rojo / rojo-verde-verde en H4. Medido: orden límite en el nivel con stop a 0,5 ATR y objetivo 2R → 38 % y +0,13R en 32 activos 2024-2026 (+0,18R con el radar a favor), +0,05R en 11 años. El patrón solo no predice: paga entrar donde están los stops.">
+                    Nivel verde-rojo-rojo: {p.vrr.tocado ? (
+                      <span className="text-gray-500">el precio ya tocó <span className="font-mono">{fmtPx(p.vrr.nivel, p.digits)}</span> tras el patrón (hace {p.vrr.velas} velas H4): sin entrada por este método hasta un patrón nuevo.</span>
+                    ) : (
+                      <>orden límite de {dir > 0 ? 'compra' : 'venta'} en <span className="font-mono">{fmtPx(p.vrr.entrada, p.digits)}</span> · stop <span className="font-mono">{fmtPx(p.vrr.stop, p.digits)}</span> ({p.vrr.risk_pips} pips{p.vrr.lots !== null ? `, ${p.vrr.lots} lotes` : ''}) · objetivo 2R <span className="font-mono">{fmtPx(p.vrr.r2, p.digits)}</span> · patrón hace {p.vrr.velas} velas H4</>
+                    )}
+                  </p>
+                )}
                 {p.atr_pips !== null && <p className="text-[11px] text-gray-500">ATR diario ≈ {p.atr_pips} pips. Salidas medidas: objetivo 2R (más R) o 1,5R (más acierto); el cruce contrario rinde parecido con más vaivén.</p>}
                 {p.warnings.length > 0 && <p className="text-[11px] text-warn">{p.warnings.join(' · ')}</p>}
               </div>

@@ -100,6 +100,35 @@ function pipValueUsd(sym, symbols) {
  * @param {Array} pairs    pares del radar ya calculados (con diff, conviction, structure, fluidity)
  * @param {{ now?: number, accountUsd?: number, riskPct?: number }} o
  */
+/**
+ * "Verde-rojo-rojo" de Protrader 5 (Curto, semana 1; medido en backtest-vrr.mjs, docs/aprendizaje-videos/protrader5-semana1.md):
+ * último patrón de 3 velas H4 cerradas en la dirección del sesgo (vender: verde-rojo-rojo, nivel = máximo de las tres;
+ * comprar: rojo-verde-verde, nivel = mínimo). Lo que paga es la orden LÍMITE en el nivel (donde el resto tiene el stop)
+ * con stop a 0,5 ATR y objetivo 2R: 38 %, +0,13R en 32 activos 2024-26 (+0,18R con el radar a favor), +0,05R en 11 años.
+ * Si el precio ya tocó el nivel después del patrón, el método dice que no hay entrada por ese lado.
+ */
+export const VRR_STOP_ATR = 0.5;
+function vrrLevel(h4, atr4, dir, pip, digits, pv, accountUsd, riskPct) {
+  if (dir === 0 || h4.length < 20) return null;
+  for (let i = h4.length - 1; i >= 2; i--) {
+    const a = h4[i - 2], b = h4[i - 1], c = h4[i];
+    const ok = dir < 0 ? a.close > a.open && b.close < b.open && c.close < c.open : a.close < a.open && b.close > b.open && c.close > c.open;
+    if (!ok) continue;
+    const level = dir < 0 ? Math.max(a.high, b.high, c.high) : Math.min(a.low, b.low, c.low);
+    const atr = atr4[i] || atr4[atr4.length - 1]; if (!atr) return null;
+    const tocado = h4.slice(i + 1).some((x) => (dir < 0 ? x.high >= level : x.low <= level));
+    const stop = dir < 0 ? level + VRR_STOP_ATR * atr : level - VRR_STOP_ATR * atr;
+    const risk = Math.abs(level - stop); const rp = round(risk / pip, 1);
+    const lots = pv && rp > 0 ? Math.max(0.01, Math.floor(((accountUsd * riskPct) / 100 / (rp * pv)) * 100) / 100) : null;
+    return {
+      nivel: round(level, digits), entrada: round(level, digits), stop: round(stop, digits), r2: round(dir < 0 ? level - 2 * risk : level + 2 * risk, digits),
+      risk_pips: rp, lots, risk_usd: lots && pv ? round(lots * rp * pv, 2) : null, velas: h4.length - 1 - i, tocado,
+      fecha: new Date(c.time * 1000).toISOString(),
+    };
+  }
+  return null;
+}
+
 export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWING_ACCOUNT_USD, riskPct = SWING_RISK_PCT } = {}) {
   const symbols = prices.symbols || {};
   const today = currentTradingDay({ timezone: 'America/New_York', day_reset_hour: 17 });
@@ -159,6 +188,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
     const puntos = [adxOk, cruceSuave, diarioJoven].filter((x) => x === true).length;
     // Informativo (no cuenta): momentum de 12 meses a favor (Moskowitz-Ooi-Pedersen; medido +0,13R sobre la semana, docs/INVESTIGACION-ACADEMICA.md).
     const mom12m = dir !== 0 && days.length > 250 ? Math.sign(days[days.length - 1].close - days[days.length - 251].close) === dir : null;
+    const vrr = vrrLevel(h4, atr4, dir, pip, digits, pv, accountUsd, riskPct);
     const calidad = { adx_d: round(adxD, 1), adx_ok: adxOk, cruce_atr: round(crossAtr, 2), cruce_suave: cruceSuave, diario_dias: diarioOk ? d1.since : null, diario_joven: diarioJoven, puntos, temprana: puntos >= 2, mom12m };
     // Objetivos de la regla del usuario (1,5R y 2R) y precio de +1,1R para pasar el stop a la entrada, desde el precio actual.
     const objetivos = (stop) => {
@@ -177,6 +207,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
       stops: stops ? { estructura: stops.estructura, diario: stops.diario, estructura_sizing: sizing(stops.estructura), diario_sizing: sizing(stops.diario), estructura_objetivos: objetivos(stops.estructura), diario_objetivos: objetivos(stops.diario) } : null,
       atr_pips: p.conviction ? p.conviction.atr_pips : null,
       calidad,
+      vrr,
       estado,
       warnings: (p.warnings || []).map((w) => w.text),
     });

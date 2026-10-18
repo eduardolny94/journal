@@ -289,6 +289,8 @@ export interface SwingPair {
   stops: { estructura: number | null; diario: number | null; estructura_sizing: SwingSizing | null; diario_sizing: SwingSizing | null; estructura_objetivos: SwingTargets | null; diario_objetivos: SwingTargets | null } | null;
   atr_pips: number | null;
   calidad: SwingQuality;
+  /** Nivel verde-rojo-rojo (Protrader 5): orden límite en el nivel, stop a 0,5 ATR, objetivo 2R. */
+  vrr?: { nivel: number; entrada: number; stop: number; r2: number; risk_pips: number; lots: number | null; risk_usd: number | null; velas: number; tocado: boolean; fecha: string } | null;
   estado: 'entrada' | 'en_curso' | 'esperando_cruce' | 'semanal_en_contra' | 'sin_sesgo';
   warnings: string[];
 }
