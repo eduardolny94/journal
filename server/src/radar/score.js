@@ -13,6 +13,7 @@ import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
 import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
 import { signalFeatures, predictProb, tierOf, explain } from './conviction.js';
+import { crossConfirm, crossConfirmText } from './cross-confirm.js';
 import { fundamentalsFor, termsOfTrade } from './fundamentals.js';
 import { cyclePhaseFor } from './cycle-phase.js';
 import { PAIR_LIQUIDITY, pairPip } from './constants.js';
@@ -586,8 +587,10 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   const dirBig = Object.fromEntries(Object.entries(sd.dirBig).map(([c, v]) => [c, v.dir]));
   const pb = byCode[base].pillars;
   const pq = byCode[quote].pillars;
+  const cc = crossConfirm(db, { symbol: sym, sign, date: new Date(nowMs).toISOString().slice(0, 10), dxyCloses: market.dxy ? market.dxy.closes : null, spxCloses: market.sp500 ? market.sp500.closes : null });
   const feat = signalFeatures({
     symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null, vix3m: market.vix3m ? market.vix3m.value : null, jumpTurb: !!(input.jump && input.jump.state === 'turbulento'),
+    crossConfirm: cc.confirm, yieldDiff5: cc.yieldDiff,
     cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
     lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
     lastSurpriseBig: clamp(sign * ((dirBig[base] || 0) - (dirBig[quote] || 0)), -1, 1),
@@ -609,6 +612,8 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
     evidence: ev ? { hit_rate: ev.hit_rate, n: ev.n, avg_r: ev.avg_r } : null,
     pros, cons,
     atr_pips: feat.atr ? round(feat.atr / pairPip(sym), 0) : null,
+    // Confirmación cruzada (bonos 2a + dólar + riesgo, 5 días): informativa; entra en el modelo solo si el ciclo la adopta.
+    cruzada: cc.parts ? { confirm: round(cc.confirm, 2), bonos: cc.yieldDiff === null ? null : round(cc.yieldDiff, 2), dolar: cc.dxy === null ? null : round(cc.dxy, 2), riesgo: cc.risk === null ? null : round(cc.risk, 2), text: crossConfirmText(cc) } : null,
   };
 }
 

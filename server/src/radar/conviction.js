@@ -11,14 +11,15 @@ export const FEATURE_NAMES = [
   'taylor', 'descontado', 'real', 'tot',
   'ciclo', 'sorpresa_grande',
   'miedo_contrario', 'regimen_salto',
+  'confirmacion_cruzada', 'diferencial_2a',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 6;
+export const FEATURE_VERSION = 7;
 /**
  * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
  * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.
  */
-export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto'].includes(n));
+export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto', 'confirmacion_cruzada', 'diferencial_2a'].includes(n));
 export const CANDIDATE_FEATURES = FEATURE_NAMES.filter((n) => !BASE_FEATURES.includes(n));
 export const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
 /** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
@@ -64,7 +65,7 @@ function efficiency(closes, n = 20) {
  */
 // Exposición al apetito por riesgo de un par: + si sube con risk-on (base pro-riesgo o cotizada refugio).
 const RISK_BETA = { AUD: 1, NZD: 1, CAD: 0.5, GBP: 0.3, EUR: 0, USD: -0.5, CHF: -1, JPY: -1 };
-function riskBeta(symbol) { if (!symbol || symbol.length < 6) return 0; return (RISK_BETA[symbol.slice(0, 3)] ?? 0) - (RISK_BETA[symbol.slice(3, 6)] ?? 0); }
+export function riskBeta(symbol) { if (!symbol || symbol.length < 6) return 0; return (RISK_BETA[symbol.slice(0, 3)] ?? 0) - (RISK_BETA[symbol.slice(3, 6)] ?? 0); }
 
 export function signalFeatures(ctx) {
   const s = ctx.diff > 0 ? 1 : -1;
@@ -111,6 +112,10 @@ export function signalFeatures(ctx) {
     ctx.vix && ctx.vix3m && ctx.vix / ctx.vix3m >= 1 ? Math.sign(riskBeta(ctx.symbol)) * s : 0,
     // Candidata (13-10-2026, scripts/regimenes.mjs): régimen turbulento del modelo de salto estadístico (regime-jump.js).
     ctx.jumpTurb ? 1 : 0,
+    // Candidatas (19-10-2026, guía introductoria DCM FX, cross-confirm.js): confirmación cruzada de bonos 2a + dólar +
+    // riesgo en 5 días, y el diferencial de bonos solo. Ambas en [−1, 1], positivo = los otros mercados cuentan la misma historia.
+    clamp(ctx.crossConfirm ?? 0, -1, 1),
+    clamp(ctx.yieldDiff5 ?? 0, -1, 1),
   ];
   return { x, atr, level };
 }
@@ -202,6 +207,8 @@ const REASON_TEXT = {
   sorpresa_grande: ['último dato grande (tipos, IPC, PIB, empleo) a favor', 'último dato grande en contra'],
   regimen_salto: ['régimen turbulento (modelo de salto)', 'régimen de calma (modelo de salto)'],
   miedo_contrario: ['estrés en el VIX y señal a favor del riesgo (comprar el miedo)', 'estrés en el VIX y señal hacia el refugio'],
+  confirmacion_cruzada: ['bonos, dólar y riesgo confirman la señal', 'bonos, dólar o riesgo discrepan de la señal'],
+  diferencial_2a: ['diferencial de bonos a 2 años a favor (5 d)', 'diferencial de bonos a 2 años en contra (5 d)'],
 };
 
 /** Las 3 condiciones que más suman y las 2 que más restan, en castellano, para explicar un nivel. */

@@ -93,6 +93,11 @@ export default function PairCard({ pair, compact = false, className, favorite, o
               {pair.conviction.cons.length > 0 && <span className="text-gray-500">− {pair.conviction.cons.join(' · ')}</span>}
             </p>
           )}
+          {pair.conviction && pair.conviction.cruzada && pair.conviction.cruzada.text && Math.abs(pair.diff) >= 2 && (
+            <p className="text-[11px] text-gray-500" title="Confirmación cruzada en 5 días: diferencial de bonos a 2 años, dólar (DXY) y riesgo (S&P 500). Informativa: no cambia el nivel.">
+              Confirmación: <span className={pair.conviction.cruzada.confirm > 0.15 ? 'text-emerald-300' : pair.conviction.cruzada.confirm < -0.15 ? 'text-amber-300' : 'text-gray-400'}>{pair.conviction.cruzada.text}</span>
+            </p>
+          )}
           {pair.base && <CalibrationLine level={n} />}
           {pair.prob_favor && pair.prob_favor.length > 0 && Math.abs(pair.diff) >= 2 && (
             <p className="text-[11px] text-gray-400" title="Regresión logística ajustada con el historial del backtest (3 años): P(a favor) = σ(a + b·diferencia). Por par cuando hay muestras suficientes.">

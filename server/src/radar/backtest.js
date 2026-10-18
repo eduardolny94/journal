@@ -13,6 +13,7 @@ import { atr, round } from './indicators.js';
 import { setMeta, getMetaJson } from './store.js';
 import { calibrateLogit } from './quant.js';
 import { signalFeatures, buildConvictionModel, indexesOf } from './conviction.js';
+import { crossConfirm } from './cross-confirm.js';
 import { validateRadar } from './validation.js';
 import { JUMP_LEGS, dollarBasket, jumpLabels } from './regime-jump.js';
 import { lastSurpriseDirections } from './surprise-direction.js';
@@ -295,8 +296,10 @@ export async function runBacktest(db, { years = 3, horizons = DEFAULT_HORIZONS, 
       const dirQ = lastDir[quote] ? lastDir[quote].dir : 0;
       const dirBigB = lastDirBig[base] ? lastDirBig[base].dir : 0;
       const dirBigQ = lastDirBig[quote] ? lastDirBig[quote].dir : 0;
+      const cc = crossConfirm(db, { symbol: sym, sign, date, dxyCloses: market.dxy.closes, spxCloses: market.sp500.closes });
       const feat = signalFeatures({
         symbol: sym, diff, prevDiff5, bars: bars.slice(Math.max(0, i - 80), i + 1), vix: market.vix.value, vix3m: market.vix3m.value, jumpTurb: jumpAt(date) === 1,
+        crossConfirm: cc.confirm, yieldDiff5: cc.yieldDiff,
         cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon: newsSoonCcy.has(base) || newsSoonCcy.has(quote),
         lastSurprise: clamp(sign * (dirB - dirQ), -1, 1),
         lastSurpriseBig: clamp(sign * (dirBigB - dirBigQ), -1, 1),

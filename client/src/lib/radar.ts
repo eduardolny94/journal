@@ -248,6 +248,8 @@ export interface PairConviction {
   pros: string[];
   cons: string[];
   atr_pips: number | null;
+  /** Confirmación cruzada (bonos 2a + dólar + riesgo, 5 días): informativa. */
+  cruzada?: { confirm: number; bonos: number | null; dolar: number | null; riesgo: number | null; text: string | null } | null;
 }
 export interface QueOperarItem {
   symbol: string;
