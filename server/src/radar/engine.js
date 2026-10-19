@@ -5,6 +5,7 @@ import { getDb } from '../db.js';
 import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
 import { computeSwing } from './swing.js';
+import { computeIntradia } from './intradia.js';
 import { JUMP_LEGS, currentJumpRegime } from './regime-jump.js';
 import { readingOfDay, FEDWATCH_LOG_KEY } from './dataReading.js';
 import { isBigFour } from './surprise-direction.js';
@@ -339,6 +340,8 @@ async function compute() {
   } catch (e) {
     console.warn('[radar] swing:', e.message);
   }
+  let intradia = null;
+  try { intradia = computeIntradia(prices, core.pairs, { now }); } catch (e) { console.warn('[radar] intradía:', e.message); }
   let datoDelDia = null;
   try { datoDelDia = readingOfDay(db, prices, { now }); } catch (e) { console.warn('[radar] lectura del dato:', e.message); }
   const week = weekPlan(db, { now: nowDate, expectations, pairs: core.pairs, cotByCurrency: cot.byCurrency, market, news: listNews(db, { limit: 60 }) });
@@ -361,6 +364,7 @@ async function compute() {
     upcoming: core.upcoming,
     que_operar: core.que_operar || null,
     swing,
+    intradia,
     dato_del_dia: datoDelDia,
     cot: cot.rows,
     expectations,

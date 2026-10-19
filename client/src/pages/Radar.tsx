@@ -3,11 +3,12 @@ import FavoritesPicker from '../components/radar/FavoritesPicker';
 import QueOperarCard from '../components/radar/QueOperarCard';
 import DatoDelDiaCard from '../components/radar/DatoDelDiaCard';
 import SwingCard, { SwingChecklist } from '../components/radar/SwingCard';
+import HoyCard from '../components/radar/HoyCard';
 import { useOwner } from '../store/session';
 import ImpactCard from '../components/radar/ImpactCard';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarDays, Coins, Globe2, RefreshCw, Settings2, Star, Table2, TrendingUp, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, CheckSquare, Coins, Globe2, RefreshCw, Settings2, Star, Table2, TrendingUp, Users } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSpinner } from '../components/ui/Spinner';
@@ -25,6 +26,7 @@ import {
 } from '../lib/radar';
 
 const TABS = [
+  { key: 'hoy', label: 'Hoy', icon: <CheckSquare className="h-3.5 w-3.5" /> },
   { key: 'panel', label: 'Panel', icon: <Globe2 className="h-3.5 w-3.5" /> },
   { key: 'activos', label: 'Índices y metales', icon: <Coins className="h-3.5 w-3.5" /> },
   { key: 'swing', label: 'Swing', icon: <TrendingUp className="h-3.5 w-3.5" /> },
@@ -38,8 +40,10 @@ const TABS = [
 export default function Radar() {
   const [params, setParams] = useSearchParams();
   const owner = useOwner();
-  const tabs = TABS.filter((t) => t.key !== 'swing' || owner);
-  const tab = tabs.some((t) => t.key === params.get('tab')) ? (params.get('tab') as string) : 'panel';
+  const tabs = TABS.filter((t) => (t.key !== 'swing' && t.key !== 'hoy') || owner);
+  // El dueño aterriza en «Hoy» (checks mínimos); el resto en el Panel.
+  const defaultTab = owner ? 'hoy' : 'panel';
+  const tab = tabs.some((t) => t.key === params.get('tab')) ? (params.get('tab') as string) : defaultTab;
   const [snap, setSnap] = useState<RadarSnapshot | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -122,7 +126,8 @@ export default function Radar() {
         <p className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">Precios de muestra: Yahoo Finance no responde ahora mismo. El resto de datos es real; los niveles y el momentum pueden estar desactualizados.</p>
       )}
       {error && <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-xs text-loss">{error}</p>}
-      <TabBar tabs={tabs} value={tab} onChange={(k) => setParams(k === 'panel' ? {} : { tab: k })} />
+      <TabBar tabs={tabs} value={tab} onChange={(k) => setParams(k === defaultTab ? {} : { tab: k })} />
+      {tab === 'hoy' && owner && <HoyCard intradia={snap.intradia ?? null} swing={snap.swing ?? null} queOperar={snap.que_operar ?? null} />}
 
       {tab === 'panel' && (
         <div className="space-y-6">

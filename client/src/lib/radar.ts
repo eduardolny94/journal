@@ -628,7 +628,18 @@ export interface RadarSnapshot {
   que_operar?: QueOperar | null;
   swing?: SwingPlan | null;
   dato_del_dia?: DatoDelDia | null;
+  intradia?: Intradia | null;
 }
+
+/** Intradía · rotura de Asia (solo dueño): preparación del día por par. */
+export interface IntradiaPair {
+  symbol: string; diff: number | null; level: number; ok: boolean; bias: 'alcista' | 'bajista' | 'neutro';
+  sweep_side: 'máximo' | 'mínimo' | null; trade: 'venta' | 'compra' | null;
+  asia: { high: number; low: number; pips: number; bars: number; complete: boolean } | null;
+  status: string | null; phase: 'asia' | 'barrida' | 'cierre' | 'cerrada'; session_date: string;
+  signal: { dir: 'venta' | 'compra'; entry: number; stop: number; tp2: number; risk_pips: number; sweep_pct: number; sweep_hour_es: string; entry_hour_es: string } | null;
+}
+export interface Intradia { as_of: string; session_date: string; phase: IntradiaPair['phase']; min_level: number; pairs: IntradiaPair[]; rules: string[]; evidence: string }
 
 export interface RadarPairDetail {
   pair: RadarPair;
@@ -706,6 +717,7 @@ export function normalizeSnapshot(raw: unknown): RadarSnapshot {
     que_operar: (r.que_operar as QueOperar | null | undefined) ?? null,
     swing: ((r as { swing?: SwingPlan | null }).swing ?? null),
     dato_del_dia: ((r as { dato_del_dia?: DatoDelDia | null }).dato_del_dia ?? null),
+    intradia: ((r as { intradia?: Intradia | null }).intradia ?? null),
     cot: asArray<CotRow>(r.cot),
     expectations: asArray<Expectation>(r.expectations),
     week: r.week ?? null,

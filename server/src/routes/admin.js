@@ -1,6 +1,9 @@
 // Panel de administración: suscriptores, suscripciones, pagos manuales, plantillas y registro de emails,
 // ajustes y tareas automáticas. Solo administradores. La pasarela de pago queda reservada (provider = 'manual').
 import { Router } from 'express';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
 import { diagnostics } from '../services/diagnostics.js';
 import { getDb } from '../db.js';
 import { adminLevel, ownerLocked, permissionsFor, requireOwner } from '../services/admin.js';
@@ -372,6 +375,17 @@ router.get('/diagnostico', (_req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// Copia de seguridad de la base de datos (solo dueño): VACUUM INTO crea un archivo consistente aunque el servidor esté escribiendo.
+router.get('/backup', requireOwner, (_req, res, next) => {
+  try {
+    const db = getDb();
+    const tmp = path.join(os.tmpdir(), `journal-backup-${Date.now()}.db`);
+    db.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`);
+    const name = `journal-${new Date().toISOString().slice(0, 10)}.db`;
+    res.download(tmp, name, (err) => { try { fs.unlinkSync(tmp); } catch { /* ya borrado */ } if (err && !res.headersSent) next(err); });
+  } catch (e) { next(e); }
 });
 
 router.get('/whoami', (req, res) => {

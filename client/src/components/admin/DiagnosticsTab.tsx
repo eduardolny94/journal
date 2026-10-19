@@ -141,7 +141,8 @@ export default function DiagnosticsTab() {
       <div className="flex flex-wrap items-center gap-3">
         {d && <StatusBadge s={d.overall} />}
         <span className="text-sm text-gray-300">{d ? (d.overall === 'ok' ? 'Todo funciona y los datos se recogen con normalidad.' : d.overall === 'aviso' ? 'Funciona, con algún dato atrasado o pendiente (ver avisos).' : 'Hay algo parado: revisa las filas en rojo.') : ''}</span>
-        <Button className="ml-auto" size="sm" variant="secondary" onClick={load} loading={loading} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>Revisar ahora</Button>
+        <a className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5" href="/api/admin/backup" title="Descarga una copia consistente de la base de datos (usuarios, operaciones, radar). Guárdala fuera de Railway."><Database className="h-3.5 w-3.5" /> Descargar copia de la base de datos</a>
+        <Button size="sm" variant="secondary" onClick={load} loading={loading} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>Revisar ahora</Button>
       </div>
       {error && <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-sm text-loss">{error}</p>}
       {d && (
