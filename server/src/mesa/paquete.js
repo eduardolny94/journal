@@ -64,12 +64,26 @@ export async function leerDocumentos() {
   return { fichas, metodo, roles, estrella, version_fichas: versionFichas(fichas) };
 }
 
-/** Cambio en puntos básicos entre el último valor y el de `n` sesiones antes (las series vienen en %). */
-function cambioPb(rows, n) {
-  if (!rows || rows.length <= n) return null;
+/**
+ * Cambio en puntos básicos entre el último valor y el de hace `dias` días de calendario (las series vienen en %).
+ * Por fecha y no por número de filas: las series empalmadas tienen huecos (p. ej. CHF: oficial hasta jul-2025 y
+ * TradingView desde sep-2026) y contar filas saltaría meses. Si no hay fila cerca de la fecha buscada, null.
+ */
+function cambioPb(rows, dias) {
+  if (!rows || rows.length < 2) return null;
   const last = rows[rows.length - 1];
-  const prev = rows[rows.length - 1 - n];
-  if (!last || !prev || typeof last.value !== 'number' || typeof prev.value !== 'number') return null;
+  if (!last || typeof last.value !== 'number') return null;
+  const objetivo = new Date(`${last.date}T00:00:00Z`);
+  objetivo.setUTCDate(objetivo.getUTCDate() - dias);
+  const limite = objetivo.toISOString().slice(0, 10);
+  let prev = null;
+  for (let i = rows.length - 2; i >= 0; i--) {
+    if (rows[i].date <= limite) { prev = rows[i]; break; }
+  }
+  if (!prev || typeof prev.value !== 'number') return null;
+  const holgura = Math.max(4, Math.round(dias / 2));
+  const minimo = new Date(objetivo.getTime() - holgura * 86400000).toISOString().slice(0, 10);
+  if (prev.date < minimo) return null; // la fila más cercana está demasiado lejos: hueco en la serie
   return Math.round((last.value - prev.value) * 100);
 }
 
@@ -81,7 +95,7 @@ function bonos(db) {
       const rows = (s.rows || []).filter((r) => typeof r.value === 'number');
       const last = rows[rows.length - 1] || null;
       out[ccy] = last
-        ? { tenor: s.tenor, fuente: s.source, fecha: last.date, nivel_pct: round(last.value, 3), d1_pb: cambioPb(rows, 1), d5_pb: cambioPb(rows, 5), d20_pb: cambioPb(rows, 20) }
+        ? { tenor: s.tenor, fuente: s.source, fecha: last.date, nivel_pct: round(last.value, 3), d1_pb: cambioPb(rows, 1), d5_pb: cambioPb(rows, 7), d20_pb: cambioPb(rows, 28) }
         : { tenor: s.tenor, fuente: s.source, fecha: null, nivel_pct: null, d1_pb: null, d5_pb: null, d20_pb: null };
     } catch {
       out[ccy] = null;
