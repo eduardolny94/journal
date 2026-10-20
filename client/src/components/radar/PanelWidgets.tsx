@@ -123,18 +123,29 @@ function NewsTag({ tag }: { tag: string }) {
   );
 }
 
-export function MarketEvents({ news, className, collapsedCount = 2 }: { news: NewsItem[]; className?: string; collapsedCount?: number }) {
+/** Código de divisa o activo de una etiqueta de noticia ("USD↑" → "USD"). */
+const tagCode = (t: string) => t.replace(/[↑↓]/g, '').trim().toUpperCase();
+/** Relevancia de un titular para las divisas que sigue el usuario: urgencia + cuántas de sus divisas toca. */
+function newsRelevance(n: NewsItem, currencies: string[]): number {
+  const hits = n.tags.filter((t) => currencies.includes(tagCode(t))).length;
+  return n.urgency + (hits ? 3 + hits : 0);
+}
+
+export function MarketEvents({ news, className, collapsedCount = 3, currencies = [] }: { news: NewsItem[]; className?: string; collapsedCount?: number; currencies?: string[] }) {
   const now = useNow(30_000);
   const [filter, setFilter] = useState<'urgent' | 'all'>('urgent');
-  // Plegado: solo los 2 titulares más relevantes. Los titulares son contexto y aviso de riesgo, no señal de entrada.
+  // Plegado (20-10-2026, petición del usuario: menos ruido): solo los 3 titulares más relevantes para SUS pares, con
+  // las etiquetas de sus divisas y nada más. Los titulares son contexto y aviso de riesgo, no señal de entrada.
   const [expanded, setExpanded] = useState(false);
   const urgent = news.filter((n) => n.urgency >= 7);
   const full = filter === 'urgent' ? urgent : news;
-  const list = expanded ? full : (urgent.length ? urgent : news).slice(0, collapsedCount);
+  const ranked = [...news].sort((a, b) => newsRelevance(b, currencies) - newsRelevance(a, currencies) || (a.published_at < b.published_at ? 1 : -1));
+  const list = expanded ? full : ranked.slice(0, collapsedCount);
+  const visibleTags = (n: NewsItem) => (expanded ? n.tags : n.tags.filter((t) => currencies.includes(tagCode(t))).slice(0, 2));
   return (
     <Card
       className={className}
-      title={<span className="flex items-center gap-2">Eventos de mercado <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-profit"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-profit" />En vivo</span></span>}
+      title={<span className="flex items-center gap-2">{expanded ? 'Eventos de mercado' : 'Noticias para tus pares'} <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-profit"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-profit" />En vivo</span></span>}
       actions={
         <div className="flex gap-1 text-[11px]">
           {expanded && (['urgent', 'all'] as const).map((f) => (
@@ -162,9 +173,9 @@ export function MarketEvents({ news, className, collapsedCount = 2 }: { news: Ne
             <a href={n.link} target="_blank" rel="noreferrer" className="mt-1 block text-sm text-gray-100 hover:text-accent-soft">
               {n.title} <ExternalLink className="ml-0.5 inline h-3 w-3 text-gray-500" />
             </a>
-            {n.tags.length > 0 && (
+            {visibleTags(n).length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
-                {n.tags.map((t) => (
+                {visibleTags(n).map((t) => (
                   <NewsTag key={t} tag={t} />
                 ))}
               </div>

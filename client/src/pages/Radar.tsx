@@ -16,7 +16,7 @@ import CalendarTerminal from '../components/radar/CalendarTerminal';
 import PairCard from '../components/radar/PairCard';
 import WorldMap from '../components/radar/WorldMap';
 import { PrivateBadge, StatusChips, TabBar, useNow } from '../components/radar/common';
-import { ConvictionCards, CurrencyStrength, MacroCalendarMini, MarketEvents, SentimentCard, VolatilityCard, macroMiniRows } from '../components/radar/PanelWidgets';
+import { ConvictionCards, CurrencyStrength, MacroCalendarMini, MarketEvents, SentimentCard, VolatilityCard } from '../components/radar/PanelWidgets';
 import { AccuracyCard, ComparativeTable, CotTable, SettingsTab } from '../components/radar/Tables';
 import { BacktestCard, LongBiasCard, MethodCard } from '../components/radar/BacktestCard';
 import { ExpectationsTable, SundayNotes, WeekPlanView } from '../components/radar/WeekTab';
@@ -137,7 +137,7 @@ export default function Radar() {
           <ConvictionCards pairs={snap.pairs} currencies={snap.currencies} />
           {/* Dos filas horizontales: noticias y calendario con alturas parejas; debajo, volatilidad y sentimiento. */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <MarketEvents news={news.length ? news : snap.news_top} collapsedCount={Math.min(6, Math.max(2, macroMiniRows(snap.upcoming, published, favorites, snap.pairs).total - 1))} />
+            <MarketEvents news={news.length ? news : snap.news_top} collapsedCount={3} currencies={[...new Set((favAssets.length ? favAssets : topPairs).flatMap((p) => [p.base, p.quote].filter((c): c is CurrencyCode => !!c)))]} />
             <MacroCalendarMini upcoming={snap.upcoming} published={published} favorites={favorites} pairs={snap.pairs} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
