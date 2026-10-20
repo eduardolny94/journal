@@ -26,7 +26,8 @@ import documentosRoutes from './routes/documentos.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscription.js';
 import syncRoutes from './routes/sync.js';
-import { requireAdmin } from './services/admin.js';
+import mesaRoutes from './routes/mesa.js';
+import { requireAdmin, requireOwner } from './services/admin.js';
 import { requireSubscription } from './services/subscriptions.js';
 import { startSubscriptionJobs } from './services/subscriptionJobs.js';
 import { ensureTemplates } from './services/mailer.js';
@@ -34,6 +35,7 @@ import { backfillTrials } from './services/subscriptions.js';
 import { migrateFoundingAdmins } from './services/admin.js';
 import { requireRadarAccess } from './radar/access.js';
 import { startEngine } from './radar/engine.js';
+import { startMesa } from './mesa/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Carga .env de la raíz del monorepo (y, si existe, el de server/), sin pisar variables ya definidas.
@@ -154,6 +156,8 @@ app.use('/api/finanzas', requireAuth, subscriptionGate, finanzasRoutes);
 // Certificados de cuenta fondeada y comprobantes de payout (/api/finanzas/documentos, /api/finanzas/fondeos).
 app.use('/api/finanzas', requireAuth, subscriptionGate, documentosRoutes);
 app.use('/api/radar', requireAuth, subscriptionGate, requireRadarAccess, radarRoutes);
+// Mesa de agentes (mesa-agentes/): solo el dueño con acceso al Radar.
+app.use('/api/mesa', requireAuth, subscriptionGate, requireRadarAccess, requireAdmin, requireOwner, mesaRoutes);
 
 // Radar de divisas: descargas y cálculo en segundo plano (no bloquea el arranque).
 try {
@@ -168,6 +172,11 @@ try {
     console.warn('[suscripciones] plantillas:', e.message);
   }
   startSubscriptionJobs();
+  try {
+    startMesa();
+  } catch (e) {
+    console.warn('[mesa] no se pudo programar:', e.message);
+  }
 } catch (err) {
   console.warn('[radar] no se pudo iniciar el motor:', err.message);
 }

@@ -26,18 +26,40 @@ los agentes leen. Vive dentro del repositorio del journal para compartir datos, 
 - `formato/` — contrato de salida (JSON) y ejemplo.
 - `agentes/` — roles y prompts: analista macro, analista de flujos, jefe de mesa.
 - `cuaderno/` — errores y cambios de versión de las fichas.
-- `salidas/` — fichas diarias generadas (JSON por fecha); de aquí lee la pestaña "Mesa" del radar.
+- `salidas/` — fichas diarias generadas (una carpeta por fecha con `paquete.json` y un JSON por agente). La pestaña
+  "Mesa" del radar lee de la base de datos (`mesa_pasadas`, `mesa_fichas`); los archivos son la copia legible.
+- Motor: `server/src/mesa/` (vive en el servidor porque necesita la base de datos, el snapshot del radar y la
+  sesión del dueño): `paquete.js` arma el paquete del día, `agentes.js` llama a la API, `esquema.js` valida el
+  contrato, `index.js` guarda y programa. Rutas en `server/src/routes/mesa.js` (`/api/mesa`, solo dueño).
 
 ## Fases
 
 1. **Biblioteca, fichas, método y formato** (sin API): esta carpeta. Hecho el 20-10-2026 en su primera versión.
-2. **Motor** (`src/`): junta las fuentes del día (radar, calendario, bonos, comunicados, noticias), llama a los agentes con
-   la API de Claude, valida el JSON, lo guarda en `salidas/` y en la base de datos, y lo muestra en el radar (pestaña
-   "Mesa", solo dueño). Necesita la clave de Anthropic (prepago) en `.env` como `ANTHROPIC_API_KEY`.
+2. **Motor** (`server/src/mesa/`): junta las fuentes del día (radar, calendario, bonos, FedWatch, COT, tono, noticias),
+   llama a los agentes con la API de Claude (macro → flujos → jefe, en serie para compartir la caché de prompts),
+   valida el JSON, lo guarda en `salidas/` y en la base de datos, y lo muestra en el radar (pestaña "Mesa", solo
+   dueño). Hecho el 20-10-2026. Necesita la clave de Anthropic (prepago) en `.env` como `ANTHROPIC_API_KEY`.
 3. **Medición**: tabla de acierto y calibración por agente y par, visible en la misma pestaña; cuaderno semanal.
 4. **Si añade acierto**, su sesgo entra como candidata en la capa de convicción y se mide con la regla de la casa.
 
-## Cómo se verá
+## Cómo se usa (fase 2)
+
+- `.env` (raíz): `ANTHROPIC_API_KEY=…`. Opcionales: `MESA_MODEL` (por defecto `claude-opus-5-5`), `MESA_EFFORT`
+  (`high`), `MESA_HORA` (`07:00`), `MESA_TZ` (`Europe/Madrid`), `MESA_AUTO=0` apaga la pasada automática.
+- Con el servidor arrancado, la mesa pasa sola a `MESA_HORA` los días laborables (una vez al día). En el radar,
+  pestaña Mesa, el botón «Pasar la mesa ahora» la lanza a mano (una cada 10 minutos como máximo).
+- Terminal: `npm run mesa -w server` pasa la mesa; `-- --paquete` imprime el paquete sin llamar a la API;
+  `-- --fichas [fecha]` muestra las fichas guardadas. `npm run test:mesa -w server` prueba el motor sin API.
+- Coste medido el 20-10-2026: el paquete variable son ~17.000 tokens y los documentos fijos ~8.000 (en caché). Con
+  Opus 5.5 una pasada ronda 0,4–0,9 $ (tres llamadas con razonamiento), es decir 8–18 $/mes en días laborables; con
+  `MESA_MODEL=claude-sonnet-5-5` aproximadamente la mitad y con `claude-haiku-5-5` céntimos. El coste real de cada
+  pasada queda en la tabla `mesa_pasadas` y en el historial de la pestaña.
+- Qué recibe cada agente: `roles.md` como papel, las reglas de la casa, `fichas/divisas.md`, `metodo/lectura-eventos.md`
+  y los cinco documentos ★ de la biblioteca (bloque fijo, en caché), más el paquete del día (radar por par del
+  universo, 8 divisas con pilares, expectativas, tono y COT, bonos a 2 años a 1/5/20 días, registro de FedWatch,
+  calendario de impacto alto ±1 semana, noticias de 24 h de sus divisas, swing e intradía, lectura del dato).
+
+## Cómo se ve
 
 Pestaña "Mesa" en el radar (solo dueño): una tarjeta por par con el número del radar, la lectura de cada analista
 (sesgo, confianza, dos motivos, invalidación), la confirmación de bonos y el aviso del jefe de mesa cuando hay

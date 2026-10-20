@@ -341,6 +341,36 @@ CREATE TABLE IF NOT EXISTS radar_news (
 );
 CREATE INDEX IF NOT EXISTS idx_radar_news_published ON radar_news(published_at);
 CREATE INDEX IF NOT EXISTS idx_radar_calendar_at ON radar_calendar(at_utc);
+
+-- Mesa de agentes (mesa-agentes/README.md): pasadas diarias y fichas por agente
+CREATE TABLE IF NOT EXISTS mesa_pasadas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  fecha TEXT NOT NULL,
+  started_at TEXT,
+  finished_at TEXT,
+  trigger TEXT DEFAULT 'manual',
+  status TEXT DEFAULT 'en_curso',
+  error TEXT,
+  model TEXT,
+  version_fichas TEXT,
+  input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  cache_read_tokens INTEGER DEFAULT 0,
+  cache_write_tokens INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0,
+  radar TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_mesa_pasadas_fecha ON mesa_pasadas(fecha);
+
+CREATE TABLE IF NOT EXISTS mesa_fichas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pasada_id INTEGER NOT NULL REFERENCES mesa_pasadas(id) ON DELETE CASCADE,
+  fecha TEXT NOT NULL,
+  agente TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_mesa_fichas_fecha ON mesa_fichas(fecha, agente);
 `;
 
 /**

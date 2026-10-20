@@ -14,9 +14,12 @@
     "seed": "node scripts/seed.js",
     "test:tradingDay": "node scripts/test-tradingDay.js",
     "smoke": "node scripts/smoke.mjs",
-    "test": "node scripts/test-tradingDay.js && node scripts/test-ciclo.mjs && node scripts/test-import-tradingview.mjs && node scripts/smoke.mjs"
+    "mesa": "node scripts/mesa.mjs",
+    "test:mesa": "node scripts/test-mesa.mjs",
+    "test": "node scripts/test-tradingDay.js && node scripts/test-ciclo.mjs && node scripts/test-import-tradingview.mjs && node scripts/test-mesa.mjs && node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",

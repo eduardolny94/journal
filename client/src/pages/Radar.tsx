@@ -4,11 +4,12 @@ import QueOperarCard from '../components/radar/QueOperarCard';
 import DatoDelDiaCard from '../components/radar/DatoDelDiaCard';
 import SwingCard, { SwingChecklist } from '../components/radar/SwingCard';
 import HoyCard from '../components/radar/HoyCard';
+import MesaTab from '../components/radar/MesaTab';
 import { useOwner } from '../store/session';
 import ImpactCard from '../components/radar/ImpactCard';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarDays, CheckSquare, Coins, Globe2, RefreshCw, Settings2, Star, Table2, TrendingUp, Users } from 'lucide-react';
+import { BarChart3, Bot, CalendarDays, CheckSquare, Coins, Globe2, RefreshCw, Settings2, Star, Table2, TrendingUp, Users } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSpinner } from '../components/ui/Spinner';
@@ -30,6 +31,7 @@ const TABS = [
   { key: 'panel', label: 'Panel', icon: <Globe2 className="h-3.5 w-3.5" /> },
   { key: 'activos', label: 'Índices y metales', icon: <Coins className="h-3.5 w-3.5" /> },
   { key: 'swing', label: 'Swing', icon: <TrendingUp className="h-3.5 w-3.5" /> },
+  { key: 'mesa', label: 'Mesa', icon: <Bot className="h-3.5 w-3.5" /> },
   { key: 'semana', label: 'Semana', icon: <CalendarDays className="h-3.5 w-3.5" /> },
   { key: 'calendario', label: 'Calendario', icon: <Table2 className="h-3.5 w-3.5" /> },
   { key: 'comparativa', label: 'Comparativa', icon: <BarChart3 className="h-3.5 w-3.5" /> },
@@ -40,7 +42,8 @@ const TABS = [
 export default function Radar() {
   const [params, setParams] = useSearchParams();
   const owner = useOwner();
-  const tabs = TABS.filter((t) => (t.key !== 'swing' && t.key !== 'hoy') || owner);
+  const OWNER_TABS = ['hoy', 'swing', 'mesa'];
+  const tabs = TABS.filter((t) => !OWNER_TABS.includes(t.key) || owner);
   // El dueño aterriza en «Hoy» (checks mínimos); el resto en el Panel.
   const defaultTab = owner ? 'hoy' : 'panel';
   const tab = tabs.some((t) => t.key === params.get('tab')) ? (params.get('tab') as string) : defaultTab;
@@ -194,6 +197,8 @@ export default function Radar() {
           <SwingCard plan={snap.swing ?? null} />
         </div>
       )}
+
+      {tab === 'mesa' && owner && <MesaTab />}
 
       {tab === 'semana' && (
         <div className="space-y-4">
