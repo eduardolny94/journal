@@ -21,7 +21,7 @@ const rows = report.conv_rows;
 console.log(`\n${rows.length} filas (día × par) en ${Math.round((Date.now() - t0) / 1000)} s\n`);
 
 const idx = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
-const NEW = ['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto', 'confirmacion_cruzada', 'diferencial_2a'];
+const NEW = ['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto', 'confirmacion_cruzada', 'diferencial_2a', 'sorpresa_confirmada'];
 const BASE = FEATURE_NAMES.filter((n) => !NEW.includes(n));
 const configs = [
   { name: 'base (16, v1)', mask: idx(BASE), lambda: LAMBDA },
@@ -48,6 +48,8 @@ const configs = [
   { name: 'base + confirmacion_cruzada · corte 1/3', mask: idx([...BASE, 'confirmacion_cruzada']), lambda: LAMBDA, split: 1 / 3 },
   { name: 'base + diferencial_2a · corte 1/2', mask: idx([...BASE, 'diferencial_2a']), lambda: LAMBDA, split: 0.5 },
   { name: 'base + diferencial_2a · corte 1/3', mask: idx([...BASE, 'diferencial_2a']), lambda: LAMBDA, split: 1 / 3 },
+  { name: 'base + sorpresa_confirmada · corte 1/2', mask: idx([...BASE, 'sorpresa_confirmada']), lambda: LAMBDA, split: 0.5 },
+  { name: 'base + sorpresa_confirmada · corte 1/3', mask: idx([...BASE, 'sorpresa_confirmada']), lambda: LAMBDA, split: 1 / 3 },
 ];
 
 const f = (b) => (b && b.n ? `${String(b.hit_rate).padStart(5)} % ${b.avg_r >= 0 ? '+' : ''}${b.avg_r.toFixed(2)}R n=${String(b.n).padStart(4)}` : '        —          ');

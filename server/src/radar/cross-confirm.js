@@ -71,6 +71,9 @@ export function crossConfirm(db, { symbol, sign, date, dxyCloses, spxCloses, n =
   return out;
 }
 
+/** Cambio del bono a 2 años de `ccy` en el último día de mercado conocido a `date` (pb), o null. Para "sorpresa confirmada por el bono". */
+export function yieldMove1d(db, ccy, date) { return yieldChange(db, ccy, date, 1); }
+
 /** Texto corto para la UI: qué confirma y qué discrepa. */
 export function crossConfirmText(cc) {
   if (!cc || !cc.parts) return null;

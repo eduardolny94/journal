@@ -13,7 +13,7 @@ import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
 import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
 import { signalFeatures, predictProb, tierOf, explain } from './conviction.js';
-import { crossConfirm, crossConfirmText } from './cross-confirm.js';
+import { crossConfirm, crossConfirmText, yieldMove1d } from './cross-confirm.js';
 import { fundamentalsFor, termsOfTrade } from './fundamentals.js';
 import { cyclePhaseFor } from './cycle-phase.js';
 import { PAIR_LIQUIDITY, pairPip } from './constants.js';
@@ -591,6 +591,7 @@ function convictionFor(db, input, { sym, base, quote, diff, byCode, market, next
   const feat = signalFeatures({
     symbol: sym, diff, prevDiff5, bars, vix: market.vix ? market.vix.value : null, vix3m: market.vix3m ? market.vix3m.value : null, jumpTurb: !!(input.jump && input.jump.state === 'turbulento'),
     crossConfirm: cc.confirm, yieldDiff5: cc.yieldDiff,
+    lastSurpriseConfirmed: (() => { const today = new Date(nowMs).toISOString().slice(0, 10); const conf = (ccy, d) => { if (!d) return 0; const m = yieldMove1d(db, ccy, today); return m !== null && Math.abs(m) >= 2 && Math.sign(m) === d ? d : 0; }; return clamp(sign * (conf(base, dir[base] || 0) - conf(quote, dir[quote] || 0)), -1, 1); })(),
     cotExtreme: !!(pb.posicionamiento.extreme || pq.posicionamiento.extreme), newsSoon,
     lastSurprise: clamp(sign * ((dir[base] || 0) - (dir[quote] || 0)), -1, 1),
     lastSurpriseBig: clamp(sign * ((dirBig[base] || 0) - (dirBig[quote] || 0)), -1, 1),

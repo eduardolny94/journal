@@ -12,14 +12,15 @@ export const FEATURE_NAMES = [
   'ciclo', 'sorpresa_grande',
   'miedo_contrario', 'regimen_salto',
   'confirmacion_cruzada', 'diferencial_2a',
+  'sorpresa_confirmada',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 7;
+export const FEATURE_VERSION = 8;
 /**
  * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
  * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.
  */
-export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto', 'confirmacion_cruzada', 'diferencial_2a'].includes(n));
+export const BASE_FEATURES = FEATURE_NAMES.filter((n) => !['taylor', 'descontado', 'real', 'tot', 'ciclo', 'sorpresa_grande', 'miedo_contrario', 'regimen_salto', 'confirmacion_cruzada', 'diferencial_2a', 'sorpresa_confirmada'].includes(n));
 export const CANDIDATE_FEATURES = FEATURE_NAMES.filter((n) => !BASE_FEATURES.includes(n));
 export const indexesOf = (names) => names.map((n) => FEATURE_NAMES.indexOf(n)).filter((i) => i >= 0);
 /** Regularización L2 del modelo (más alto = pesos más pequeños, menos sobreajuste). */
@@ -116,6 +117,9 @@ export function signalFeatures(ctx) {
     // riesgo en 5 días, y el diferencial de bonos solo. Ambas en [−1, 1], positivo = los otros mercados cuentan la misma historia.
     clamp(ctx.crossConfirm ?? 0, -1, 1),
     clamp(ctx.yieldDiff5 ?? 0, -1, 1),
+    // Candidata (20-10-2026, Protrader 5 sesión 2: "una noticia solo mueve la divisa si cambia las expectativas de tipos"):
+    // última sorpresa (48 h) que el bono a 2 años de esa divisa confirmó el mismo día (≥ 2 pb en el mismo sentido).
+    clamp(ctx.lastSurpriseConfirmed ?? 0, -1, 1),
   ];
   return { x, atr, level };
 }
@@ -209,6 +213,7 @@ const REASON_TEXT = {
   miedo_contrario: ['estrés en el VIX y señal a favor del riesgo (comprar el miedo)', 'estrés en el VIX y señal hacia el refugio'],
   confirmacion_cruzada: ['bonos, dólar y riesgo confirman la señal', 'bonos, dólar o riesgo discrepan de la señal'],
   diferencial_2a: ['diferencial de bonos a 2 años a favor (5 d)', 'diferencial de bonos a 2 años en contra (5 d)'],
+  sorpresa_confirmada: ['último dato a favor y el bono a 2 años lo confirmó', 'último dato en contra confirmado por el bono'],
 };
 
 /** Las 3 condiciones que más suman y las 2 que más restan, en castellano, para explicar un nivel. */
