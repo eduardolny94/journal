@@ -55,7 +55,7 @@ los agentes leen. Vive dentro del repositorio del journal para compartir datos, 
   `MESA_MODEL=claude-sonnet-5-5` aproximadamente la mitad y con `claude-haiku-5-5` céntimos. El coste real de cada
   pasada queda en la tabla `mesa_pasadas` y en el historial de la pestaña.
 - Qué recibe cada agente: `roles.md` como papel, las reglas de la casa, `fichas/divisas.md`, `metodo/lectura-eventos.md`
-  y los cinco documentos ★ de la biblioteca (bloque fijo, en caché), más el paquete del día (radar por par del
+  y los seis documentos ★ de la biblioteca (bloque fijo, en caché), más el paquete del día (radar por par del
   universo, 8 divisas con pilares, expectativas, tono y COT, bonos a 2 años a 1/5/20 días, registro de FedWatch,
   calendario de impacto alto ±1 semana, noticias de 24 h de sus divisas, swing e intradía, lectura del dato).
 

@@ -1,7 +1,9 @@
-# Método de lectura por tipo de evento (versión 1)
+# Método de lectura por tipo de evento (versión 2, 21-10-2026)
 
 Regla general (Protrader 5, sesión 2): **¿este evento cambia las expectativas de tipos de esa divisa?** Si no, es
-ruido liquidativo; se anota pero no cambia el sesgo.
+ruido liquidativo; se anota pero no cambia el sesgo. Dos reglas más (sesión 3): **un dato igual a la previsión no
+mueve** (medido: NFP ≈ previsión, DXY 0,09 % a 1 h frente a 0,13 % de una hora normal; IPC igual, 0,11 %), y **un tema que
+se repite impacta menos** cada vez (ya se descuenta): peso decreciente, no cero.
 
 ## Banco central (decisión, actas, rueda de prensa)
 
@@ -14,13 +16,16 @@ Medido: solo la Fed tiene seguimiento operable; la reacción de las actas de oct
 ## Inflación (IPC/PCE/IPP)
 
 Sorpresa frente al consenso (en desviaciones), general y subyacente leídas juntas (si se contradicen: mixta). Nivel
-absoluto solo como contexto. Medido: la 1.ª vela sigue la sorpresa el 76–82 %, el día no la continúa (39 %); el oro sube
+absoluto solo como contexto. Mirar si la inflación se filtra a los servicios (la que decide si el banco central
+sigue). Medido: la 1.ª vela sigue la sorpresa el 76–82 %, el día no la continúa (39 %); el oro sube
 el 69–86 % de los días de IPC sea cual sea el dato; "subyacente decide" no se sostiene.
 
 ## Empleo (NFP, paro, salarios, ADP, JOLTS)
 
 NFP: 26,6 pips por desviación, 80 % a 1 h; ADP es pista débil (35 %). Leer NFP y salarios juntos; una sorpresa de empleo
-con salarios al revés es mixta. Canadá publica el mismo día: leer USDCAD con los dos datos.
+con salarios al revés es mixta. Canadá publica el mismo día: leer USDCAD con los dos datos. NFP manda: ADP, JOLTS y
+paro solo intentan preverla. Un NFP flojo no da la vuelta al dólar si su contexto de tipos es mejor que el de la otra
+divisa (sesión 3, GBPUSD 03-06-2026).
 
 ## PIB
 
@@ -41,7 +46,9 @@ a veces contra el dato. No cambian el sesgo salvo que el banco central los haya 
 
 Importa el impacto económico, no el titular: petróleo → inflación → tipos. Guerra sin impacto en el petróleo = nada.
 Euro vulnerable a energía; CAD sigue al crudo; dólar sube si hay liquidación global. Un tuit o un acuerdo de paz puede
-mover un 8 % el petróleo en minutos: vigilar la pestaña de eventos, no el gráfico.
+mover un 8 % el petróleo en minutos: vigilar la pestaña de eventos, no el gráfico. Entorno de riesgo antes que el dato
+en AUD, NZD, JPY, oro e índices: en risk-off mirar hacia dónde va el dinero (renta fija, bolsa, VIX). Intervenciones:
+USDJPY 160 es zona del MoF; el franco lo vigila el SNB.
 
 ## Qué escribe el analista al final de cualquier lectura
 

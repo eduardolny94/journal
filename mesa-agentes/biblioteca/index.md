@@ -12,6 +12,9 @@ pasada; el resto se consulta por tipo de evento.
 - `docs/aprendizaje-videos/protrader5-semana1.md` — la dirección viene de la macro; "el gordo sigue engordando".
 - ★ `docs/aprendizaje-videos/protrader5-sesion2.md` — una noticia solo mueve si cambia las expectativas de tipos; solo
   empleo, inflación, tipos y PIB cambian tendencias; todo se descuenta el lunes; oro, dólar e índices en crisis.
+- ★ `docs/aprendizaje-videos/protrader5-sesion3.md` — yen 160, inflación de servicios, un tema repetido impacta menos,
+  entorno de riesgo antes del dato, máximos/mínimos semanales en lateral; entrada H4 en la mecha medida (stop 52,5 pips
+  no; 0,5 ATR H4 a 1R sí).
 - `docs/aprendizaje-videos/daniel-curto-fundamentales.md` — fase del ciclo por economía, matriz crecimiento × inflación.
 - `docs/METODO-LECTURA-SEMANAL.md` — preparación de la semana (expectativas tipo FedWatch).
 

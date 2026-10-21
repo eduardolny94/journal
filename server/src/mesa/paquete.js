@@ -25,6 +25,7 @@ export const DOCS_ESTRELLA = [
   'docs/LECTURA-FED.md',
   'docs/LECTURA-IPC.md',
   'docs/aprendizaje-videos/protrader5-sesion2.md',
+  'docs/aprendizaje-videos/protrader5-sesion3.md',
   'docs/BONOS-DIRECCION.md',
   'docs/CPI-LONDRES.md',
 ];
@@ -40,7 +41,7 @@ export function fechaEn(date, tz) {
 
 /** Versión de fichas/divisas.md: el número que aparece en su primera línea ("versión 1, 20-10-2026"). */
 export function versionFichas(texto) {
-  const m = /versi[oó]n\s+(\d+)[^\n)]*?(\d{2}-\d{2}-\d{4})?/i.exec(texto || '');
+  const m = /versi[oó]n\s+(\d+)(?:[^\n)]*?(\d{2}-\d{2}-\d{4}))?/i.exec(texto || '');
   return m ? `${m[1]}${m[2] ? ` (${m[2]})` : ''}` : 'desconocida';
 }
 

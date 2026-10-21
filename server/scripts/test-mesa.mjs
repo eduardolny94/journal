@@ -18,7 +18,7 @@ process.env.MESA_TZ = 'Europe/Madrid';
 const { getDb, closeDb } = await import('../src/db.js');
 const { pasarMesaHoy, fichasDe, listarFechas, listarPasadas, UNIVERSO } = await import('../src/mesa/index.js');
 const { validarFicha } = await import('../src/mesa/esquema.js');
-const { armarPaquete } = await import('../src/mesa/paquete.js');
+const { armarPaquete, DOCS_ESTRELLA } = await import('../src/mesa/paquete.js');
 
 let failed = 0;
 function check(cond, msg) {
@@ -88,8 +88,8 @@ try {
   paqueteGlobal = await armarPaquete(db, { snapshot, tz: 'Europe/Madrid' });
   check(/^\d{4}-\d{2}-\d{2}$/.test(paqueteGlobal.fecha), `fecha ${paqueteGlobal.fecha}`);
   check(paqueteGlobal.radar.pares.length === UNIVERSO.length, `${paqueteGlobal.radar.pares.length} pares del universo`);
-  check(paqueteGlobal.documentos.fichas.length > 500 && paqueteGlobal.documentos.estrella.length === 5, 'fichas y 5 documentos ★ leídos');
-  check(paqueteGlobal.documentos.version_fichas.startsWith('1'), `versión de fichas ${paqueteGlobal.documentos.version_fichas}`);
+  check(paqueteGlobal.documentos.fichas.length > 500 && paqueteGlobal.documentos.estrella.length === DOCS_ESTRELLA.length, `fichas y ${DOCS_ESTRELLA.length} documentos ★ leídos`);
+  check(/^\d+ \(\d{2}-\d{2}-\d{4}\)$/.test(paqueteGlobal.documentos.version_fichas), `versión de fichas ${paqueteGlobal.documentos.version_fichas}`);
   check(paqueteGlobal.divisas[0].expectativas?.p_subida === 76, 'expectativas del dólar en el paquete');
 
   console.log('Validador');
