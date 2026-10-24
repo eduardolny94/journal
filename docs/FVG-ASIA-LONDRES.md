@@ -85,3 +85,44 @@ EURUSD positivo 7 de 12 años, entre −0,29R y +0,65R, con 10–23 operaciones 
 4. Lo que vale del concepto: el **FVG de 4 h de EURUSD** es el único con continuación cerca del 50 % (46 %) y cierre a
    favor del 60 %; si se usa, 4 h antes que 1 h, stop de 10 pips, objetivo 1R, y la dirección que la ponga el radar, no
    el cierre de ayer.
+
+## 5) ¿Cómo mejorarlo? (24-10-2026, `server/scripts/fvg-asia-mejoras.mjs`)
+
+Misma operación (límite en el FVG de Asia más cercano, stop 10 pips tras el borde lejano, objetivo 1R, cierre al final
+del día), FVG alcistas y bajistas sin sesgo previo, EURUSD + GBPUSD 2015–2026 (995 operaciones en 4 h, 1.779 en 1 h).
+Base: 4 h 56 % · +0,14R; 1 h 60 % · +0,19R. Filtros probados y qué pasó:
+
+| Filtro | FVG 4 h (1R) | FVG 1 h (1R) | Veredicto |
+|---|---|---|---|
+| radar a favor (≥ 2, desde 2023-09) | 50 % · +0,05R (n=32) | 54 % · +0,08R (n=79) | **no ayuda** en intradía |
+| radar en contra | 50 % · +0,03R | 52 % · +0,05R | igual que a favor |
+| Asia cerró en contra del FVG | 50 %, continúa 35 % | 55 %, continúa 45 % | evitar |
+| Asia barrió el extremo de ayer a favor | 52 % · +0,07R | 62 % · +0,25R | contradictorio entre marcos |
+| Asia no barrió nada | 60 % · +0,20R | 58 % · +0,17R | ligera mejora |
+| FVG grande (tercil alto) | 53 % · +0,09R (riesgo 30 pips) | 62 % · +0,25R | solo en 1 h |
+| vela del hueco grande (desplazamiento) | 60 % · +0,22R | 63 % · +0,26R, pero 25–46 % en 2019/2023/2024 | inestable |
+| **toque desde las 10h servidor (09:00 España)** | **62 % · +0,26R** (n=396) | **64 % · +0,28R** (n=628) | **lo mejor y estable** |
+| toque en la primera hora de Londres (08:00 España) | 52 % · +0,06R (n=599) | 57 % · +0,15R (n=1.151) | la hora de la trampa |
+| **entrada al 50 % del hueco** en vez del borde | **62 % · +0,24R** (n=863) | 61 % · +0,23R | neutraliza la primera hora |
+| lunes / jueves | 59 % / 52 % | 62 % / 59 % | ruido |
+
+Robustez del toque tardío (≥ 10h servidor), 1R, por año: 4 h con entrada al 50 %: 52–68 %, los 12 años por encima
+del 50 %; 1 h en el borde: 50–80 %, 11 de 12 por encima del 52 %. Por par: EURUSD 65–67 %, GBPUSD 59–64 %. Con
+costes reales (spread 2,5 pips y 1,5 pips de deslizamiento en el stop) sigue: 61–64 % y +0,20/+0,24R; la primera hora
+cae a 51–56 % y 0,0/+0,08R.
+
+Cuenta al 1 % por operación (1R, 2015–2026, costes reales): FVG 4 h al 50 % con toque tardío +165 % con caída
+máxima del 8 % (~40 operaciones al año); FVG 1 h en el borde con toque tardío +304 % con caída del 10 % (~50 al año).
+Son números de simulación con stop de 13–18 pips: en real cuenta cada pip.
+
+### Lo que destaca
+
+1. **La primera hora de Londres es la trampa, no la entrada.** El toque a las 08:00 España (apertura) rinde 52–57 %;
+   desde las 09:00, 62–64 %. Coincide con lo medido en la manipulación de Asia (la barrida ocurre entre las 08:00 y
+   las 09:59). Si el FVG se toca en la apertura, lo normal es que lo atraviese y lo recupere después.
+2. **Entrar al 50 % del hueco** en vez de en el borde quita el daño de la primera hora (62 % también a las 08:00) a
+   cambio de perder un 13 % de las operaciones.
+3. **El sesgo de dirección (radar o cierre de ayer) no aporta en esta operación**: con radar a favor rinde peor que sin
+   nada. La ventaja es de microestructura (retroceso a un desequilibrio reciente), no de dirección.
+4. Preferir FVG con **Asia cerrando a su favor y sin barrido del extremo de ayer**; el 4 h mejor que el 1 h en
+   fiabilidad por año, el 1 h da más operaciones.
