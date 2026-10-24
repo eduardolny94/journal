@@ -220,3 +220,40 @@ operaciones al año por par); (2) si se quiere 1:2, solo GBPNZD y solo en días 
 los datos de Londres y Nueva York antes de 2023, y datos de volumen/orden (el FVG es un concepto de desequilibrio;
 el único proxy de desequilibrio aquí es el tamaño de la vela, que no ayudó). Un indicador no va a arreglar lo que
 el precio no hace: a 1:2 el techo medido está en el 45 %.
+
+## 9) 1,5R, cruce de medias, radar y fundamental (24-10-2026, `fvg-asia-2r.mjs`)
+
+Misma base (Asia a favor, stop 10 pips, toque desde las 10h servidor, costes reales). EMA 8/18 de 1 h y de 4 h (el cruce
+C4L de César), EMA 50 de 4 h, radar (`radar_daily_bias`, desde 2023-09) y fundamental (diferencial de bonos a 2 años a
+120 sesiones, solo EURUSD y USDJPY).
+
+| Filtro | 4 h · 1,5R | 4 h · 2R | 1 h · 1,5R | 1 h · 2R |
+|---|---|---|---|---|
+| base | 49 % · +0,14R | 40 % · +0,05R | 49 % · +0,15R | 41 % · +0,10R |
+| cruce 8/18 de 1 h a favor | 48 % · +0,13R | 40 % · +0,04R | 48 % · +0,13R | 40 % · +0,07R |
+| cruce 8/18 de 1 h **en contra** | 51 % · +0,21R | 42 % · +0,17R | 54 % · +0,30R | 47 % · +0,28R |
+| cruce 8/18 de 4 h a favor | 47 % · +0,10R | 39 % · +0,02R | 48 % · +0,13R | 40 % · +0,06R |
+| cruce 8/18 de 4 h en contra | 50 % · +0,20R | 41 % · +0,10R | 50 % · +0,18R | 43 % · +0,16R |
+| EMA 50 de 4 h a favor | 47 % · +0,10R | 39 % · +0,01R | 49 % · +0,14R | 41 % · +0,08R |
+| radar a favor (≥ 2) | 48 % · +0,08R (112) | 44 % · +0,08R | 47 % · +0,09R (156) | 46 % · +0,18R |
+| **radar fuerte a favor (≥ 3)** | 51 % · +0,14R (68) | 47 % · +0,16R | **57 % · +0,31R (88)** | **56 % · +0,43R (88)** |
+| radar en contra (≥ 2) | 49 % · +0,13R (111) | 38 % · −0,05R | 37 % · −0,18R (124) | 32 % · −0,20R |
+| fundamental 2a a favor (EURUSD, USDJPY) | 45 % · +0,05R (183) | 39 % · +0,02R | 49 % · +0,13R (235) | 43 % · +0,14R |
+| fundamental en contra | 51 % · +0,22R | 44 % · +0,22R | 52 % · +0,24R | 43 % · +0,15R |
+| **Asia ancha + volatilidad alta** | **56 % · +0,35R (518)** | 45 % · +0,25R | 50 % · +0,17R | 41 % · +0,09R |
+| GBPNZD solo | 57 % · +0,37R (272) | 46 % · +0,25R | 50 % · +0,17R | 41 % · +0,11R |
+| **GBPNZD + Asia ancha** | **59 % · +0,42R (235)** | 48 % · +0,33R | 51 % · +0,17R | 42 % · +0,11R |
+
+**Lectura.**
+- **A 1,5R sí hay algo**: con el FVG de 4 h al 50 %, Asia ancha y volatilidad alta → 56 % y +0,35R (518 operaciones,
+  11 años); GBPNZD con Asia ancha → 59 % y +0,42R. Es la mejor esperanza de todo el estudio, mejor que el 1R (+0,22R).
+- **Las medias van al revés**: cuando el cruce 8/18 (de 1 h o de 4 h) está EN CONTRA, el retroceso al FVG rinde mejor
+  (1 h: 54 % · +0,30R a 1,5R). Tiene sentido: el FVG es una entrada de retroceso; si las medias rápidas ya se cruzaron
+  en contra, el retroceso fue profundo y la vuelta es mejor. Usar el cruce como filtro "a favor" quita ventaja.
+- **El radar solo ayuda cuando es fuerte (≥ 3) y en el FVG de 1 h**: 56–57 % a 1,5R/2R frente a 32–37 % en contra. Son
+  88 operaciones en 3 años: candidato a vigilar hacia delante, no regla todavía. Con fuerza 2 no se nota.
+- **El fundamental de bonos no aporta** en intradía (a favor 45–49 %, en contra 51–52 %).
+
+**Hora del toque** (FVG 4 h, toques válidos desde las 10h servidor): 55 % entre las 09:00 y las 09:59 España (03:00 NY),
+20 % entre las 10:00 y las 10:59, 10 % de 11:00 a 11:59 y 15 % de 12:00 a 13:59. El toque más frecuente de todos es el
+de la primera hora (08:00–08:59 España, 60 % de los días con FVG), que es justo el que se descarta.
