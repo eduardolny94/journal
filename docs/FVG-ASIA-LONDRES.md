@@ -178,3 +178,45 @@ en el borde y toque tardío, USDCAD 45 % · +0,25R y EURUSD 41 % · +0,12R. A 1,
 hasta 1,5R o 2R cabe dentro del día; en EURUSD o USDCHF el 2R se queda en 37–38 %.
 
 Esquema de cómo operarlo: `docs/img/fvg-asia-como-operar.svg`.
+
+## 8) ¿Se puede llegar al 60 % con objetivo 1:2? (24-10-2026, `server/scripts/fvg-asia-2r.mjs`)
+
+Regla base (FVG 4 h al 50 % / FVG 1 h en el borde, Asia a favor, stop 10 pips, toque desde las 10h servidor), 10 pares,
+2015–2026, costes reales. Base a 2R: 4 h 40 % · +0,05R (n=2.137); 1 h 41 % · +0,10R (n=2.788). Palancas probadas:
+
+| Palanca | FVG 4 h (2R) | FVG 1 h (2R) |
+|---|---|---|
+| stop a punto de equilibrio al tocar 1R | 27 % · +0,09R | 30 % · +0,13R |
+| parcial 50 % en 1R, resto a 2R con BE | 62 % · +0,15R | 62 % · +0,16R |
+| objetivo = extremo de Asia | 45 % · +0,05R | 56 % · +0,16R |
+| objetivo = máximo/mínimo de ayer | 57 % · +0,07R | 52 % · +0,18R |
+| entrada en el borde lejano (riesgo menor) | 42 % · +0,15R | — |
+| espacio: liquidez de ayer a ≥ 2R | 40 % · +0,11R | 42 % · +0,14R |
+| volatilidad alta (ATR 14 d tercil alto) | 43 % · +0,18R | 40 % · +0,09R |
+| Asia ancha (tercil alto) | 43 % · +0,16R | 43 % · +0,14R |
+| EMA 50 de 4 h a favor | 39 % · +0,01R | 41 % · +0,08R |
+| EMA 50 de 1 h inclinada a favor | 39 % · +0,03R | 40 % · +0,07R |
+| confluencia FVG 1 h dentro del 4 h | 40 % · +0,04R | — |
+| espacio ≥ 2R + volatilidad alta | 43 % · +0,21R | 42 % · +0,18R |
+| mantener hasta 2 días más | 37 % · +0,05R | 39 % · +0,09R |
+| 3R manteniendo 2 días | 26 % · −0,04R | 28 % · +0,02R |
+| miércoles (el mejor día) | 40 % · +0,06R | 46 % · +0,23R |
+
+Por par a 2R: GBPNZD 46 % · +0,25R, USDJPY 43 %, GBPCAD 42 % (4 h); USDCAD 45 % · +0,24R (1 h). La combinación
+"espacio ≥ 2R + EMA 4 h" por par da 29–49 % con 20–100 operaciones y años entre el 17 % y el 56 %: ruido.
+
+**Conclusión: ningún filtro ni gestión sube el 2R por encima del 46 %.** El 60 % a 1:2 (+0,8R por operación) no
+aparece en 11 años, 10 pares y 25 variantes. Lo que sí hay:
+
+- El "62 % de operaciones verdes" existe solo con parcial en 1R: la mitad se cobra a 1R y la otra mitad sigue a 2R con el
+  stop en la entrada. Pero gana menos (+0,15R) que cerrar todo en 1R (+0,22R): se paga la sensación de acertar.
+- Las medias (EMA 50 de 4 h y 1 h), el día anterior y la confluencia no aportan nada. La "tendencia" no es la
+  variable; el espacio y la volatilidad sí, un poco (+0,21R, 43 %).
+- Mantener la operación más de un día o buscar 3R empeora: la ventaja del FVG es del día, no de la tendencia.
+
+**Qué haría yo para subir la esperanza, en orden:** (1) cobrar 1R y punto, en los 7 pares buenos (62 %, +0,22R, ~40
+operaciones al año por par); (2) si se quiere 1:2, solo GBPNZD y solo en días de Asia ancha con volatilidad alta
+(43 %, +0,21R en el conjunto; GBPNZD 46 %); (3) lo que falta medir y no se puede con esta data: calendario con hora de
+los datos de Londres y Nueva York antes de 2023, y datos de volumen/orden (el FVG es un concepto de desequilibrio;
+el único proxy de desequilibrio aquí es el tamaño de la vela, que no ayudó). Un indicador no va a arreglar lo que
+el precio no hace: a 1:2 el techo medido está en el 45 %.
