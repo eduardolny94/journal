@@ -305,3 +305,19 @@ a 6 ya se dispara el stop antes de tiempo. Con 8 pips GBPNZD llega al **51 % a 1
 +0,42R: rentable, como dice César (el punto de equilibrio a 1:2 con costes está en el 37 %). Pero la versión a 1,5R
 gana más (+0,47R), con la mitad de caída y años mucho más parejos. Y hay que descontar que el stop, el par y el filtro
 se eligieron mirando estos mismos datos: lo prudente es esperar en real 45–48 % a 2R y 55–58 % a 1,5R.
+
+## 12) Radar y sesgo diario sobre la regla final (24-10-2026)
+
+Solo desde 2023-09 (cuando existe el radar). FVG 4 h al 50 %, stop 8, toque tardío, costes reales.
+
+| 10 pares (n=466) | 1,5R | 2R |
+|---|---|---|
+| radar a favor (≥ 2) | 48 % · +0,08R (112) | 44 % · +0,12R |
+| radar fuerte a favor (≥ 3) | 51 % · +0,13R (68) | 47 % · +0,18R |
+| radar en contra (≥ 2) | 52 % · +0,23R (111) | 35 % · −0,10R |
+| neutro | 47 % · +0,12R (243) | 39 % · +0,06R |
+
+A 1,5R el radar no separa nada (en contra incluso mejor). A 2R sí hay una diferencia a favor/en contra (44–47 % frente a
+35 %, +0,12/+0,18R frente a −0,10R): para el objetivo largo conviene **no operar contra el radar**, pero exigirlo a favor
+no sube el acierto por encima de lo que da el filtro de Asia ancha. En GBPNZD con Asia ancha solo hay 47 operaciones con
+radar (10–19 por grupo): no se puede concluir nada por par; el sesgo diario de ayer tampoco (sección 1 y 3: 48–51 %).

@@ -125,3 +125,13 @@ for (const [tf, mode] of [['4h', '50 %'], ['1h', 'borde']]) {
   const eq = (K) => { let e = 1, pk = 1, dd = 0, mx = 0, c = 0; for (const t of [...G].sort((a, b) => (a.date < b.date ? -1 : 1))) { e *= 1 + 0.01 * t[K]; pk = Math.max(pk, e); dd = Math.max(dd, 1 - e / pk); if (t[K] < 0) { c++; mx = Math.max(mx, c); } else c = 0; } return `${((e - 1) * 100).toFixed(0)} % · caída máx. ${(dd * 100).toFixed(0)} % · racha máx. ${mx} pérdidas`; };
   console.log(`  cuenta al 1 % (11 años): 1,5R ${eq('r15')} · 2R ${eq('r2')} · riesgo mediano ${Math.round([...G].map((t) => t.riskPips).sort((a, b) => a - b)[Math.floor(G.length / 2)])} pips`);
 }
+// ---- radar y sesgo diario sobre GBPNZD + Asia ancha (desde 2023-09, que es cuando hay radar)
+{
+  const B = T.filter((t) => t.tf === '4h' && t.mode === '50 %'); const [, a2] = q(B, 'asiaRange'); const G = B.filter((t) => t.sym === 'GBPNZD' && t.asiaRange >= a2 && t.radar !== null);
+  console.log(`\n==================== GBPNZD · Asia ancha · stop ${STOP} · con radar (desde 2023-09, n=${G.length}) ====================`);
+  const r = (name, L) => { if (L.length < 10) { console.log(`  ${name.padEnd(40)} n=${L.length} (poca muestra)`); return; } console.log(`  ${name.padEnd(40)} n=${String(L.length).padStart(3)} · 1,5R ${pct(L.filter((t) => t.r15 > 0).length, L.length)} ${mean(L.map((t) => t.r15)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r15)).toFixed(2)}R · 2R ${pct(L.filter((t) => t.r2 > 0).length, L.length)} ${mean(L.map((t) => t.r2)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r2)).toFixed(2)}R`); };
+  r('todo (con radar disponible)', G); r('radar a favor (≥ 2)', G.filter((t) => t.radarOk)); r('radar fuerte a favor (≥ 3)', G.filter((t) => t.radarStrong)); r('radar en contra (≥ 2)', G.filter((t) => t.radarContra)); r('radar neutro (|diff| < 2)', G.filter((t) => !t.radarOk && !t.radarContra));
+  r('día anterior en la misma dirección', G.filter((t) => t.prevDay)); r('día anterior en contra', G.filter((t) => !t.prevDay));
+  // y en todos los pares, misma regla, con radar
+  const A = B.filter((t) => t.radar !== null); console.log(`  -- 10 pares, FVG 4 h al 50 %, desde 2023-09 (n=${A.length}) --`); r('radar a favor (≥ 2)', A.filter((t) => t.radarOk)); r('radar fuerte (≥ 3)', A.filter((t) => t.radarStrong)); r('radar en contra', A.filter((t) => t.radarContra)); r('neutro', A.filter((t) => !t.radarOk && !t.radarContra));
+}
