@@ -158,3 +158,23 @@ sesión (AUDUSD, NZDUSD, AUDCHF): ahí el FVG de Asia no es un hueco "dejado", e
 **Ejemplos** (`fvg-asia-ejemplo.mjs`, SVG en `docs/img/`): 12-03-2026 venta en EURUSD (FVG 1,15543–1,15640, entrada
 1,15592, stop 1,15740, toque 12h, objetivo a las 15h, gana) y 09-10-2026 compra (FVG 1,12173–1,12220, entrada 1,12206,
 stop 1,12073, toque 11h, stop a las 14h, pierde). De 245 días candidatos en EURUSD con esa regla, ganan 152 (62 %).
+
+## 7) ¿Objetivo 1:2? ¿Stop de 12 o 14 pips? (24-10-2026)
+
+Misma regla (FVG 4 h, 50 %, toque tardío, costes reales), 10 pares FXCM 2015–2026, 2.207 operaciones:
+
+| Stop tras el borde | 1R | 1,5R | 2R |
+|---|---|---|---|
+| 10 pips | 62 % · +0,22R | 48 % · +0,14R | 40 % · +0,05R |
+| 12 pips | 61 % · +0,20R | 47 % · +0,09R | 39 % · +0,02R |
+| 14 pips | 60 % · +0,17R | 46 % · +0,06R | 39 % · −0,01R |
+
+Agrandar el stop no mejora: el objetivo en R se aleja en la misma proporción y el acierto baja un punto por cada
+2 pips. A 2R el conjunto queda en 40 % y +0,05R: casi toda la ventaja está en el 1R.
+
+Por par, a 2R con stop 10: **GBPNZD 45 % · +0,24R** (n=282), GBPCAD 42 % · +0,19R, USDJPY 43 % · +0,11R; con el FVG de 1 h
+en el borde y toque tardío, USDCAD 45 % · +0,25R y EURUSD 41 % · +0,12R. A 1,5R: GBPNZD 56 % · +0,35R, EURNZD 50 % ·
++0,19R, USDJPY 50 % · +0,18R. Los pares con rango de Asia ancho (GBPNZD, EURNZD) son los únicos donde el recorrido
+hasta 1,5R o 2R cabe dentro del día; en EURUSD o USDCHF el 2R se queda en 37–38 %.
+
+Esquema de cómo operarlo: `docs/img/fvg-asia-como-operar.svg`.

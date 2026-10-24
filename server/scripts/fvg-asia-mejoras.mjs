@@ -18,7 +18,7 @@ const PAIRS = argOf('--pares', null) ? argOf('--pares', '').split(',').map((s) =
 const RESUMEN = process.argv.includes('--resumen');
 const pipOf = (s) => (s.endsWith('JPY') ? 0.01 : 0.0001);
 const EXTRA = Number(argOf('--coste-extra', '0')); // pips extra de spread + deslizamiento en el stop (prueba de costes reales)
-const SPREAD0 = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5, GBPCAD: 2.5, EURNZD: 3, GBPNZD: 3.5 }; const SPREAD = Object.fromEntries(Object.entries(SPREAD0).map(([k, v]) => [k, v + EXTRA])); const ASIA = [1, 8], LONDON = [9, 14]; const STOP_PIPS = 10;
+const SPREAD0 = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5, GBPCAD: 2.5, EURNZD: 3, GBPNZD: 3.5 }; const SPREAD = Object.fromEntries(Object.entries(SPREAD0).map(([k, v]) => [k, v + EXTRA])); const ASIA = [1, 8], LONDON = [9, 14]; const STOP_PIPS = Number(argOf('--stop', '10'));
 let biasBy = {}; try { const db = new DatabaseSync(path.join(ROOT, 'server', 'data', 'journal.db'), { readOnly: true }); for (const r of db.prepare('SELECT date, symbol, diff FROM radar_daily_bias ORDER BY symbol, date').all()) (biasBy[r.symbol] ||= []).push(r); } catch { biasBy = {}; }
 const biasAt = (sym, date) => { const rows = biasBy[sym]; if (!rows) return null; let a = null; for (const r of rows) { if (r.date < date) a = r; else break; } return a ? a.diff : null; };
 function load(sym) { const days = new Map(); for (const line of readFileSync(path.join(DATA, `${sym}_PERIOD_H1.csv`), 'utf8').trim().split(/\r?\n/).slice(1)) { const [t, o, h, l, c] = line.split(','); if (!t) continue; const [d, hm] = t.split(' '); if (hm.slice(3, 5) !== '00') continue; const date = d.replace(/\./g, '-'); if (!days.has(date)) days.set(date, []); days.get(date).push({ hour: Number(hm.slice(0, 2)), o: +o, h: +h, l: +l, c: +c }); } return [...days.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, bars]) => ({ date, bars, o: bars[0].o, c: bars.at(-1).c, h: Math.max(...bars.map((b) => b.h)), l: Math.min(...bars.map((b) => b.l)) })).filter((d) => d.bars.length >= 20); }
@@ -49,17 +49,19 @@ for (const sym of PAIRS) {
         const target = dir > 0 ? asiaH : asiaL;
         for (const entryMode of ['borde', '50 %']) {
           const level = entryMode === 'borde' ? near : (f.top + f.bot) / 2; const entryPx = dir > 0 ? level + sp : level; const stop = dir > 0 ? far - STOP_PIPS * pip : far + STOP_PIPS * pip; const risk = Math.abs(entryPx - stop);
-          let filled = false, touchHour = null; const r = { r1: null, asia: null }; let cont = false;
+          let filled = false, touchHour = null; const r = { r1: null, r2: null, r15: null, asia: null }; let cont = false;
           for (const b of d.bars.filter((b) => b.hour >= LONDON[0])) {
             if (!filled) { if (b.hour > LONDON[1]) break; if (dir > 0 ? b.l <= entryPx : b.h >= entryPx) { filled = true; touchHour = b.hour; } else continue; }
-            const hitStop = dir > 0 ? b.l <= stop : b.h >= stop; const reach1 = dir > 0 ? b.h >= entryPx + risk : b.l <= entryPx - risk; const reachA = dir > 0 ? b.h >= target : b.l <= target;
+            const hitStop = dir > 0 ? b.l <= stop : b.h >= stop; const reach1 = dir > 0 ? b.h >= entryPx + risk : b.l <= entryPx - risk; const reachA = dir > 0 ? b.h >= target : b.l <= target; const reach2 = dir > 0 ? b.h >= entryPx + 2 * risk : b.l <= entryPx - 2 * risk; const reach15 = dir > 0 ? b.h >= entryPx + 1.5 * risk : b.l <= entryPx - 1.5 * risk;
             const SL = -1 - (EXTRA * pip) / risk; if (r.r1 === null) { if (hitStop) r.r1 = SL; else if (reach1) r.r1 = 1; }
+            if (r.r2 === null) { if (hitStop) r.r2 = SL; else if (reach2) r.r2 = 2; }
+            if (r.r15 === null) { if (hitStop) r.r15 = SL; else if (reach15) r.r15 = 1.5; }
             if (r.asia === null) { if (hitStop) r.asia = SL; else if (reachA) { r.asia = Math.abs(target - entryPx) / risk; cont = true; } }
-            if (r.r1 !== null && r.asia !== null) break;
+            if (r.r1 !== null && r.asia !== null && r.r2 !== null && r.r15 !== null) break;
           }
           if (!filled) continue;
-          const open = (v) => (v === null ? Math.max(-1, (dir > 0 ? d.c - entryPx : entryPx - d.c) / risk) : v); r.r1 = open(r.r1); r.asia = open(r.asia);
-          T.push({ sym, date: d.date, year: d.date.slice(0, 4), dir, tf, entryMode, size, midRange, midBody, asiaRange, touchHour, r1: r.r1, rAsia: r.asia, cont, asiaAlign: asiaDir === dir, sweptAgainst: dir > 0 ? sweptPDL : sweptPDH, sweptWith: dir > 0 ? sweptPDH : sweptPDL, dow, radar, radarOk: radar !== null && Math.sign(radar) === dir && Math.abs(radar) >= 2, radarStrong: radar !== null && Math.sign(radar) === dir && Math.abs(radar) >= 3, radarContra: radar !== null && Math.sign(radar) === -dir && Math.abs(radar) >= 2, riskPips: risk / pip });
+          const open = (v) => (v === null ? Math.max(-1, (dir > 0 ? d.c - entryPx : entryPx - d.c) / risk) : v); r.r1 = open(r.r1); r.asia = open(r.asia); r.r2 = open(r.r2); r.r15 = open(r.r15);
+          T.push({ sym, date: d.date, year: d.date.slice(0, 4), dir, tf, entryMode, size, midRange, midBody, asiaRange, touchHour, r1: r.r1, r2: r.r2, r15: r.r15, rAsia: r.asia, cont, asiaAlign: asiaDir === dir, sweptAgainst: dir > 0 ? sweptPDL : sweptPDH, sweptWith: dir > 0 ? sweptPDH : sweptPDL, dow, radar, radarOk: radar !== null && Math.sign(radar) === dir && Math.abs(radar) >= 2, radarStrong: radar !== null && Math.sign(radar) === dir && Math.abs(radar) >= 3, radarContra: radar !== null && Math.sign(radar) === -dir && Math.abs(radar) >= 2, riskPips: risk / pip });
         }
       }
     }
@@ -69,12 +71,12 @@ const pct = (a, n) => (n ? `${String(Math.round((100 * a) / n)).padStart(3)} %` 
 const line = (name, L) => { if (L.length < 25) return; console.log(`  ${name.padEnd(46)} n=${String(L.length).padStart(4)} · 1R ${pct(L.filter((t) => t.r1 > 0).length, L.length)} ${mean(L.map((t) => t.r1)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r1)).toFixed(2)}R · continúa ${pct(L.filter((t) => t.cont).length, L.length)} · obj. Asia ${mean(L.map((t) => t.rAsia)) >= 0 ? '+' : ''}${mean(L.map((t) => t.rAsia)).toFixed(2)}R · riesgo med. ${Math.round([...L].map((t) => t.riskPips).sort((a, b) => a - b)[Math.floor(L.length / 2)])} pips`); };
 const q = (L, key) => { const v = [...L].map((t) => t[key]).sort((a, b) => a - b); return [v[Math.floor(v.length / 3)], v[Math.floor((2 * v.length) / 3)]]; };
 if (RESUMEN) {
-  const cell = (L) => (L.length < 20 ? '      —       ' : `${pct(L.filter((t) => t.r1 > 0).length, L.length)} ${mean(L.map((t) => t.r1)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r1)).toFixed(2)}R (${String(L.length).padStart(3)})`);
-  console.log(`\nResumen por par · ${path.basename(DATA)} · desde ${FROM} · coste extra ${EXTRA} pips · 1R con stop 10 pips tras el FVG`);
+  const K = argOf('--objetivo', 'r1'); const cell = (L) => (L.length < 20 ? '      —       ' : `${pct(L.filter((t) => t[K] > 0).length, L.length)} ${mean(L.map((t) => t[K])) >= 0 ? '+' : ''}${mean(L.map((t) => t[K])).toFixed(2)}R (${String(L.length).padStart(3)})`);
+  console.log(`\nResumen por par · ${path.basename(DATA)} · desde ${FROM} · coste extra ${EXTRA} pips · objetivo ${K} · stop ${STOP_PIPS} pips tras el FVG`);
   console.log(`  ${'par'.padEnd(8)} | 4h borde, todo   | 4h 50 %, toque ≥10h | 1h borde, todo   | 1h borde, toque ≥10h | 1h 50 %, toque ≥10h`);
-  const rows = PAIRS.map((s) => { const P = T.filter((t) => t.sym === s); const f = (tf, mode, late) => P.filter((t) => t.tf === tf && t.entryMode === mode && (!late || t.touchHour >= 10)); const key = f('4h', '50 %', true); return { s, txt: `  ${s.padEnd(8)} | ${cell(f('4h', 'borde', false))} | ${cell(key)} | ${cell(f('1h', 'borde', false))} | ${cell(f('1h', 'borde', true))} | ${cell(f('1h', '50 %', true))}`, score: key.length >= 20 ? mean(key.map((t) => t.r1)) : -9 }; });
+  const rows = PAIRS.map((s) => { const P = T.filter((t) => t.sym === s); const f = (tf, mode, late) => P.filter((t) => t.tf === tf && t.entryMode === mode && (!late || t.touchHour >= 10)); const key = f('4h', '50 %', true); return { s, txt: `  ${s.padEnd(8)} | ${cell(f('4h', 'borde', false))} | ${cell(key)} | ${cell(f('1h', 'borde', false))} | ${cell(f('1h', 'borde', true))} | ${cell(f('1h', '50 %', true))}`, score: key.length >= 20 ? mean(key.map((t) => t[K])) : -9 }; });
   for (const r of rows.sort((a, b) => b.score - a.score)) console.log(r.txt);
-  const all = T.filter((t) => t.tf === '4h' && t.entryMode === '50 %' && t.touchHour >= 10); console.log(`  ${'TODOS'.padEnd(8)} | 4h 50 % toque ≥10h ${cell(all)} · por año: ` + [...new Set(all.map((t) => t.year))].sort().map((y) => { const Y = all.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t.r1 > 0).length, Y.length).trim()}`; }).join(' '));
+  const all = T.filter((t) => t.tf === '4h' && t.entryMode === '50 %' && t.touchHour >= 10); console.log(`  ${'TODOS'.padEnd(8)} | 4h 50 % toque ≥10h ${cell(all)} · por año: ` + [...new Set(all.map((t) => t.year))].sort().map((y) => { const Y = all.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t[K] > 0).length, Y.length).trim()}`; }).join(' '));
   process.exit(0);
 }
 for (const tf of ['4h', '1h']) {
