@@ -257,3 +257,29 @@ C4L de César), EMA 50 de 4 h, radar (`radar_daily_bias`, desde 2023-09) y funda
 **Hora del toque** (FVG 4 h, toques válidos desde las 10h servidor): 55 % entre las 09:00 y las 09:59 España (03:00 NY),
 20 % entre las 10:00 y las 10:59, 10 % de 11:00 a 11:59 y 15 % de 12:00 a 13:59. El toque más frecuente de todos es el
 de la primera hora (08:00–08:59 España, 60 % de los días con FVG), que es justo el que se descarta.
+
+## 10) Por par a 1,5R (24-10-2026)
+
+FVG 4 h al 50 %, toque tardío, costes reales. Asia ancha = rango ≥ 62 pips; volatilidad alta = ATR 14 días ≥ 120 pips.
+
+| Par | Todo | Asia ancha | Asia ancha + vol. alta |
+|---|---|---|---|
+| **GBPNZD** | 57 % · +0,37R (272) | 59 % · +0,42R (235) | **60 % · +0,43R (220)** |
+| USDJPY | 51 % · +0,19R (267) | 51 % · +0,21R (97) | 58 % · +0,44R (65) |
+| GBPCAD | 50 % · +0,20R (150) | 51 % · +0,24R (45) | 56 % · +0,36R (36) |
+| EURNZD | 49 % · +0,17R (272) | 50 % · +0,20R (209) | 51 % · +0,22R (160) |
+| EURUSD | 45 % · +0,07R (247) | 50 % · +0,21R (22) | — |
+| GBPUSD | 48 % · +0,13R (193) | 48 % · +0,09R (33) | — |
+| USDCAD | 46 % · +0,09R (186) | 39 % · −0,09R (28) | — |
+| USDCHF | 47 % · +0,11R (162) | — | — |
+| AUDUSD | 45 % · +0,01R (276) | 48 % · −0,01R (27) | — |
+| EURGBP | 41 % · −0,09R (112) | — | — |
+
+El filtro "Asia ancha" solo tiene muestra en GBPNZD y EURNZD (sus Asias miden 60–90 pips casi siempre); en los demás
+pares una Asia de 62 pips es rara. USDCAD, que es de los mejores a 1R (64 %), **no** sirve a 1,5R (46 %, y 39 % con
+Asia ancha): su recorrido diario no da para 1,5R desde el retroceso. Por año, el conjunto "Asia ancha" a 1,5R va del 42 %
+(2022) al 72 % (2023), con 4 de 12 años por debajo del 50 %: GBPNZD es el único par estable a 1,5R.
+
+Ejemplos (`fvg-asia-ejemplo.mjs --par GBPNZD --rr 1.5 --asia-min 62`): 01-10-2026 compra (FVG 2,35528–2,35567, entrada
+2,35583, stop 2,35428, objetivo 2,35814, toque y objetivo a las 11h servidor) y 20-08-2026 venta (FVG 2,28855–2,29096,
+entrada 2,28975, stop 2,29196, toque 11h, stop 14h). De 231 días candidatos en GBPNZD ganan 132 (57 %).

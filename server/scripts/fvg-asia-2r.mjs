@@ -107,3 +107,13 @@ for (const [tf, mode] of [['4h', '50 %'], ['1h', 'borde']]) {
   for (const s of PAIRS) { const P = B.filter((t) => t.sym === s); if (P.length < 30) continue; const C = P.filter((t) => t.roomLiq >= 2 && t.emaOk4); console.log(`  ${s.padEnd(8)} 2R ${pct(P.filter((t) => t.r2 > 0).length, P.length)} ${mean(P.map((t) => t.r2)) >= 0 ? '+' : ''}${mean(P.map((t) => t.r2)).toFixed(2)}R (${P.length}) · BE ${pct(P.filter((t) => t.be > 0).length, P.length)} ${mean(P.map((t) => t.be)) >= 0 ? '+' : ''}${mean(P.map((t) => t.be)).toFixed(2)}R · combo ${C.length >= 20 ? `${pct(C.filter((t) => t.r2 > 0).length, C.length)} ${mean(C.map((t) => t.r2)) >= 0 ? '+' : ''}${mean(C.map((t) => t.r2)).toFixed(2)}R (${C.length})` : '—'}`); }
   const C = B.filter((t) => t.roomLiq >= 2 && t.emaOk4); console.log('  combo por año (2R): ' + [...new Set(C.map((t) => t.year))].sort().map((y) => { const Y = C.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t.r2 > 0).length, Y.length).trim()}(${Y.length})`; }).join(' '));
 }
+// ---- por par a 1,5R con la regla final (FVG 4 h al 50 %) y con Asia ancha + volatilidad alta
+{
+  const B = T.filter((t) => t.tf === '4h' && t.mode === '50 %'); const [, a2] = q(B, 'asiaRange'); const [, v2] = q(B, 'atrPips');
+  console.log(`\n==================== Por par · FVG 4 h al 50 % · 1,5R · Asia ancha = ≥ ${a2.toFixed(0)} pips · volatilidad alta = ATR ≥ ${v2.toFixed(0)} pips ====================`);
+  const cell = (L) => (L.length < 20 ? '      —          ' : `${pct(L.filter((t) => t.r15 > 0).length, L.length)} ${mean(L.map((t) => t.r15)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r15)).toFixed(2)}R (${String(L.length).padStart(3)})`);
+  console.log(`  ${'par'.padEnd(8)} | todo              | Asia ancha        | Asia ancha + vol. alta | 1R con Asia ancha + vol.`);
+  const rows = PAIRS.map((s) => { const P = B.filter((t) => t.sym === s); const A = P.filter((t) => t.asiaRange >= a2); const C = A.filter((t) => t.atrPips >= v2); return { s, sc: A.length >= 20 ? mean(A.map((t) => t.r15)) : -9, txt: `  ${s.padEnd(8)} | ${cell(P)} | ${cell(A)} | ${cell(C)} | ${C.length >= 20 ? `${pct(C.filter((t) => t.r2 > -2 && (t.r15 > 0 || t.asia > 0)).length, C.length)}` : '—'}` }; });
+  for (const r of rows.sort((a, b) => b.sc - a.sc)) console.log(r.txt);
+  const A = B.filter((t) => t.asiaRange >= a2); console.log('  TODOS Asia ancha 1,5R por año: ' + [...new Set(A.map((t) => t.year))].sort().map((y) => { const Y = A.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t.r15 > 0).length, Y.length).trim()}(${Y.length})`; }).join(' '));
+}
