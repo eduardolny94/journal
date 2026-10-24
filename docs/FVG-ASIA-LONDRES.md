@@ -283,3 +283,25 @@ Asia ancha): su recorrido diario no da para 1,5R desde el retroceso. Por año, e
 Ejemplos (`fvg-asia-ejemplo.mjs --par GBPNZD --rr 1.5 --asia-min 62`): 01-10-2026 compra (FVG 2,35528–2,35567, entrada
 2,35583, stop 2,35428, objetivo 2,35814, toque y objetivo a las 11h servidor) y 20-08-2026 venta (FVG 2,28855–2,29096,
 entrada 2,28975, stop 2,29196, toque 11h, stop 14h). De 231 días candidatos en GBPNZD ganan 132 (57 %).
+
+## 11) ¿Stop de 8 pips para llegar al 1:2? (24-10-2026, `fvg-asia-2r.mjs --stop 8|6`)
+
+FVG 4 h al 50 %, toque tardío, costes reales (spread +1,5 pips y 1,5 pips de deslizamiento, que con 8 pips de stop pesan más).
+
+| | Stop 10 pips | Stop 8 pips | Stop 6 pips |
+|---|---|---|---|
+| Conjunto 10 pares · 2R | 40 % · +0,05R | 40 % · +0,07R | 41 % · +0,10R |
+| Asia ancha + volatilidad alta · 2R | 45 % · +0,25R | 46 % · +0,27R | 44 % · +0,22R |
+| GBPNZD + Asia ancha · 2R (235) | 48 % · +0,33R | **51 % · +0,42R** | 49 % · +0,33R |
+| GBPNZD + Asia ancha · 1,5R (235) | 59 % · +0,42R | **61 % · +0,47R** | 57 % · +0,35R |
+
+GBPNZD con Asia ancha, stop 8 pips, por año: 1,5R entre 43 % (2018) y 80 % (2023), 10 de 12 años ≥ 53 %; 2R entre 21 %
+(2018) y 70 % (2023), 7 de 12 años ≥ 47 %, con 2017, 2018, 2020 y 2021 por debajo del 45 %. Cuenta al 1 %, 11 años: 1,5R
++192 % con caída máxima del 5 % y racha de 5 pérdidas; 2R +158 % con caída del 14 % y racha de 6. Riesgo mediano 22 pips
+(la mitad del hueco más los 8 pips).
+
+**Lectura.** Bajar el stop a 8 pips ayuda un poco (el hueco de GBPNZD es grande y el stop pesa menos en el riesgo total);
+a 6 ya se dispara el stop antes de tiempo. Con 8 pips GBPNZD llega al **51 % a 1:2**, que con los costes de ese par es
++0,42R: rentable, como dice César (el punto de equilibrio a 1:2 con costes está en el 37 %). Pero la versión a 1,5R
+gana más (+0,47R), con la mitad de caída y años mucho más parejos. Y hay que descontar que el stop, el par y el filtro
+se eligieron mirando estos mismos datos: lo prudente es esperar en real 45–48 % a 2R y 55–58 % a 1,5R.

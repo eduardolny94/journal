@@ -13,7 +13,7 @@ const DATA = path.resolve(ROOT, argOf('--dir', 'data/mt5-fxcm')); const FROM = a
 const SKIP = new Set(['XAUUSD', 'US500F', 'NAS100F', 'US30F']);
 const PAIRS = argOf('--pares', null) ? argOf('--pares', '').split(',') : readdirSync(DATA).filter((f) => f.endsWith('_PERIOD_H1.csv')).map((f) => f.replace('_PERIOD_H1.csv', '')).filter((s) => !SKIP.has(s));
 const SPREAD0 = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5, GBPCAD: 2.5, EURNZD: 3, GBPNZD: 3.5 };
-const pipOf = (s) => (s.endsWith('JPY') ? 0.01 : 0.0001); const STOP = 10;
+const pipOf = (s) => (s.endsWith('JPY') ? 0.01 : 0.0001); const STOP = Number(argOf('--stop', '10'));
 import { DatabaseSync } from 'node:sqlite';
 let biasBy = {}; try { const db = new DatabaseSync(path.join(ROOT, 'server', 'data', 'journal.db'), { readOnly: true }); for (const r of db.prepare('SELECT date, symbol, diff FROM radar_daily_bias ORDER BY symbol, date').all()) (biasBy[r.symbol] ||= []).push(r); } catch { biasBy = {}; }
 const biasAt = (sym, date) => { const rows = biasBy[sym]; if (!rows) return null; let a = null; for (const r of rows) { if (r.date < date) a = r; else break; } return a ? a.diff : null; };
@@ -116,4 +116,12 @@ for (const [tf, mode] of [['4h', '50 %'], ['1h', 'borde']]) {
   const rows = PAIRS.map((s) => { const P = B.filter((t) => t.sym === s); const A = P.filter((t) => t.asiaRange >= a2); const C = A.filter((t) => t.atrPips >= v2); return { s, sc: A.length >= 20 ? mean(A.map((t) => t.r15)) : -9, txt: `  ${s.padEnd(8)} | ${cell(P)} | ${cell(A)} | ${cell(C)} | ${C.length >= 20 ? `${pct(C.filter((t) => t.r2 > -2 && (t.r15 > 0 || t.asia > 0)).length, C.length)}` : '—'}` }; });
   for (const r of rows.sort((a, b) => b.sc - a.sc)) console.log(r.txt);
   const A = B.filter((t) => t.asiaRange >= a2); console.log('  TODOS Asia ancha 1,5R por año: ' + [...new Set(A.map((t) => t.year))].sort().map((y) => { const Y = A.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t.r15 > 0).length, Y.length).trim()}(${Y.length})`; }).join(' '));
+}
+// ---- GBPNZD con Asia ancha, por año, 1,5R y 2R (para ver si el stop elegido aguanta en el tiempo)
+{
+  const B = T.filter((t) => t.tf === '4h' && t.mode === '50 %'); const [, a2] = q(B, 'asiaRange'); const G = B.filter((t) => t.sym === 'GBPNZD' && t.asiaRange >= a2);
+  console.log(`\n==================== GBPNZD · Asia ancha · stop ${STOP} pips · por año ====================`);
+  for (const K of ['r15', 'r2']) console.log(`  ${K === 'r15' ? '1,5R' : '2R  '}: ` + [...new Set(G.map((t) => t.year))].sort().map((y) => { const Y = G.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t[K] > 0).length, Y.length).trim()}(${Y.length})`; }).join(' '));
+  const eq = (K) => { let e = 1, pk = 1, dd = 0, mx = 0, c = 0; for (const t of [...G].sort((a, b) => (a.date < b.date ? -1 : 1))) { e *= 1 + 0.01 * t[K]; pk = Math.max(pk, e); dd = Math.max(dd, 1 - e / pk); if (t[K] < 0) { c++; mx = Math.max(mx, c); } else c = 0; } return `${((e - 1) * 100).toFixed(0)} % · caída máx. ${(dd * 100).toFixed(0)} % · racha máx. ${mx} pérdidas`; };
+  console.log(`  cuenta al 1 % (11 años): 1,5R ${eq('r15')} · 2R ${eq('r2')} · riesgo mediano ${Math.round([...G].map((t) => t.riskPips).sort((a, b) => a - b)[Math.floor(G.length / 2)])} pips`);
 }
