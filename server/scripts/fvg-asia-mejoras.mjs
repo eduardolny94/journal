@@ -12,15 +12,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const argOf = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
 const DATA = path.resolve(ROOT, argOf('--dir', 'data/mt5-fxcm')); const FROM = argOf('--desde', '2015-01-01');
-const PAIRS = argOf('--pares', 'EURUSD,GBPUSD').split(',').map((s) => s.trim().toUpperCase());
+import { readdirSync } from 'node:fs';
+const SKIP = new Set(['XAUUSD', 'US500F', 'NAS100F', 'US30F']);
+const PAIRS = argOf('--pares', null) ? argOf('--pares', '').split(',').map((s) => s.trim().toUpperCase()) : readdirSync(DATA).filter((f) => f.endsWith('_PERIOD_H1.csv')).map((f) => f.replace('_PERIOD_H1.csv', '')).filter((s) => !SKIP.has(s));
+const RESUMEN = process.argv.includes('--resumen');
+const pipOf = (s) => (s.endsWith('JPY') ? 0.01 : 0.0001);
 const EXTRA = Number(argOf('--coste-extra', '0')); // pips extra de spread + deslizamiento en el stop (prueba de costes reales)
-const SPREAD = { EURUSD: 1 + EXTRA, GBPUSD: 1.3 + EXTRA }; const ASIA = [1, 8], LONDON = [9, 14]; const STOP_PIPS = 10;
+const SPREAD0 = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5, GBPCAD: 2.5, EURNZD: 3, GBPNZD: 3.5 }; const SPREAD = Object.fromEntries(Object.entries(SPREAD0).map(([k, v]) => [k, v + EXTRA])); const ASIA = [1, 8], LONDON = [9, 14]; const STOP_PIPS = 10;
 let biasBy = {}; try { const db = new DatabaseSync(path.join(ROOT, 'server', 'data', 'journal.db'), { readOnly: true }); for (const r of db.prepare('SELECT date, symbol, diff FROM radar_daily_bias ORDER BY symbol, date').all()) (biasBy[r.symbol] ||= []).push(r); } catch { biasBy = {}; }
 const biasAt = (sym, date) => { const rows = biasBy[sym]; if (!rows) return null; let a = null; for (const r of rows) { if (r.date < date) a = r; else break; } return a ? a.diff : null; };
 function load(sym) { const days = new Map(); for (const line of readFileSync(path.join(DATA, `${sym}_PERIOD_H1.csv`), 'utf8').trim().split(/\r?\n/).slice(1)) { const [t, o, h, l, c] = line.split(','); if (!t) continue; const [d, hm] = t.split(' '); if (hm.slice(3, 5) !== '00') continue; const date = d.replace(/\./g, '-'); if (!days.has(date)) days.set(date, []); days.get(date).push({ hour: Number(hm.slice(0, 2)), o: +o, h: +h, l: +l, c: +c }); } return [...days.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, bars]) => ({ date, bars, o: bars[0].o, c: bars.at(-1).c, h: Math.max(...bars.map((b) => b.h)), l: Math.min(...bars.map((b) => b.l)) })).filter((d) => d.bars.length >= 20); }
 const T = [];
 for (const sym of PAIRS) {
-  const pip = 0.0001, sp = (SPREAD[sym] ?? 2) * pip; const D = load(sym);
+  const pip = pipOf(sym), sp = (SPREAD[sym] ?? 2.5 + EXTRA) * pip; const D = load(sym);
   for (let i = 2; i < D.length; i++) {
     const d = D[i], p1 = D[i - 1]; if (d.date < FROM) continue;
     const asia = d.bars.filter((b) => b.hour >= ASIA[0] && b.hour <= ASIA[1]); const london = d.bars.filter((b) => b.hour >= LONDON[0] && b.hour <= LONDON[1]); if (asia.length < 6 || london.length < 4) continue;
@@ -64,6 +68,15 @@ for (const sym of PAIRS) {
 const pct = (a, n) => (n ? `${String(Math.round((100 * a) / n)).padStart(3)} %` : '  — '); const mean = (v) => (v.length ? v.reduce((s, x) => s + x, 0) / v.length : 0);
 const line = (name, L) => { if (L.length < 25) return; console.log(`  ${name.padEnd(46)} n=${String(L.length).padStart(4)} · 1R ${pct(L.filter((t) => t.r1 > 0).length, L.length)} ${mean(L.map((t) => t.r1)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r1)).toFixed(2)}R · continúa ${pct(L.filter((t) => t.cont).length, L.length)} · obj. Asia ${mean(L.map((t) => t.rAsia)) >= 0 ? '+' : ''}${mean(L.map((t) => t.rAsia)).toFixed(2)}R · riesgo med. ${Math.round([...L].map((t) => t.riskPips).sort((a, b) => a - b)[Math.floor(L.length / 2)])} pips`); };
 const q = (L, key) => { const v = [...L].map((t) => t[key]).sort((a, b) => a - b); return [v[Math.floor(v.length / 3)], v[Math.floor((2 * v.length) / 3)]]; };
+if (RESUMEN) {
+  const cell = (L) => (L.length < 20 ? '      —       ' : `${pct(L.filter((t) => t.r1 > 0).length, L.length)} ${mean(L.map((t) => t.r1)) >= 0 ? '+' : ''}${mean(L.map((t) => t.r1)).toFixed(2)}R (${String(L.length).padStart(3)})`);
+  console.log(`\nResumen por par · ${path.basename(DATA)} · desde ${FROM} · coste extra ${EXTRA} pips · 1R con stop 10 pips tras el FVG`);
+  console.log(`  ${'par'.padEnd(8)} | 4h borde, todo   | 4h 50 %, toque ≥10h | 1h borde, todo   | 1h borde, toque ≥10h | 1h 50 %, toque ≥10h`);
+  const rows = PAIRS.map((s) => { const P = T.filter((t) => t.sym === s); const f = (tf, mode, late) => P.filter((t) => t.tf === tf && t.entryMode === mode && (!late || t.touchHour >= 10)); const key = f('4h', '50 %', true); return { s, txt: `  ${s.padEnd(8)} | ${cell(f('4h', 'borde', false))} | ${cell(key)} | ${cell(f('1h', 'borde', false))} | ${cell(f('1h', 'borde', true))} | ${cell(f('1h', '50 %', true))}`, score: key.length >= 20 ? mean(key.map((t) => t.r1)) : -9 }; });
+  for (const r of rows.sort((a, b) => b.score - a.score)) console.log(r.txt);
+  const all = T.filter((t) => t.tf === '4h' && t.entryMode === '50 %' && t.touchHour >= 10); console.log(`  ${'TODOS'.padEnd(8)} | 4h 50 % toque ≥10h ${cell(all)} · por año: ` + [...new Set(all.map((t) => t.year))].sort().map((y) => { const Y = all.filter((t) => t.year === y); return `${y}:${pct(Y.filter((t) => t.r1 > 0).length, Y.length).trim()}`; }).join(' '));
+  process.exit(0);
+}
 for (const tf of ['4h', '1h']) {
   const B = T.filter((t) => t.tf === tf && t.entryMode === 'borde'); const H = T.filter((t) => t.tf === tf && t.entryMode === '50 %');
   console.log(`\n==================== FVG ${tf} · ${PAIRS.join('+')} · ${B.length} operaciones (borde) ====================`);

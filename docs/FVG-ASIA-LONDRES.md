@@ -126,3 +126,35 @@ Son números de simulación con stop de 13–18 pips: en real cuenta cada pip.
    nada. La ventaja es de microestructura (retroceso a un desequilibrio reciente), no de dirección.
 4. Preferir FVG con **Asia cerrando a su favor y sin barrido del extremo de ayer**; el 4 h mejor que el 1 h en
    fiabilidad por año, el 1 h da más operaciones.
+
+## 6) Otros pares y ejemplos visuales (24-10-2026)
+
+Regla fija: FVG de 4 h de Asia · entrada al 50 % · stop 10 pips tras el borde lejano · objetivo 1R · toque desde las
+09:00 España · costes reales (spread +1,5 pips y 1,5 pips de deslizamiento). `fvg-asia-mejoras.mjs --resumen --coste-extra 1.5`.
+
+**FXCM, 11 años (2015–2026):** todos los pares positivos; el conjunto 62 % · +0,22R (2.207 operaciones), y **los 12 años
+entre el 56 % y el 73 %**.
+
+| Par | 1R | n | | Par | 1R | n |
+|---|---|---|---|---|---|---|
+| USDCAD | 64 % · +0,25R | 189 | | USDCHF | 63 % · +0,23R | 166 |
+| EURUSD | 64 % · +0,25R | 254 | | GBPNZD | 63 % · +0,22R | 282 |
+| EURNZD | 63 % · +0,24R | 283 | | GBPUSD | 61 % · +0,19R | 201 |
+| USDJPY | 63 % · +0,24R | 270 | | AUDUSD | 60 % · +0,15R | 285 |
+| GBPCAD | 63 % · +0,23R | 160 | | EURGBP | 59 % · +0,15R | 117 |
+
+Con el FVG de 1 h en el borde y toque tardío: USDCAD 67 % · +0,31R, EURUSD 68 % · +0,33R, EURNZD 64 %, USDJPY 62 %;
+EURGBP 54 % (el único flojo).
+
+**MT5, 28 pares, 2024–2026** (muestras de 20–70 operaciones por par, así que el orden entre pares es ruido): conjunto
+62 % · +0,21R (1.232 operaciones; 65 / 63 / 57 % por año). Arriba: AUDCAD, GBPNZD, EURCAD, CHFJPY, EURNZD, EURAUD,
+USDJPY, CADJPY, GBPAUD (68–76 %). Abajo: AUDUSD, EURUSD, AUDCHF, AUDNZD (46–49 %). Que EURUSD salga 64 % en 11 años y
+46 % en estos tres (n=70) es la medida de lo que vale una muestra pequeña: nada.
+
+**Dónde se da mejor**: en los pares con rango de Asia ancho y hueco de 4 h claro (cruces con CAD, NZD y JPY y los mayores
+con USD); peor en los que casi no se mueven en Asia (EURGBP, AUDNZD) o que se mueven demasiado en Asia porque es su
+sesión (AUDUSD, NZDUSD, AUDCHF): ahí el FVG de Asia no es un hueco "dejado", es el movimiento principal.
+
+**Ejemplos** (`fvg-asia-ejemplo.mjs`, SVG en `docs/img/`): 12-03-2026 venta en EURUSD (FVG 1,15543–1,15640, entrada
+1,15592, stop 1,15740, toque 12h, objetivo a las 15h, gana) y 09-10-2026 compra (FVG 1,12173–1,12220, entrada 1,12206,
+stop 1,12073, toque 11h, stop a las 14h, pierde). De 245 días candidatos en EURUSD con esa regla, ganan 152 (62 %).
