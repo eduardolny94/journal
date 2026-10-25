@@ -8,7 +8,7 @@
 //   6S (USDCHF, invertido) y 6J (USDJPY, invertido: USDJPY = 1 / strike). Los cruces (EURGBP, AUDJPY…) no tienen opciones del CME.
 indicator("GTFX · Muros de opciones", overlay = true, max_boxes_count = 80, max_labels_count = 80)
 
-tabla     = input.text_area("XAUUSD | 4146:5, 4091.5:5, 4036.9:5 | 3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4\nEURUSD | | \nGBPUSD | | \nUSDJPY | | ", "Niveles por símbolo (una línea cada uno: SÍMBOLO | calls | puts)")
+tabla     = input.text_area("XAUUSD | 4146:5, 4091.5:5, 4036.9:5 | 3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4\nEURUSD | 1.1250:2, 1.1300:4, 1.1350:4, 1.1400:5, 1.1500:4, 1.1600:5 | \nGBPUSD | | \nUSDJPY | | ", "Niveles por símbolo (una línea cada uno: SÍMBOLO | calls | puts)")
 fecha     = input.string("2026-10-23", "Fecha de los datos (solo informativa)")
 altoPct   = input.float(0.25, "Alto de cada muro (% del precio)", minval = 0.02, maxval = 2, step = 0.05)
 largo     = input.int(300, "Velas hacia atrás", minval = 20, maxval = 2000)
