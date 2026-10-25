@@ -37,3 +37,26 @@ diario**, útil para poner objetivos y stops, no una dirección. La dirección l
 No hay histórico gratuito de interés abierto por strike, así que no se puede backtestear. Plan: anotar cada día en el
 journal los muros que se usen (fecha, strike, estrellas) y, con 2–3 meses, medir si el precio reacciona en ellos más que
 en niveles al azar. Hasta entonces, las estrellas son una opinión, no una probabilidad.
+
+## Primera prueba (25-10-2026): ¿llega el precio a donde marca?
+
+Con los niveles de la captura (calls 4146 / 4091,5 / 4036,9; puts 3982,4 / 3927,8 / 3818,7 / 3764,2; precio 3995,8) solo
+hay datos hasta el cierre del viernes 23: el mercado no ha abierto desde la captura, así que todavía no se puede decir
+nada de esos muros. Se vuelve a mirar el viernes 30.
+
+**Sustituto con muestra** (oro, velas de 1 h de Yahoo, junio 2024 → octubre 2026, 600 días): los muros de opciones casi
+siempre caen en strikes redondos (cada 50 o 100 $). Para cada día se toma el nivel redondo más cercano por encima y por
+debajo de la apertura y se mide si se toca y qué pasa después (rebote de 0,3 % antes de atravesarlo 0,3 %), frente a
+niveles de control desplazados 17 y 31 $ (donde no hay strikes):
+
+| Niveles | Tocado en el día | Tras el toque: rebota | Lo atraviesa |
+|---|---|---|---|
+| redondos cada 100 $ | 35 % | 45 % | 52 % |
+| redondos cada 50 $ | 55 % | 44 % | 54 % |
+| control (cada 50 $ + 17 $) | 56 % | 47 % | 49 % |
+| control (cada 50 $ + 31 $) | 57 % | 47 % | 50 % |
+
+Los niveles redondos no atraen ni frenan al precio más que un nivel cualquiera: el 44–45 % rebota y el 50–54 % los
+atraviesa, igual que los controles. Esto no mide el interés abierto real (ese dato no tiene histórico gratuito), pero
+avisa de que "el precio respeta los strikes" no se sostiene por el número redondo en sí. Para saber si el tamaño del
+interés abierto (las estrellas) añade algo hay que anotar los muros cada día y medirlo hacia delante.
