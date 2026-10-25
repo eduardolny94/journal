@@ -32,7 +32,7 @@ for (let i = 1; i < D.length; i++) {
 }
 const pick = found.filter((x) => x.result === WANT).at(-1); if (!pick) { console.log('sin ejemplo'); process.exit(1); }
 // ---- SVG
-const W = 1180, H = 620, L = 70, R = 150, Tp = 60, Bp = 70; const bars = pick.bars; const n = bars.length; const bw = (W - L - R) / n;
+const W = 1300, H = 640, L = 70, R = 250, Tp = 60, Bp = 70; const bars = pick.bars; const n = bars.length; const bw = (W - L - R) / n;
 const lo = Math.min(...bars.map((b) => b.l), pick.stop) - 8 * pip, hi = Math.max(...bars.map((b) => b.h), pick.target) + 8 * pip; const y = (v) => Tp + (hi - v) / (hi - lo) * (H - Tp - Bp); const x = (i) => L + i * bw + bw / 2;
 const dec = SYM.endsWith('JPY') ? 3 : 5; const fmt = (v) => v.toFixed(dec);
 const idxHour = (h, sameDay = true) => bars.findIndex((b) => b.hour === h && (sameDay ? b.date === pick.date : b.date !== pick.date));
