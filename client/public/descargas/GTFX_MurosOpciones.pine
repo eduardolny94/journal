@@ -10,6 +10,7 @@ indicator("GTFX · Muros de opciones", overlay = true, max_boxes_count = 80, max
 
 tabla     = input.text_area("XAUUSD | 4146:5, 4091.5:5, 4036.9:5 | 3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4\nEURUSD | 1.1250:2, 1.1300:4, 1.1350:4, 1.1400:5, 1.1500:4, 1.1600:5 | \nGBPUSD | | \nUSDJPY | | ", "Niveles por símbolo (una línea cada uno: SÍMBOLO | calls | puts)")
 fecha     = input.string("2026-10-23", "Fecha de los datos (solo informativa)")
+minEst    = input.int(4, "Estrellas mínimas para pintar (menos ruido)", minval = 1, maxval = 5, tooltip = "Solo se dibujan los strikes con al menos estas estrellas. El azul es el más cercano entre los que se pintan.")
 altoPct   = input.float(0.25, "Alto de cada muro (% del precio)", minval = 0.02, maxval = 2, step = 0.05)
 largo     = input.int(300, "Velas hacia atrás", minval = 20, maxval = 2000)
 mostrarEt = input.bool(true, "Mostrar etiquetas")
@@ -78,28 +79,30 @@ if barstate.islast
     array.clear(labels)
     float callCerca = na
     float putCerca = na
-    for v in cpA
-        if v > close and (na(callCerca) or v < callCerca)
+    for [i, v] in cpA
+        if array.get(csA, i) >= minEst and v > close and (na(callCerca) or v < callCerca)
             callCerca := v
-    for v in ppA
-        if v < close and (na(putCerca) or v > putCerca)
+    for [i, v] in ppA
+        if array.get(psA, i) >= minEst and v < close and (na(putCerca) or v > putCerca)
             putCerca := v
     for [i, v] in cpA
-        dibujar(v, array.get(csA, i), colCall, "CALLS", v == callCerca)
+        if array.get(csA, i) >= minEst
+            dibujar(v, array.get(csA, i), colCall, "CALLS", v == callCerca)
     for [i, v] in ppA
-        dibujar(v, array.get(psA, i), colPut, "PUTS", v == putCerca)
+        if array.get(psA, i) >= minEst
+            dibujar(v, array.get(psA, i), colPut, "PUTS", v == putCerca)
     var table t = table.new(position.top_right, 1, 1)
-    txt = not hay ? "Muros de opciones · sin niveles para " + syminfo.ticker + " (añade una línea en los ajustes)" : array.size(cpA) + array.size(ppA) == 0 ? "Muros de opciones · " + syminfo.ticker + " sin niveles cargados" : "Muros de opciones · " + syminfo.ticker + " · datos del " + fecha + (na(callCerca) ? "" : " · call más cercana " + str.tostring(callCerca, format.mintick)) + (na(putCerca) ? "" : " · put más cercana " + str.tostring(putCerca, format.mintick))
+    txt = not hay ? "Muros de opciones · sin niveles para " + syminfo.ticker + " (añade una línea en los ajustes)" : array.size(cpA) + array.size(ppA) == 0 ? "Muros de opciones · " + syminfo.ticker + " sin niveles cargados" : "Muros de opciones · " + syminfo.ticker + " · ≥ " + str.tostring(minEst) + "★ · datos del " + fecha + (na(callCerca) ? "" : " · call más cercana " + str.tostring(callCerca, format.mintick)) + (na(putCerca) ? "" : " · put más cercana " + str.tostring(putCerca, format.mintick))
     table.cell(t, 0, 0, txt, text_color = color.white, bgcolor = color.new(hay ? color.black : color.orange, 30), text_size = size.small)
 
 // alertas: el precio entra en la zona de un muro (±alertaPct)
 bool tocaCall = false
 bool tocaPut = false
-for v in cpA
-    if math.abs(close - v) <= v * alertaPct / 100
+for [i, v] in cpA
+    if array.get(csA, i) >= minEst and math.abs(close - v) <= v * alertaPct / 100
         tocaCall := true
-for v in ppA
-    if math.abs(close - v) <= v * alertaPct / 100
+for [i, v] in ppA
+    if array.get(psA, i) >= minEst and math.abs(close - v) <= v * alertaPct / 100
         tocaPut := true
 alertcondition(tocaCall, "Precio en muro de CALLS", "GTFX: el precio está en un muro de CALLS (resistencia de opciones)")
 alertcondition(tocaPut, "Precio en muro de PUTS", "GTFX: el precio está en un muro de PUTS (soporte de opciones)")
