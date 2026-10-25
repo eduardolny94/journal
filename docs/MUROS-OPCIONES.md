@@ -7,8 +7,13 @@ precio: sale del interés abierto de cierre de cada día, así que **se actualiz
 
 ## Indicador: `client/public/descargas/GTFX_MurosOpciones.pine` (Pine v6)
 
-- Dos campos de texto: CALLS y PUTS con formato `precio:estrellas, precio:estrellas` (estrellas 1–5). Dibuja un muro por
-  nivel, marca en azul el más cercano por arriba y por abajo, y lleva dos alertas ("precio en muro de CALLS/PUTS").
+- Una sola tabla de texto con **una línea por símbolo**: `SÍMBOLO | calls precio:estrellas, … | puts precio:estrellas, …`
+  (estrellas 1–5). El indicador elige sola la línea del par abierto (OANDA:XAUUSD → XAUUSD), dibuja un muro por nivel,
+  marca en azul el más cercano por arriba y por abajo, avisa en naranja si el símbolo no tiene línea, y lleva dos alertas
+  ("precio en muro de CALLS/PUTS"). Instalado en la cuenta de César el 25-10-2026 (script propio, v3).
+- Para divisas las opciones del CME son sobre los futuros 6E (EURUSD), 6B (GBPUSD), 6A (AUDUSD), 6N (NZDUSD), 6C (USDCAD,
+  strike invertido), 6S (USDCHF, invertido) y 6J (USDJPY: USDJPY = 1 / strike). Los cruces (EURGBP, AUDJPY, GBPNZD…) no
+  tienen opciones del CME: ahí no hay muros que poner.
 - Instalación: TradingView → Editor Pine → pegar el archivo → "Añadir al gráfico" (igual que GTFX · Velas de Asia).
 - Actualización diaria (manual, 2 minutos): abrir en el navegador la página pública del CME "Gold Option Volume & Open
   Interest" (cmegroup.com → Markets → Metals → Gold → Volume → Options), elegir el vencimiento más cercano, ordenar por

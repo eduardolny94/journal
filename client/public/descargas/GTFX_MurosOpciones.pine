@@ -1,11 +1,14 @@
 //@version=6
-// GTFX · Muros de opciones — dibuja los strikes con más interés abierto (CALLS por encima = resistencias, PUTS por debajo = soportes)
-// con estrellas según el tamaño del interés abierto. Los datos de opciones se publican una vez al día (cierre del CME);
-// se actualizan pegando los niveles en los campos de entrada. Formato: "precio:estrellas, precio:estrellas" (estrellas 1–5).
-indicator("GTFX · Muros de opciones", overlay = true, max_boxes_count = 60, max_labels_count = 60, max_lines_count = 60)
+// GTFX · Muros de opciones — strikes con más interés abierto (CALLS por encima = resistencias, PUTS por debajo = soportes), con
+// estrellas según el tamaño del interés abierto. Datos de cierre del CME (una vez al día). Una sola tabla sirve para todos los
+// símbolos: una línea por símbolo, y el indicador elige la del gráfico abierto.
+//   Formato por línea:  SIMBOLO | calls: precio:estrellas, precio:estrellas | puts: precio:estrellas, precio:estrellas
+//   Ejemplo:            XAUUSD | 4146:5, 4091.5:5, 4036.9:5 | 3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4
+//   Divisas: las opciones del CME son sobre los futuros 6E (EURUSD), 6B (GBPUSD), 6A (AUDUSD), 6N (NZDUSD), 6C (USDCAD, invertido),
+//   6S (USDCHF, invertido) y 6J (USDJPY, invertido: USDJPY = 1 / strike). Los cruces (EURGBP, AUDJPY…) no tienen opciones del CME.
+indicator("GTFX · Muros de opciones", overlay = true, max_boxes_count = 80, max_labels_count = 80)
 
-callsTxt  = input.text_area("4146.0:5, 4091.5:5, 4036.9:5", "CALLS (resistencias) · precio:estrellas")
-putsTxt   = input.text_area("3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4", "PUTS (soportes) · precio:estrellas")
+tabla     = input.text_area("XAUUSD | 4146:5, 4091.5:5, 4036.9:5 | 3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4\nEURUSD | | \nGBPUSD | | \nUSDJPY | | ", "Niveles por símbolo (una línea cada uno: SÍMBOLO | calls | puts)")
 fecha     = input.string("2026-10-23", "Fecha de los datos (solo informativa)")
 altoPct   = input.float(0.25, "Alto de cada muro (% del precio)", minval = 0.02, maxval = 2, step = 0.05)
 largo     = input.int(300, "Velas hacia atrás", minval = 20, maxval = 2000)
@@ -18,7 +21,7 @@ colCerca  = input.color(color.new(#3e63dd, 55), "Color del muro más cercano")
 estrellas(int n) =>
     n >= 5 ? "★★★★★" : n == 4 ? "★★★★" : n == 3 ? "★★★" : n == 2 ? "★★" : "★"
 
-// parsea "precio:estrellas, precio:estrellas" → dos arrays
+// "precio:estrellas, precio:estrellas" → arrays
 parsear(string txt) =>
     precios = array.new_float()
     niveles = array.new_int()
@@ -34,6 +37,23 @@ parsear(string txt) =>
                 array.push(niveles, math.max(1, math.min(5, st)))
     [precios, niveles]
 
+// busca la línea del símbolo del gráfico (OANDA:XAUUSD → XAUUSD; también vale "GOLD" o "XAU" si se escribe así en la tabla)
+lineaDelSimbolo(string txt) =>
+    string callsTxt = ""
+    string putsTxt = ""
+    bool ok = false
+    tick = str.upper(syminfo.ticker)
+    lineas = str.split(txt, "\n")
+    for l in lineas
+        campos = str.split(l, "|")
+        if array.size(campos) >= 3 and not ok
+            sym = str.upper(str.trim(array.get(campos, 0)))
+            if str.length(sym) > 0 and (sym == tick or str.contains(tick, sym) or str.contains(sym, tick))
+                callsTxt := array.get(campos, 1)
+                putsTxt := array.get(campos, 2)
+                ok := true
+    [ok, callsTxt, putsTxt]
+
 var boxes  = array.new_box()
 var labels = array.new_label()
 
@@ -45,6 +65,10 @@ dibujar(float precio, int st, color col, string tipo, bool cercano) =>
         l = label.new(bar_index - largo + 2, precio, tipo + " " + str.tostring(precio, format.mintick) + " · " + estrellas(st), style = label.style_label_left, color = color.new(col, 10), textcolor = color.white, size = size.small)
         array.push(labels, l)
 
+[hay, callsTxt, putsTxt] = lineaDelSimbolo(tabla)
+[cpA, csA] = parsear(callsTxt)
+[ppA, psA] = parsear(putsTxt)
+
 if barstate.islast
     for b in boxes
         box.delete(b)
@@ -52,37 +76,29 @@ if barstate.islast
     for l in labels
         label.delete(l)
     array.clear(labels)
-    [cp, cs] = parsear(callsTxt)
-    [pp, ps] = parsear(putsTxt)
-    // muro más cercano por encima (call) y por debajo (put)
     float callCerca = na
     float putCerca = na
-    for i = 0 to array.size(cp) - 1
-        v = array.get(cp, i)
+    for v in cpA
         if v > close and (na(callCerca) or v < callCerca)
             callCerca := v
-    for i = 0 to array.size(pp) - 1
-        v = array.get(pp, i)
+    for v in ppA
         if v < close and (na(putCerca) or v > putCerca)
             putCerca := v
-    for i = 0 to array.size(cp) - 1
-        dibujar(array.get(cp, i), array.get(cs, i), colCall, "CALLS", array.get(cp, i) == callCerca)
-    for i = 0 to array.size(pp) - 1
-        dibujar(array.get(pp, i), array.get(ps, i), colPut, "PUTS", array.get(pp, i) == putCerca)
+    for [i, v] in cpA
+        dibujar(v, array.get(csA, i), colCall, "CALLS", v == callCerca)
+    for [i, v] in ppA
+        dibujar(v, array.get(psA, i), colPut, "PUTS", v == putCerca)
     var table t = table.new(position.top_right, 1, 1)
-    table.cell(t, 0, 0, "Muros de opciones · datos del " + fecha + (na(callCerca) ? "" : " · call más cercana " + str.tostring(callCerca, format.mintick)) + (na(putCerca) ? "" : " · put más cercana " + str.tostring(putCerca, format.mintick)), text_color = color.white, bgcolor = color.new(color.black, 30), text_size = size.small)
+    txt = not hay ? "Muros de opciones · sin niveles para " + syminfo.ticker + " (añade una línea en los ajustes)" : array.size(cpA) + array.size(ppA) == 0 ? "Muros de opciones · " + syminfo.ticker + " sin niveles cargados" : "Muros de opciones · " + syminfo.ticker + " · datos del " + fecha + (na(callCerca) ? "" : " · call más cercana " + str.tostring(callCerca, format.mintick)) + (na(putCerca) ? "" : " · put más cercana " + str.tostring(putCerca, format.mintick))
+    table.cell(t, 0, 0, txt, text_color = color.white, bgcolor = color.new(hay ? color.black : color.orange, 30), text_size = size.small)
 
 // alertas: el precio entra en la zona de un muro (±alertaPct)
-[cpA, csA] = parsear(callsTxt)
-[ppA, psA] = parsear(putsTxt)
 bool tocaCall = false
 bool tocaPut = false
-for i = 0 to array.size(cpA) - 1
-    v = array.get(cpA, i)
+for v in cpA
     if math.abs(close - v) <= v * alertaPct / 100
         tocaCall := true
-for i = 0 to array.size(ppA) - 1
-    v = array.get(ppA, i)
+for v in ppA
     if math.abs(close - v) <= v * alertaPct / 100
         tocaPut := true
 alertcondition(tocaCall, "Precio en muro de CALLS", "GTFX: el precio está en un muro de CALLS (resistencia de opciones)")
