@@ -329,6 +329,18 @@ CREATE TABLE IF NOT EXISTS radar_daily_bias (
   PRIMARY KEY(date, symbol)
 );
 
+CREATE TABLE IF NOT EXISTS radar_opciones (
+  fecha TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  root TEXT,
+  vencimiento TEXT,
+  side TEXT NOT NULL,
+  price REAL NOT NULL,
+  oi INTEGER NOT NULL,
+  stars INTEGER NOT NULL,
+  PRIMARY KEY (fecha, symbol, side, price)
+);
+
 CREATE TABLE IF NOT EXISTS radar_news (
   id TEXT PRIMARY KEY,
   title TEXT,

@@ -36,6 +36,7 @@ import { migrateFoundingAdmins } from './services/admin.js';
 import { requireRadarAccess } from './radar/access.js';
 import { startEngine } from './radar/engine.js';
 import { startMesa } from './mesa/index.js';
+import { startMuros } from './radar/opciones.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Carga .env de la raíz del monorepo (y, si existe, el de server/), sin pisar variables ya definidas.
@@ -176,6 +177,11 @@ try {
     startMesa();
   } catch (e) {
     console.warn('[mesa] no se pudo programar:', e.message);
+  }
+  try {
+    startMuros();
+  } catch (e) {
+    console.warn('[muros] no se pudo programar:', e.message);
   }
 } catch (err) {
   console.warn('[radar] no se pudo iniciar el motor:', err.message);

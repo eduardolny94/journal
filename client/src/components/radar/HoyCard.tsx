@@ -2,7 +2,9 @@
 //   1. Intradía · rotura de Asia (AUDCAD, AUDCHF, CADCHF): ¿cumple el radar? ¿qué lado tiene que barrer la vela de las 08:00?
 //   2. Swing H4: pares con la semana alineada y el radar a favor, con el nivel verde-rojo-rojo.
 //   3. Qué operar hoy (los 3 más probables a 5 días).
+import { useEffect, useState } from 'react';
 import { Check, Clock, X } from 'lucide-react';
+import api from '../../lib/api';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/cn';
 import type { Intradia, IntradiaPair, QueOperar, SwingPair, SwingPlan } from '../../lib/radar';
@@ -99,6 +101,50 @@ export default function HoyCard({ intradia, swing, queOperar }: { intradia: Intr
           {best.length === 0 && <li className="px-4 py-4 text-sm text-gray-500">Ningún par con nivel A o B hoy. Sin operación también es una respuesta.</li>}
         </ul>
       </Card>
+      <MurosCard owner />
     </div>
+  );
+}
+
+// ── Muros de opciones (docs/MUROS-OPCIONES.md): strikes con más interés abierto, de Databento, una vez al día ─────────
+type MuroNivel = { price: number; oi: number; stars: number };
+type MurosPar = { symbol: string; root: string; vencimiento: string; calls: MuroNivel[]; puts: MuroNivel[] };
+type Muros = { fecha: string | null; pares: MurosPar[]; pine: string; ultima?: { at: string; errores?: string[] } | null; config?: { auto: boolean; hora: string; tz: string; con_clave: boolean } };
+const stars = (n: number) => '★★★★★'.slice(0, Math.max(1, Math.min(5, n)));
+export function MurosCard({ owner }: { owner: boolean }) {
+  const [data, setData] = useState<Muros | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => api<Muros>('/api/radar/muros').then(setData).catch((e: Error) => setMsg(e.message));
+  useEffect(() => { void load(); }, []);
+  const copiar = async () => { if (!data?.pine) return; try { await navigator.clipboard.writeText(data.pine); setMsg('Tabla copiada: pégala en los ajustes del indicador GTFX · Muros de opciones.'); } catch { setMsg('No se pudo copiar; selecciona el texto de abajo.'); } };
+  const actualizar = async () => { setBusy(true); setMsg(null); try { const r = await api<{ fecha: string; pares: string[]; errores: string[] }>('/api/radar/muros/refresh', { method: 'POST', body: {} }); setMsg(`Descargada la sesión ${r.fecha}: ${r.pares.length} pares${r.errores.length ? ` · ${r.errores.join(' · ')}` : ''}`); await load(); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); } };
+  const sinClave = data?.config && !data.config.con_clave;
+  return (
+    <Card flush title="Muros de opciones" subtitle={data?.fecha ? `Interés abierto del ${data.fecha} (CME vía Databento) · rojo calls, verde puts, ★ tamaño` : 'Sin datos descargados todavía'}>
+      {sinClave && <p className="px-4 py-3 text-sm text-amber-300">Falta la clave de Databento (DATABENTO_API_KEY). Mientras tanto los muros se cargan a mano en el indicador.</p>}
+      <ul className="divide-y divide-border">
+        {data?.pares.map((p) => {
+          const dec = p.symbol.includes('JPY') ? 2 : p.symbol === 'XAUUSD' ? 1 : 4;
+          const top = (arr: MuroNivel[]) => [...arr].sort((a, b) => b.stars - a.stars || b.oi - a.oi).slice(0, 3);
+          return (
+            <li key={p.symbol} className="px-4 py-2.5 text-sm">
+              <div className="flex items-center gap-3"><span className="font-semibold text-white">{p.symbol}</span><span className="text-[11px] text-gray-500">vence {p.vencimiento}</span></div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
+                <span className="text-red-300">calls {top(p.calls).map((x) => `${x.price.toFixed(dec)} ${stars(x.stars)}`).join(' · ') || '—'}</span>
+                <span className="text-emerald-300">puts {top(p.puts).map((x) => `${x.price.toFixed(dec)} ${stars(x.stars)}`).join(' · ') || '—'}</span>
+              </div>
+            </li>
+          );
+        })}
+        {data && data.pares.length === 0 && <li className="px-4 py-4 text-sm text-gray-500">Todavía no hay muros guardados. {owner ? 'Pulsa «Descargar ahora» cuando la clave esté puesta.' : ''}</li>}
+      </ul>
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2">
+        <button type="button" onClick={copiar} disabled={!data?.pine} className="rounded-md border border-border px-3 py-1 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">Copiar tabla para TradingView</button>
+        {owner && <button type="button" onClick={actualizar} disabled={busy || !!sinClave} className="rounded-md border border-border px-3 py-1 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">{busy ? 'Descargando…' : 'Descargar ahora'}</button>}
+        {data?.config && <span className="text-[11px] text-gray-500">{data.config.auto ? `automático a las ${data.config.hora} (${data.config.tz}), martes a sábado` : 'descarga automática apagada'}</span>}
+        {msg && <span className="text-[11px] text-gray-400">{msg}</span>}
+      </div>
+    </Card>
   );
 }

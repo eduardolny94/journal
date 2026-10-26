@@ -20,6 +20,34 @@ precio: sale del interés abierto de cierre de cada día, así que **se actualiz
   "At Close" (interés abierto) en Calls y en Puts, copiar los 3–5 strikes más grandes de cada lado y pegarlos en el
   indicador. Para divisas: las opciones de los futuros 6E (euro), 6B (libra), 6J (yen), 6A (AUD), 6C (CAD), 6S (CHF).
 
+## Automático con Databento (montado el 26-10-2026)
+
+Decisión: **Databento** (databento.com), distribuidor con licencia del CME. Es la vía más barata: sin suscripción, pago por
+uso por volumen descargado, 125 $ de crédito gratis al registrarse (6 meses). Nuestra descarga diaria (definiciones +
+estadísticas de interés abierto de 8 raíces de opciones: 6E, 6B, 6A, 6N, 6C, 6S, 6J y GC) pesa unos KB: céntimos al día
+(`npm run muros -w server -- --coste` lo estima con la clave puesta). Interactive Brokers (bono de 10 $/mes + cuenta) y
+Barchart OnDemand quedan como alternativas; la web del CME no se usa.
+
+Qué hace el journal (`server/src/radar/opciones.js`):
+1. Cada día, martes a sábado a las 09:00 Europe/Madrid (`MUROS_HORA`), descarga la sesión anterior del CME: para cada raíz,
+   el esquema `definition` (strike, call/put, vencimiento) y `statistics` (interés abierto, `stat_type` 9) con símbolos
+   padre `6E.OPT`, etc. Elige el vencimiento con más interés abierto (≥ 3 días por delante), suma por strike y lado, y da
+   estrellas por tamaño relativo (≥ 80 % del mayor = 5★, ≥ 60 % = 4★, ≥ 40 % = 3★, ≥ 20 % = 2★; por debajo no se guarda).
+   En 6J, 6C y 6S invierte el strike (par = 1 / strike) y cruza los lados (una call del futuro es soporte del par).
+2. Guarda en `radar_opciones` y sirve `GET /api/radar/muros` (JSON + texto para el indicador) y `GET /api/radar/muros.txt`.
+   El dueño puede forzar la descarga con `POST /api/radar/muros/refresh` (botón «Descargar ahora» en la pestaña Hoy).
+3. Pestaña Hoy → tarjeta «Muros de opciones»: los 3 strikes más cargados por lado y par, y el botón «Copiar tabla para
+   TradingView» que deja el texto listo para pegar en el campo del indicador. `npm run muros -w server -- --pine`
+   regenera además el archivo `GTFX_MurosOpciones.pine` con la tabla incrustada.
+
+Pasos para César (una vez):
+1. Registrarse en databento.com, ir a *API keys* y crear una clave (empieza por `db-`). Aceptar el acuerdo de datos del
+   CME que pide la plataforma (uso personal, no profesional).
+2. Pegar la clave en el `.env` de la raíz como `DATABENTO_API_KEY=db-…` y en Railway → Variables con el mismo nombre.
+   Reiniciar el servidor. Nunca se imprime ni se envía a ningún otro sitio.
+3. Primera prueba: `npm run muros -w server -- --coste` (cuánto cuesta un día) y `npm run muros -w server` (descarga).
+   Después `--pine` y pegar el archivo en TradingView, o usar el botón de copiar de la pestaña Hoy.
+
 ## Por qué no se automatiza con la web del CME
 
 El 25-10-2026 se probó descargar los datos desde el servidor: el CME devuelve 403 y un aviso explícito de que el uso de

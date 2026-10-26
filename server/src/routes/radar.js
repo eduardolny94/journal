@@ -13,6 +13,7 @@ import { lastBacktest } from '../radar/backtest.js';
 import { runBacktestNow, backtestStatus } from '../radar/engine.js';
 import { getPrices } from '../radar/sources/prices.js';
 import { isOwner } from '../services/admin.js';
+import { leerMuros, tablaPine, actualizarMuros, estadoMuros } from '../radar/opciones.js';
 
 /** El apartado Swing es personal del dueño (13-10-2026): al resto se le envía sin él. */
 function forUser(req, payload) {
@@ -225,6 +226,17 @@ router.get('/pair/:symbol', async (req, res, next) => {
   } catch (err) {
     return next(err);
   }
+});
+
+// Muros de opciones (docs/MUROS-OPCIONES.md): strikes con más interés abierto, por par, de la última sesión descargada.
+router.get('/muros', (req, res) => {
+  const muros = leerMuros(getDb(), typeof req.query.fecha === 'string' ? req.query.fecha : null);
+  res.json({ ...muros, pine: tablaPine(muros), estado: estadoMuros() });
+});
+router.get('/muros.txt', (_req, res) => { res.type('text/plain').send(tablaPine(leerMuros(getDb()))); });
+router.post('/muros/refresh', async (req, res, next) => {
+  if (!isOwner(req.user)) return res.status(403).json({ error: 'Solo el dueño puede actualizar los muros.' });
+  try { const r = await actualizarMuros({ trigger: 'manual', fecha: typeof req.body?.fecha === 'string' ? req.body.fecha : null, log: () => {} }); res.json({ ok: true, fecha: r.fecha, pares: r.pares.map((m) => m.symbol), errores: r.errores }); } catch (e) { if (/DATABENTO_API_KEY|en curso/.test(e.message)) return res.status(409).json({ error: e.message }); next(e); }
 });
 
 export default router;
