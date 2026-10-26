@@ -28,6 +28,15 @@ estadísticas de interés abierto de 8 raíces de opciones: 6E, 6B, 6A, 6N, 6C, 
 (`npm run muros -w server -- --coste` lo estima con la clave puesta). Interactive Brokers (bono de 10 $/mes + cuenta) y
 Barchart OnDemand quedan como alternativas; la web del CME no se usa.
 
+Primera descarga real (26-10-2026, sesión del viernes 23): funcionó para los 8 productos; coste estimado por Databento 0,19 $/día
+con los 8 (0,16 $ es el oro) y 0,03 $/día sin el oro. Con `MUROS_PARES=EURUSD,GBPUSD,USDCHF,XAUUSD` ≈ 0,17 $/día (≈ 3,5 $/mes).
+Detalles aprendidos: las raíces de opciones no son las del futuro (EUU, GBU, ADU, 6N, CAU, CHU, JPU, OG); en el JSON de Databento el
+`instrument_id` va dentro de `hd`; la expiración llega como nanosegundos; el interés abierto de la sesión D se publica el día D+1 a
+las ~02:40 UTC (preliminar) y ~14:05 UTC (final), y el del viernes el domingo a las ~17:30 UTC; el plan de pago por uso solo sirve
+datos con unas horas de retraso (la API dice hasta qué hora), por eso la descarga va a las 09:00 de Madrid y busca la publicación
+en ventanas cortas. Los strikes se limitan a ±6 % del precio (±8 % en el oro) para no premiar "loterías" lejanas con mucho interés
+abierto; el precio sale del radar o, si no lo tiene, de Yahoo.
+
 Qué hace el journal (`server/src/radar/opciones.js`):
 1. Cada día, martes a sábado a las 09:00 Europe/Madrid (`MUROS_HORA`), descarga la sesión anterior del CME: para cada raíz,
    el esquema `definition` (strike, call/put, vencimiento) y `statistics` (interés abierto, `stat_type` 9) con símbolos

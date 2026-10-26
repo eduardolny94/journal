@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ quiet: true, path: path.resolve(__dirname, '..', '..', '.env') });
 dotenv.config({ quiet: true, path: path.resolve(__dirname, '..', '.env') });
 const { getDb, closeDb } = await import('../src/db.js');
-const { actualizarMuros, leerMuros, tablaPine, costeEstimado, configMuros, RAICES, ultimaSesion } = await import('../src/radar/opciones.js');
+const { actualizarMuros, leerMuros, tablaPine, costeEstimado, configMuros, raicesActivas, ultimaSesion } = await import('../src/radar/opciones.js');
 const argOf = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
 const flag = (k) => process.argv.includes(k);
 const db = getDb();
@@ -20,7 +20,7 @@ try {
   if (flag('--coste')) {
     const cfg = configMuros(); if (!cfg.api_key) throw new Error('Falta DATABENTO_API_KEY en .env');
     const fecha = argOf('--fecha', ultimaSesion()); let total = 0;
-    for (const r of RAICES) { const c = await costeEstimado(cfg.api_key, r.root, fecha); const t = (Number(c.definition) || 0) + (Number(c.statistics) || 0); total += t; console.log(`${r.symbol.padEnd(7)} (${r.root}.OPT) definiciones ${c.definition} $ · estadísticas ${c.statistics} $`); }
+    for (const r of raicesActivas()) { const c = await costeEstimado(cfg.api_key, r.root, fecha); const t = (Number(c.definition) || 0) + (Number(c.statistics) || 0); total += t; console.log(`${r.symbol.padEnd(7)} (${r.root}.OPT) definiciones ${c.definition} $ · estadísticas ${c.statistics} $`); }
     console.log(`Total estimado por día: ${total.toFixed(4)} $ (≈ ${(total * 21).toFixed(2)} $/mes)`);
   } else if (flag('--ver') || flag('--pine')) {
     const m = leerMuros(db); if (!m.fecha) { console.log('Sin muros guardados todavía.'); }
