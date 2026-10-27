@@ -102,3 +102,26 @@ Los niveles redondos no atraen ni frenan al precio más que un nivel cualquiera:
 atraviesa, igual que los controles. Esto no mide el interés abierto real (ese dato no tiene histórico gratuito), pero
 avisa de que "el precio respeta los strikes" no se sostiene por el número redondo en sí. Para saber si el tamaño del
 interés abierto (las estrellas) añade algo hay que anotar los muros cada día y medirlo hacia delante.
+
+## Backtest histórico con Databento (26–27 oct 2026): los muros no frenan al precio
+
+`server/scripts/muros-backtest.mjs`: para cada día D, los muros de la sesión D−1 (publicados a las 02:40 UTC de D, antes de
+Londres) frente a las velas de 1 h de D (09–21 h servidor). Muros a ≤ 1 % de la apertura; "rebota" = se aleja 0,25 % antes de
+atravesar 0,25 %. Control: el mismo nivel desplazado 15 pips hacia fuera, donde no hay strike. Octubre 2022 → octubre 2026, unos
+8 $ de crédito; los ~2.600 días de muros quedan guardados en `radar_opciones`.
+
+| Par (días) | Muros tocados: rebota | Control: rebota | 5★ rebota | 2★ rebota |
+|---|---|---|---|---|
+| EURUSD (842) | 33 % | 32 % | 32 % | 31 % |
+| GBPUSD (885) | 36 % | 35 % | 39 % | 35 % |
+| USDCHF (888) | 36 % | 33 % | 34 % | 35 % |
+
+- Al tocar un muro el precio rebota lo mismo que en un nivel cualquiera (diferencia de 1–3 puntos, dentro del ruido).
+- Las estrellas no ordenan nada: un muro de 5★ no rebota más que uno de 2★.
+- "Llega" sale mayor en los muros (26–32 %) que en el control (17–19 %) solo porque el control está 15 pips más lejos.
+- Lo único estable es la distancia: un muro a menos del 0,3 % de la apertura se toca el 62–72 % de los días, a 0,6–1 % el 6–8 %.
+  Es geometría, no opciones.
+
+Conclusión: en EURUSD, GBPUSD y USDCHF los muros de interés abierto del CME **no tienen ventaja medible** como soporte o
+resistencia intradía. Gamma, max pain o movimiento esperado no arreglan una señal que no aparece en el dato base. El oro queda sin
+medir (14 $/año de histórico). El indicador sirve como mapa de dónde está el interés, no para operar rebotes.
