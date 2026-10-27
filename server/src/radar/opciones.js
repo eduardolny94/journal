@@ -102,10 +102,13 @@ const estrellas = (oi, max) => (oi >= 0.8 * max ? 5 : oi >= 0.6 * max ? 4 : oi >
  * Descarga definiciones y estadísticas de una raíz para la sesión `fecha` y devuelve los muros del vencimiento con más
  * interés abierto: { symbol, root, fecha, vencimiento, calls: [{price, oi, stars}], puts: [...] }.
  */
-export async function murosDeRaiz(key, raiz, fecha, { log = () => {}, precioVivo = null } = {}) {
+export async function murosDeRaiz(key, raiz, fecha, { log = () => {}, precioVivo = null, defsCache = null } = {}) {
   // Definiciones: el CME las publica a las 00:00 UTC de cada día de negociación (se toman las del siguiente al de la sesión).
   let sigD = addDays(new Date(`${fecha}T00:00:00Z`), 1); while ([0, 6].includes(sigD.getUTCDay())) sigD = addDays(sigD, 1); const sig = fmtDate(sigD);
-  const defs = await getRange(key, { symbols: `${raiz.root}.OPT`, schema: 'definition', start: `${sig}T00:00:00`, end: `${sig}T00:30:00` });
+  // Las definiciones (strike, call/put, vencimiento) cambian poco: en backtests se reutilizan hasta 7 días (defsCache por raíz).
+  let defs = null; const cached = defsCache && defsCache[raiz.root];
+  if (cached && Math.abs(new Date(sig) - new Date(cached.sig)) <= 7 * 864e5) defs = cached.defs;
+  else { defs = await getRange(key, { symbols: `${raiz.root}.OPT`, schema: 'definition', start: `${sig}T00:00:00`, end: `${sig}T00:30:00` }); if (defsCache) defsCache[raiz.root] = { sig, defs }; }
   // Interés abierto: se publica después del cierre (madrugada siguiente; el del viernes, el domingo por la tarde). Se recorren
   // ventanas de 2 h desde el cierre de la sesión hasta encontrar filas con ts_ref = sesión (así el oro no pesa cientos de MB).
   const stats = []; const refDia = (s) => new Date(Number(s.ts_ref) / 1e6).toISOString().slice(0, 10);
@@ -168,7 +171,7 @@ export async function actualizarMuros({ fecha = null, log = (s) => console.log('
   } finally { state.running = false; }
 }
 
-function guardar(db, m) {
+export function guardar(db, m) {
   const del = db.prepare('DELETE FROM radar_opciones WHERE fecha = ? AND symbol = ?'); const ins = db.prepare('INSERT INTO radar_opciones (fecha, symbol, root, vencimiento, side, price, oi, stars) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   db.exec('BEGIN'); try { del.run(m.fecha, m.symbol); for (const side of ['calls', 'puts']) for (const r of m[side]) ins.run(m.fecha, m.symbol, m.root, m.vencimiento, side === 'calls' ? 'call' : 'put', r.price, r.oi, r.stars); db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; }
 }
