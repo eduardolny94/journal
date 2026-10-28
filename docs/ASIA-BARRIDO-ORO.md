@@ -68,6 +68,25 @@ Asia estrecha (n = 318): 2R 30 %, R̄ +0,03. Por año el R medio a 2R va de −0
 estable**. La vuelta al medio es muy frecuente (64–76 %) pero el stop (la mecha de la barrida) es casi tan grande como
 el recorrido hasta el medio, así que lo que se gana en acierto se pierde en tamaño.
 
+## Variantes de entrada medidas en M30/M15 (`asia-barrido-entradas.mjs`)
+
+Mismas barridas, velas nativas de 30 min (2018→) y 15 min (2022→). Señal = primera vela que cierra dentro en ≤ 3 h
+(80–85 % de las barridas; mecha mediana 8–11 % del rango, es decir, el oro apenas se pasa del nivel).
+
+| Variante | n | riesgo mediano | 1R | 2R | R̄ 2R |
+|---|---|---|---|---|---|
+| cierre de la vela que vuelve dentro, stop en el extremo + spread | 1.735 | 2,9 $ | 42 % | 26 % | −0,05 |
+| igual, stop fijo a 0,5 × rango de Asia (el menor) | 1.735 | 2,8 $ | 44 % | 28 % | −0,03 |
+| retest del nivel barrido (límite 4 h), stop en el extremo | 1.424 | 1,4 $ | 31 % | 22 % | −0,24 |
+
+Lección del retest: con un stop de 1–2 $ la vela de 30 min que toca el nivel toca casi siempre también el stop; si
+se asume lo mejor (orden a favor) sale +0,3R, si se asume lo peor sale −0,24R. **Con velas de 30/15 min no se puede
+medir una entrada tan ajustada**; lo honesto es decir que no hay prueba. Por año, ninguna variante con stop en el
+extremo es positiva de forma estable (R̄ 2R de −0,16 a +0,08).
+
+Pistas con n pequeño (no adoptables): mecha larga (> 50 % del rango) con stop fijo 0,5 × rango: 1R 61 %, R̄ +0,26
+(n = 94); barrida a las 14–17 h servidor: llega al otro lado 40–42 % (n = 159).
+
 ## Conclusión
 
 - Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la
@@ -75,7 +94,8 @@ el recorrido hasta el medio, así que lo que se gana en acierto se pierde en tam
 - La señal que de verdad avisa de la vuelta es **que la vela H1 de la barrida cierre de vuelta dentro** (76 % vuelve;
   si en 3 velas no ha vuelto, lo normal es que siga: 48 %). Asia estrecha y barrida en contra del cierre de Asia ayudan;
   barrer además el alto/bajo del día anterior o un rango de Asia ancho hacen más probable que siga.
-- Como estrategia con stop en la mecha no paga (R̄ ≈ 0 en todos los cortes). Sirve como contexto: no perseguir la
+- Como estrategia con stop en la mecha no paga (R̄ ≈ 0 en todos los cortes), y el retest ajustado no se puede
+  demostrar con velas de 15–30 min. Sirve como contexto: no perseguir la
   ruptura del rango de Asia en la apertura de Londres hasta ver dónde cierra esa vela.
 - Desde 2025 el patrón vuelve menos (50–52 %): la tendencia del oro pesa más que el rango de Asia.
 
