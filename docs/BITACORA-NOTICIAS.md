@@ -82,3 +82,17 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
   diciembre por el empleo (NFP 29 k). Escenarios en la respuesta al usuario (largo en USDCHF).
 - Pendiente: texto del comunicado, confirmación 2 años → DXY → oro/Nasdaq → petróleo, FedWatch antes → después y tono
   manual con nota.
+- **Decisión (19:00):** mantiene 3,75–4,00 %, votación **10–2** (Cook y Hammack querían subir 25 pb). Comunicado: actividad
+  «expandiéndose a un ritmo fuerte» (antes «sólido»), inflación «elevada», esperará más información. Rueda de prensa
+  (Warsh): «no creo en la forward guidance salvo circunstancias extremas», «no prejuzgo reuniones»; el endurecimiento de
+  las condiciones financieras desde septiembre es «modesto»; menos reuniones a partir de 2027.
+- **Descontado después:** CME FedWatch diciembre subida **85 %** (78 % el día antes); lectura automática del radar 95,8 %
+  (futuros 2026-12; no se movió). No hay reunión en noviembre: la siguiente es el 8–9 de diciembre.
+- **Reacción (19:00 → 22:55 Madrid):** 2 años 4,74 → **4,71 %** (−3 pb); 10 años **5,02 → 5,045 %** (sube: curva se
+  empina); DXY 102,32 → 102,13 (−0,18 %, por debajo del mínimo del día previo a la decisión); EURUSD +15 pips (1,1157);
+  USDCHF 0,8296 → 0,8276 (−20 pips); oro +0,7 % (4.081); Nasdaq −0,4 %; petróleo −0,7 %.
+- **Lectura:** mantener con dos disidentes halcones es halcón en el papel, pero sin compromiso con diciembre y con
+  «modesto» el mercado lo leyó como *menos* halcón de lo descontado: tramo corto abajo, dólar abajo, oro arriba. El
+  tramo largo sube por prima de plazo (empinamiento), no por la Fed: no ayuda al dólar. **Tono manual: +1 halcón, sin
+  cambio** (la dirección sigue siendo subida en diciembre; el matiz es que la Fed no la ha prometido).
+- Próximo catalizador real: nóminas (6-nov) e IPC de octubre; diciembre se decide con datos, no con discursos.
