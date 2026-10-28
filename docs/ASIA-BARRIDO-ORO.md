@@ -133,6 +133,23 @@ el oro barre su lado de Asia, la plata aún no ha barrido el suyo. Pasa el 51–
 Por año el signo cambia (2023–2024 SMT algo mejor, 2025 mucho peor, 2026 igual). **La divergencia con la plata no
 separa los días que vuelven de los que siguen**: diferencia de 0–5 puntos que se invierte entre muestras. Descartado.
 
+## Sesgo y noticias (`asia-barrido-sesgo.mjs`, M30 2018–2026, 2.173 barridas)
+
+«A favor» = la vuelta tras la barrida va en la dirección del sesgo (p. ej. barre el bajo y el sesgo es alcista).
+
+| Sesgo | a favor: vuelve al medio / A 2R / R̄ 2R | en contra: vuelve / 2R / R̄ 2R |
+|---|---|---|
+| diario (cierre de ayer fuera del rango de anteayer) | 57 % / 26 % / −0,05 (n = 537) | 58 % / 28 % / 0,00 (n = 501) |
+| semanal | 57 % / 25 % / −0,08 | 55 % / 26 % / −0,06 |
+| EMA200 de 1 h | 58 % / 25 % / −0,09 (n = 842) | 56 % / 27 % / −0,03 (n = 1.330) |
+| dólar del radar (USD fuerte → oro bajista), desde 10-2023 | 56 % / 26 % / −0,09 (n = 192) | 48 % / 25 % / −0,11 (n = 159) |
+| diario + semanal + EMA200 a favor | 55 % / 26 % / −0,04 (n = 156) | — |
+
+Ningún sesgo separa nada (0–3 puntos, R̄ ≈ 0 en ambos lados, y por año cambia de signo). Noticias de alto impacto
+USD (calendario desde 2023): día con noticia 53 % vuelve / R̄ −0,11 frente a día sin noticia 51 % / −0,02; la
+barrida antes de una noticia posterior no cambia nada (55 %, −0,10). Lo único claro: **noticia en ±1 h de la barrida**
+→ 1R 17 %, R̄ −0,31 (n = 22; ya salió n = 25 con el H1): no operar la vuelta pegada a una noticia.
+
 ## Conclusión
 
 - Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la
@@ -146,7 +163,8 @@ separa los días que vuelven de los que siguen**: diferencia de 0–5 puntos que
   vigilar, no adoptable todavía por la regla de la casa. Sirve como contexto: no perseguir la
   ruptura del rango de Asia en la apertura de Londres hasta ver dónde cierra esa vela.
 - Desde 2025 el patrón vuelve menos (50–52 %): la tendencia del oro pesa más que el rango de Asia.
-- El SMT oro/plata no distingue las barridas que vuelven de las que siguen (medido en M15 y M5).
+- El SMT oro/plata no distingue las barridas que vuelven de las que siguen (medido en M15 y M5). Tampoco el sesgo
+  diario, semanal, la EMA200 de 1 h ni el dólar del radar; solo hay que evitar la barrida en ±1 h de una noticia USD.
 
 Comandos: `node server/scripts/asia-barrido.mjs --archivo data/mt5-largo/XAUUSD_M30.csv --simbolo XAUUSD`
 (o `--dir data/mt5 --pares XAUUSD` con los 17 meses del servicio RadarPrecios).
