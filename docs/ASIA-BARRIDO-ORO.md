@@ -1,0 +1,83 @@
+# Barridas del alto/bajo de Asia en el oro (XAUUSD)
+
+Pedido del usuario (28-10-2026): «cuántas veces se lleva un alto o bajo de Asia, a qué reacciona y cuándo cambia de
+dirección». Script: `server/scripts/asia-barrido.mjs`. Datos: exportación M30 de su MT5 (Wine, bróker NY+7) agregada a
+H1, **2018-02-27 → 2026-10-27, 2.231 días** (`data/mt5-largo/XAUUSD_M30.csv`, fuera de git; también hay M15 desde
+2022-08 y H4 desde 2015-10). Con los 17 meses de `data/mt5` sale lo mismo.
+
+Definiciones (hora de servidor = NY + 7): Asia = 02–08 (≈ 01:00–08:00 Madrid); resto del día = 09–23.
+«Medio» = vuelve al medio del rango de Asia antes de alejarse 1 rango más; «sigue» = se aleja 1 rango antes de volver.
+
+## Cuántas veces
+
+| | |
+|---|---|
+| Se lleva un lado de Asia | **97 % de los días** (alto primero 52 %, bajo primero 46 %) |
+| Se lleva los dos lados en el día | 36 % |
+| Hora de la primera barrida | 09 h servidor (apertura de Londres) 50 %; 10 h 15 %; 11–13 h 24 %; 14–15 h 8 %; después 3 % |
+| Rango de Asia mediano | 10,1 $ · pasada máxima mediana más allá del nivel 4,2 $ (39 % del rango) |
+
+## Qué pasa después (2.173 barridas)
+
+| Después de llevarse el nivel… | % |
+|---|---|
+| vuelve al medio del rango antes de seguir 1 rango | **64 %** |
+| llega al otro extremo de Asia | 36 % |
+| sigue ≥ 1 rango sin volver al medio | 23 % |
+| el día cierra de vuelta dentro del rango | 50 % |
+| no vuelve al medio en todo el día | 31 % |
+
+Cuando vuelve al medio tarda 1 h (mediana) desde la vela de la barrida.
+
+## A qué reacciona (lo que cambia la probabilidad de volver al medio)
+
+| Condición | n | vuelve al medio | otro lado | sigue ≥ 1 rango |
+|---|---|---|---|---|
+| **vela H1 de la barrida cierra dentro del rango** | 1.123 | **76 %** | 42 % | 14 % |
+| vela de la barrida cierra fuera | 1.050 | 52 % | 30 % | 33 % |
+| no vuelve dentro en 3 velas | 633 | 36 % | 19 % | **48 %** |
+| **Asia estrecha** (≤ 0,7 × mediana 20 d) | 427 | 73 % | **56 %** | 25 % |
+| Asia ancha (≥ 1,3 × mediana) | 509 | 50 % | 19 % | 21 % |
+| barre también el alto/bajo del día anterior | 831 | 56 % | 30 % | 29 % |
+| no barre el del día anterior | 1.342 | 69 % | 40 % | 20 % |
+| barrida en contra del cierre de Asia | 588 | 72 % | 38 % | 16 % |
+| barrida a favor del cierre de Asia | 1.584 | 61 % | 36 % | 26 % |
+| barrida a las 14–17 h (NY) + cierra dentro | 107 | 73 % | 23 % | 4 % |
+| noticia de alto impacto USD en esa hora (solo 2023→) | 25 | 40 % | 16 % | 24 % |
+
+Lo que **no** cambia nada: dirección del día anterior (64 / 64 %), lado alto o bajo (63 / 65 %), día de la semana
+(60–71 %), hora 09 frente a 10–13 (65–66 %).
+
+Por año: 2018–2024 entre 63 y 71 % de vuelta al medio; **2025 52 % y 2026 50 %** (el oro en tendencia fuerte vuelve
+menos: «sigue» no sube, pero «otro lado» cae a 23–28 %).
+
+## ¿Se puede operar la vuelta?
+
+Entrada al cierre de la primera vela H1 que vuelve dentro del rango (la de la barrida si cierra dentro, máximo 3 velas),
+stop en el extremo de la barrida + 0,3 $ de spread, cierre a las 23:00 si no toca nada. n = 1.622.
+
+| Objetivo | acierto | R medio |
+|---|---|---|
+| 1R | 42 % | — |
+| 2R | 25 % | −0,05 |
+| medio del rango | 50 % | −0,05 |
+| otro extremo de Asia | — | −0,03 |
+
+Mejores recortes: barrida a las 09–10 h + cierra dentro + barre el día anterior (n = 238): 1R 50 %, 2R 32 %, R̄ +0,01;
+Asia estrecha (n = 318): 2R 30 %, R̄ +0,03. Por año el R medio a 2R va de −0,21 (2022) a +0,13 (2020): **sin ventaja
+estable**. La vuelta al medio es muy frecuente (64–76 %) pero el stop (la mecha de la barrida) es casi tan grande como
+el recorrido hasta el medio, así que lo que se gana en acierto se pierde en tamaño.
+
+## Conclusión
+
+- Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la
+  apertura de Londres, y en 2 de cada 3 vuelve al medio del rango en la hora siguiente.
+- La señal que de verdad avisa de la vuelta es **que la vela H1 de la barrida cierre de vuelta dentro** (76 % vuelve;
+  si en 3 velas no ha vuelto, lo normal es que siga: 48 %). Asia estrecha y barrida en contra del cierre de Asia ayudan;
+  barrer además el alto/bajo del día anterior o un rango de Asia ancho hacen más probable que siga.
+- Como estrategia con stop en la mecha no paga (R̄ ≈ 0 en todos los cortes). Sirve como contexto: no perseguir la
+  ruptura del rango de Asia en la apertura de Londres hasta ver dónde cierra esa vela.
+- Desde 2025 el patrón vuelve menos (50–52 %): la tendencia del oro pesa más que el rango de Asia.
+
+Comandos: `node server/scripts/asia-barrido.mjs --archivo data/mt5-largo/XAUUSD_M30.csv --simbolo XAUUSD`
+(o `--dir data/mt5 --pares XAUUSD` con los 17 meses del servicio RadarPrecios).

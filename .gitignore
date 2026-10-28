@@ -13,3 +13,4 @@ server/data/*.log
 README.tmp
 
 .node/
+data/mt5-largo/
