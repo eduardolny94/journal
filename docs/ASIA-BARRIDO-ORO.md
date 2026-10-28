@@ -108,6 +108,13 @@ Mejor a las 10–13 h (+0,31, n = 105) y sin barrida del día anterior (+0,22, n
 Con M1 en los últimos 3 meses: el retest sale igual de negativo con o sin ambigüedad (−0,13; la vela de 1 min ya
 resuelve el stop), y el FVG de 1 min no sirve (−0,27): el hueco útil es el de 5 min, no el de 1.
 
+### La variante del usuario (28-10-2026): stop en el último bajo, objetivo 1:3
+
+Es la entrada A (cierre de vuelta dentro, stop detrás del extremo de la barrida) con objetivo 3R. Medido en M5:
+3R se alcanza el **21 %** (hace falta 25 % para empatar) → R̄ a 3R −0,01; por trimestres alterna (−0,23, +0,12,
+−0,19, +0,26, −0,18, −0,07, +0,12). Si antes de volver dentro **acumula fuera ≥ 15 min** (como su operación de hoy):
+n = 56, 1R 52 %, 3R 18 %, R̄ 3R +0,15; con hora 09–13 n = 45, R̄ +0,20. Pista, no prueba (n pequeño).
+
 ## Conclusión
 
 - Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la

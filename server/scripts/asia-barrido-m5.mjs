@@ -43,19 +43,19 @@ const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : nul
 /** Simula desde la vela `from` una entrada en `entry` con `stop`; objetivos con spread. Devuelve R por objetivo. */
 function sim(rest, dir, entry, stop, from, mid, opp) {
   const risk = Math.abs(entry - stop); if (!(risk > 0)) return null;
-  const tg = { r1: entry + dir * risk, r2: entry + dir * 2 * risk, mid, opp };
+  const tg = { r1: entry + dir * risk, r2: entry + dir * 2 * risk, r3: entry + dir * 3 * risk, mid, opp };
   for (const k of Object.keys(tg)) tg[k] += dir * SPREAD;
   const out = {}; let last = entry;
   for (const b of rest.slice(from)) {
     last = b.c;
     const hitStop = dir > 0 ? b.l <= stop : b.h >= stop;
     for (const [k, t] of Object.entries(tg)) if (out[k] === undefined) { const hit = dir > 0 ? b.h >= t : b.l <= t; if (hitStop) out[k] = -1; else if (hit) out[k] = (dir * (t - entry)) / risk; }
-    if (Object.keys(out).length === 4) break;
+    if (Object.keys(out).length === 5) break;
   }
   for (const k of Object.keys(tg)) if (out[k] === undefined) out[k] = Math.max(-1, (dir * (last - entry)) / risk);
   return { ...out, risk };
 }
-const LOSS = (risk) => ({ r1: -1, r2: -1, mid: -1, opp: -1, risk });
+const LOSS = (risk) => ({ r1: -1, r2: -1, r3: -1, mid: -1, opp: -1, risk });
 
 const T = []; const ranges = [];
 for (let i = 1; i < days.length; i++) {
@@ -138,12 +138,12 @@ const VARS = ['A_cierre', 'B_retest_pes', 'B_retest_opt', 'C_fvg_pes', 'C_fvg_op
 function table(label, S) {
   if (S.length < 15) return;
   console.log(`\n${label}  (barridas = ${S.length})`);
-  console.log('  variante              n    riesgo$  1R    2R    medio  otro | R̄ 1R   R̄ 2R   R̄ medio R̄ otro');
+  console.log('  variante              n    riesgo$  1R    2R    3R    medio  otro | R̄ 1R   R̄ 2R   R̄ 3R   R̄ medio R̄ otro');
   for (const v of VARS) {
     const X = S.map((t) => t.v[v]).filter(Boolean); if (X.length < 10) continue;
     const wr = (k, thr) => pct(X.filter((x) => x[k] >= thr).length, X.length).padStart(5);
     const rb = (k) => avg(X.map((x) => x[k])).toFixed(2).padStart(6);
-    console.log(`  ${v.padEnd(20)} ${String(X.length).padStart(4)}  ${med(X.map((x) => x.risk)).toFixed(1).padStart(6)}  ${wr('r1', 1)} ${wr('r2', 2)} ${wr('mid', 0.001)} ${wr('opp', 0.001)} | ${rb('r1')} ${rb('r2')} ${rb('mid')}  ${rb('opp')}`);
+    console.log(`  ${v.padEnd(20)} ${String(X.length).padStart(4)}  ${med(X.map((x) => x.risk)).toFixed(1).padStart(6)}  ${wr('r1', 1)} ${wr('r2', 2)} ${wr('r3', 3)} ${wr('mid', 0.001)} ${wr('opp', 0.001)} | ${rb('r1')} ${rb('r2')} ${rb('r3')} ${rb('mid')}  ${rb('opp')}`);
   }
 }
 table('Todas las barridas', T);
@@ -156,10 +156,14 @@ table('No barre el día anterior', T.filter((t) => !t.pdSweep));
 table('Barre también el día anterior', T.filter((t) => t.pdSweep));
 table('Cierra dentro en ≤ 15 min', T.filter((t) => t.signal && t.minsToSignal <= 15));
 table('Tarda > 30 min en cerrar dentro', T.filter((t) => t.signal && t.minsToSignal > 30));
+table('Acumula fuera ≥ 15 min antes de cerrar dentro', T.filter((t) => t.signal && t.minsToSignal >= 15));
+table('Acumula fuera ≥ 15 min + hora 09–13', T.filter((t) => t.signal && t.minsToSignal >= 15 && t.hour <= 13));
 table('FVG pequeño (≤ 10 % del rango)', T.filter((t) => t.fvg && t.fvgR <= 0.1));
 table('FVG grande (> 10 % del rango)', T.filter((t) => t.fvg && t.fvgR > 0.1));
-console.log('\nPor trimestre (A_cierre / C_fvg_pes / D_choch): n · 2R % · R̄ 2R');
 const q = (ym) => `${ym.slice(0, 4)}-T${Math.ceil(Number(ym.slice(5, 7)) / 3)}`;
+console.log('\nPor trimestre, A_cierre a 3R: n · 3R % · R̄ 3R');
+for (const Q of [...new Set(T.map((t) => q(t.ym)))]) { const X = T.filter((t) => q(t.ym) === Q && t.v.A_cierre).map((t) => t.v.A_cierre); console.log(`  ${Q}  ${String(X.length).padStart(3)} ${pct(X.filter((x) => x.r3 >= 3).length, X.length).padStart(5)} ${avg(X.map((x) => x.r3)).toFixed(2).padStart(6)}`); }
+console.log('\nPor trimestre (A_cierre / C_fvg_pes / D_choch): n · 2R % · R̄ 2R');
 for (const Q of [...new Set(T.map((t) => q(t.ym)))]) {
   const S = T.filter((t) => q(t.ym) === Q);
   const cell = (v) => { const X = S.map((t) => t.v[v]).filter(Boolean); return X.length ? `${String(X.length).padStart(3)} ${pct(X.filter((x) => x.r2 >= 2).length, X.length).padStart(5)} ${avg(X.map((x) => x.r2)).toFixed(2).padStart(6)}` : '        —      '; };
