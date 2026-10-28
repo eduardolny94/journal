@@ -98,13 +98,27 @@ async function descargarDia(date) {
 
 // ---------- precios del par (MT5) ----------
 function cargarVelas() {
-  const largo = path.join(ROOT, 'data', 'mt5-largo', `${P.pair}_M30.csv`), corto = path.join(ROOT, 'data', 'mt5', `${P.pair}_PERIOD_H1.csv`), fx = path.join(ROOT, 'data', 'mt5-fxcm', `${P.pair}_PERIOD_H1.csv`);
-  const file = existsSync(largo) ? largo : existsSync(fx) ? fx : corto; if (!existsSync(file)) throw new Error(`sin velas para ${P.pair}`);
+  // Historia larga (M30 exportado o FXCM H1) completada con el H1 reciente del servicio RadarPrecios (data/mt5).
+  const candidatos = [path.join(ROOT, 'data', 'mt5-largo', `${P.pair}_M30.csv`), path.join(ROOT, 'data', 'mt5-fxcm', `${P.pair}_PERIOD_H1.csv`), path.join(ROOT, 'data', 'mt5', `${P.pair}_PERIOD_H1.csv`)].filter(existsSync);
+  if (!candidatos.length) throw new Error(`sin velas para ${P.pair}`);
   const days = new Map();
-  for (const line of readFileSync(file, 'utf8').trim().split(/\r?\n/)) {
-    if (/^[<a-z]/i.test(line)) continue; const tab = line.includes('\t'); const f = tab ? line.split('\t') : line.split(',');
-    const d = (tab ? f[0] : f[0].split(' ')[0]).replace(/\./g, '-'); const hm = tab ? f[1] : f[0].split(' ')[1]; const [o, h, l, c] = (tab ? f.slice(2, 6) : f.slice(1, 5)).map(Number);
-    if (!Number.isFinite(c)) continue; (days.get(d) || days.set(d, []).get(d)).push({ hm: hm.slice(0, 5), o, h, l, c });
+  for (const file of candidatos) {
+    const nuevo = new Map();
+    for (const line of readFileSync(file, 'utf8').trim().split(/\r?\n/)) {
+      if (/^[<a-z]/i.test(line)) continue; const tab = line.includes('\t'); const f = tab ? line.split('\t') : line.split(',');
+      const d = (tab ? f[0] : f[0].split(' ')[0]).replace(/\./g, '-'); const hm = tab ? f[1] : f[0].split(' ')[1]; const [o, h, l, c] = (tab ? f.slice(2, 6) : f.slice(1, 5)).map(Number);
+      if (!Number.isFinite(c)) continue; (nuevo.get(d) || nuevo.set(d, []).get(d)).push({ hm: hm.slice(0, 5), o, h, l, c });
+    }
+    for (const [d, bars] of nuevo) if (!days.has(d) || bars.length > days.get(d).length) days.set(d, bars);
+  }
+  // Los días que faltan al final (el servicio de MT5 se quedó atrás) se completan con velas horarias de Yahoo
+  // (EURUSD=X, GC=F…), pasadas a hora de servidor (Nueva York + 7).
+  const yh = path.join(ROOT, 'data', 'yahoo', `${P.pair}_60m.json`);
+  if (existsSync(yh)) {
+    const y = JSON.parse(readFileSync(yh, 'utf8'));
+    const nuevo = new Map();
+    for (const b of y) { const t = new Date(b.t * 1000); const srv = new Date(t.getTime() + nyOffsetMs(t.toISOString().slice(0, 10)) + 7 * 3600_000); const d = srv.toISOString().slice(0, 10); (nuevo.get(d) || nuevo.set(d, []).get(d)).push({ hm: srv.toISOString().slice(11, 16), o: b.o, h: b.h, l: b.l, c: b.c }); }
+    for (const [d, bars] of nuevo) if (!days.has(d) && bars.length >= 18) days.set(d, bars);
   }
   return days;
 }
