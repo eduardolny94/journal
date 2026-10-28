@@ -150,6 +150,47 @@ USD (calendario desde 2023): día con noticia 53 % vuelve / R̄ −0,11 frente a
 barrida antes de una noticia posterior no cambia nada (55 %, −0,10). Lo único claro: **noticia en ±1 h de la barrida**
 → 1R 17 %, R̄ −0,31 (n = 22; ya salió n = 25 con el H1): no operar la vuelta pegada a una noticia.
 
+## Acierto (WR) en Londres, con riesgo fijo del 1 % (28-10-2026)
+
+El usuario arriesga un 1 % por operación en pruebas de fondeo: el tamaño del stop en $ da igual, lo que cuenta es el
+acierto a cada múltiplo. Entrada A (cierre de vuelta dentro, stop detrás del extremo), barridas de **09–13 h**.
+
+| Corte (M30, 2018–2026) | n | otro lado de Asia | 1R | **1:2** | 1:3 | R̄ 2R |
+|---|---|---|---|---|---|---|
+| todas las barridas de Londres | 1.556 | 27 % | 43 % | **27 %** | 20 % | −0,06 |
+| Asia estrecha | 331 | 34 % | 46 % | 30 % | 22 % | +0,01 |
+| Asia estrecha + no barre el día anterior | 253 | 36 % | 47 % | 31 % | 24 % | +0,04 |
+| acumula fuera ≥ 15 min antes de volver | 545 | 37 % | 46 % | 26 % | 17 % | −0,02 |
+
+| Corte (M5, 2025–2026) | n | otro lado | 1R | **1:2** | 1:3 | R̄ 2R |
+|---|---|---|---|---|---|---|
+| todas las barridas de Londres | 248 | 14 % | 45 % | 30 % | 23 % | −0,05 |
+| no barre el día anterior | 146 | 14 % | 50 % | 36 % | 27 % | +0,12 |
+| Asia estrecha + no barre el día anterior | 46 | 15 % | 52 % | **46 %** | 28 % | +0,45 |
+| acumula ≥ 15 min + no barre el día anterior | 17 | 35 % | 65 % | 47 % | 29 % | +0,60 |
+
+Para ser rentable a 1:2 hace falta > 33 % de acierto. Con 8,7 años el mejor corte llega al 31 %; con 17 meses en M5
+el corte «Asia estrecha + no barre el día anterior» da 46 % pero con n = 46. **Llega al otro lado de Asia** (ida y
+vuelta completa) solo el 27–37 % de las barridas de Londres.
+
+## Qué dice la literatura (SSRN, 2026) y dos anomalías probadas en el oro
+
+- Mahadzva, *Smart Money or Costly Folklore? A Systematic Evaluation of ICT/SMC Trading Rules in G10 FX* (SSRN
+  7430998, 2026): seis reglas ICT en EURUSD/GBPUSD/AUDUSD/USDJPY intradía con walk-forward, bootstrap y holdout. Las
+  tres reglas de barrida (máximos iguales, order blocks y **rango asiático**) coinciden en 65 de 66 selecciones en que
+  el nivel barrido **predice continuación, no la vuelta** de manual. La única con señal es CHoCH + FVG en EURUSD H1
+  **operada al revés** (fade): p = 0,019, holdout +19 %, 60 operaciones, factor de beneficio 1,5; y aun esa falla
+  el filtro de pruebas múltiples en la mayoría de combinaciones.
+- Costa, *The Illusion of Breakouts* (SSRN 6592020, 2026): 2016–2026, 3.800 rupturas del rango de 20 días en 5 pares
+  y oro. Las divisas revierten (> 75 % barridas), **el oro confirma la ruptura en > 66 %**. Preprint sin revisión.
+- Liu, Liu, Wang, Zhou, Zhu, *Overnight–Intraday Reversal Everywhere* (SSRN 2730304) y Gao, Han, Li, Zhou, *Market
+  intraday momentum* (JFE 2018): probadas en el oro con el M30 del usuario (`oro-anomalias-academicas.mjs`): Asia →
+  resto del día 50 % de acierto en los dos sentidos; primera media hora de NY → última media hora 51 %; primera hora
+  de Londres → resto de Londres 50 %. **Ninguna se da en el oro intradía.**
+
+Lectura conjunta: lo publicado coincide con lo medido aquí: en el oro la barrida del rango no es una señal de vuelta
+por sí sola (el oro rompe y sigue más que las divisas), y los filtros de contexto no la convierten en una.
+
 ## Conclusión
 
 - Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la

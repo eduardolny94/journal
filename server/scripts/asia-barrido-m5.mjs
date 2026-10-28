@@ -151,6 +151,12 @@ function table(label, S) {
   }
 }
 table('Todas las barridas', T);
+table('LONDRES: barrida 09–13 h', T.filter((t) => t.hour <= 13));
+table('LONDRES + Asia estrecha', T.filter((t) => t.hour <= 13 && t.narrow));
+table('LONDRES + no barre día anterior', T.filter((t) => t.hour <= 13 && !t.pdSweep));
+table('LONDRES + Asia estrecha + no barre día anterior', T.filter((t) => t.hour <= 13 && t.narrow && !t.pdSweep));
+table('LONDRES + acumula fuera ≥ 15 min', T.filter((t) => t.hour <= 13 && t.signal && t.minsToSignal >= 15));
+table('LONDRES + acumula ≥ 15 min + no barre día anterior', T.filter((t) => t.hour <= 13 && t.signal && t.minsToSignal >= 15 && !t.pdSweep));
 table('Hora 09 (apertura de Londres)', T.filter((t) => t.hour === 9));
 table('Hora 10–13', T.filter((t) => t.hour >= 10 && t.hour <= 13));
 table('Hora 14–17 (NY)', T.filter((t) => t.hour >= 14 && t.hour <= 17));
