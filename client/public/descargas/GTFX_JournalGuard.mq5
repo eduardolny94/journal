@@ -17,14 +17,14 @@
 //| vigilar. El journal lo registra como violacion si operas en bloqueo|
 //+------------------------------------------------------------------+
 #property copyright "Global Traders FX"
-#property version   "1.0"
+#property version   "1.1"
 #property strict
 #property description "Cierra todo y no deja operar mientras el journal tenga la cuenta en bloqueo estricto."
 
 #include <Trade/Trade.mqh>
 
 input string JournalUrl       = "https://journal.cesarzorrilla.com"; // Direccion del journal
-input string Token            = "";   // Token de sincronizacion (journal -> Cuentas -> Sincronizar)
+input string Token            = "";   // Token de sincronizacion (journal -> Conectar; el unico o el de la cuenta)
 input int    Segundos         = 5;    // Cada cuantos segundos se consulta el journal
 input bool   CerrarPendientes = true; // Borrar tambien las ordenes pendientes en bloqueo
 
@@ -58,9 +58,25 @@ string Motivo(const string clave)
    return clave;
 }
 
+string UrlEncode(const string texto)
+{
+   string salida = "";
+   for(int i = 0; i < StringLen(texto); i++)
+   {
+      ushort c = StringGetCharacter(texto, i);
+      if((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.')
+         salida += ShortToString(c);
+      else
+         salida += StringFormat("%%%02X", c & 0xFF);
+   }
+   return salida;
+}
+
 bool Consultar()
 {
-   string url = JournalUrl + "/api/sync/mt5/estado";
+   // Con el token unico del usuario el journal necesita saber de que cuenta de MT5 se trata.
+   string url = JournalUrl + "/api/sync/mt5/estado?login=" + (string)AccountInfoInteger(ACCOUNT_LOGIN)
+              + "&server=" + UrlEncode(AccountInfoString(ACCOUNT_SERVER));
    string cabeceras = "Authorization: Bearer " + Token + "\r\n";
    char datos[];
    char resultado[];

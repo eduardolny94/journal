@@ -7,6 +7,7 @@ import { signToken, requireAuth, setAuthCookie, clearAuthCookie } from '../auth.
 import { featuresFor } from '../radar/access.js';
 import { adminLevel } from '../services/admin.js';
 import { createTrial } from '../services/subscriptions.js';
+import { createUserSyncToken, publicUserSync, revokeUserSyncToken } from '../services/mt5Sync.js';
 
 /** Funciones visibles para el usuario: radar privado y panel de administración. */
 function allFeatures(user) {
@@ -39,7 +40,7 @@ const registerLimiter = rateLimit({
 });
 
 function publicUser(row) {
-  return { id: row.id, email: row.email, name: row.name, created_at: row.created_at, tour_completed: !!row.tour_completed_at };
+  return { id: row.id, email: row.email, name: row.name, created_at: row.created_at, tour_completed: !!row.tour_completed_at, sync: publicUserSync(row) };
 }
 
 function validateEmail(email) {
@@ -175,6 +176,30 @@ router.post('/tour', requireAuth, (req, res, next) => {
     return res.json({ user: publicUser(user) });
   } catch (err) {
     next(err);
+  }
+});
+
+// POST /api/auth/me/sync-token -> { token, user }  Token único de MT5 del usuario (crea o rota; el token en claro solo se ve aquí).
+router.post('/me/sync-token', requireAuth, (req, res, next) => {
+  try {
+    const db = getDb();
+    const token = createUserSyncToken(db, req.user.id);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    return res.status(201).json({ token, user: publicUser(user) });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+// DELETE /api/auth/me/sync-token -> { user }  (los servicios de MT5 con ese token dejan de poder enviar)
+router.delete('/me/sync-token', requireAuth, (req, res, next) => {
+  try {
+    const db = getDb();
+    revokeUserSyncToken(db, req.user.id);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    return res.json({ user: publicUser(user) });
+  } catch (err) {
+    return next(err);
   }
 });
 

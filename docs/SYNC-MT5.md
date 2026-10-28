@@ -3,6 +3,29 @@
 Cada posición que se cierra en MT5 llega sola al journal, junto con el balance, la equidad y el flotante de la cuenta.
 Se activa en **Cuentas → Conectar → 3. Sincronización automática** (cuentas con plataforma MetaTrader 5).
 
+## Un solo token para todo (desde 28-10-2026)
+
+Antes había un token por cuenta del journal, ligado a la primera cuenta de MT5 que lo usaba: si el terminal cambiaba
+de cuenta (otra evaluación, otra prop firm) el journal respondía 409 y el trader tenía que generar y pegar otro token.
+Ahora cada usuario tiene un **token único** (`gtfxu_<usuario>_…`, en **Conectar → 3. Sincronización automática →
+Generar mi token único**) que se pega una sola vez en el servicio y vale para cualquier cuenta de MT5:
+
+1. El servicio manda siempre el login y el servidor de MT5. El journal busca la cuenta del usuario asociada a ese login.
+2. Si no hay ninguna y el usuario tiene **exactamente una** cuenta MT5 sin asociar (la creó a mano antes), la usa.
+3. Si tampoco, **crea la cuenta** `MT5 <login>` (plataforma mt5, divisa y tamaño = balance del terminal, firma = servidor)
+   y el trader solo le pone nombre y límites después en Cuentas.
+
+Respuesta de `POST /api/sync/mt5` con cualquier token: `{ …, account_id, account_name, account_created }`.
+Los tokens por cuenta (`gtfx_<cuenta>_…`) siguen funcionando igual («Token solo para esta cuenta (avanzado)»); el de
+TradingView sigue siendo por cuenta (con el token único responde 400 `account_token_required`).
+
+El guardián `GTFX_JournalGuard` (v1.1) añade `?login=…&server=…` a `GET /api/sync/mt5/estado`; con el token único y sin
+login responde 400 `bad_login`. Si ese login aún no ha sincronizado, responde sin bloqueo y con `pending`.
+
+**Móvil.** La app de MetaTrader del teléfono no ejecuta servicios. La recomendación en la tarjeta: dejar el MetaTrader
+del PC de casa abierto, conectado a la misma cuenta con la **contraseña de inversor** (solo lectura). Es el mismo PC e
+IP de siempre y no puede operar; al encenderlo manda todo lo cerrado mientras estuvo apagado.
+
 ## Cómo funciona
 
 ```
@@ -36,8 +59,8 @@ Diseñado para no dar ningún motivo de sospecha a una prop firm:
 - **Descartado a propósito:** los conectores en la nube (MetaApi y similares, o dar la contraseña de inversor a un
   servicio). Esos sí abren sesiones desde centros de datos con otra IP, que es justo lo que las prop firms vigilan.
 - **No instalarlo en un VPS ni en otro PC** distinto del que se usa para operar: eso sí sería una conexión nueva.
-- El token queda ligado a la primera cuenta de MT5 que sincroniza. Si el terminal cambia a otra cuenta, el journal
-  rechaza el envío (409) y no guarda nada, para no mezclar cuentas.
+- Con el token único, cada cuenta de MT5 va a su cuenta del journal por su número de login: nunca se mezclan. El token
+  por cuenta (avanzado) queda ligado a la primera cuenta de MT5 que sincroniza y rechaza otras (409).
 - Aun así, cada firma tiene sus reglas sobre herramientas de terceros: ante la duda, preguntar a su soporte.
 
 ## Instalación (una vez por terminal)
@@ -69,7 +92,8 @@ Añadir servicio → token. Probado en local con una estructura de carpetas simu
 | Servicio MT5 (fuente y compilado) | `client/public/descargas/GTFX_JournalSync.mq5` / `.ex5` |
 | Entrada con token y límite de peticiones | `server/src/routes/sync.js` |
 | Token, validación, conversión de horas, inserción | `server/src/services/mt5Sync.js` |
-| Token por cuenta | `POST` / `DELETE /api/accounts/:id/sync-token` |
+| Token único del usuario | `POST` / `DELETE /api/auth/me/sync-token` (columnas `users.sync_*`) |
+| Token por cuenta (avanzado) | `POST` / `DELETE /api/accounts/:id/sync-token` |
 | Tarjeta de estado e instalación | `client/src/components/Mt5SyncCard.tsx` |
 | Columnas | `accounts.sync_*` (el hash del token nunca sale del servidor) |
 
@@ -81,13 +105,12 @@ Recompilar tras cambiar el `.mq5`:
 Cada suscriptor lo activa solo, desde su cuenta y su PC; el equipo no interviene ni ve sus credenciales:
 
 1. Se registra, crea su cuenta de fondeo en **Cuentas** (plataforma MetaTrader 5) y pone sus límites.
-2. **Conectar → 3. Sincronización automática → Activar y generar token.** El token es suyo y solo escribe en esa cuenta.
+2. **Conectar → 3. Sincronización automática → Generar mi token único.** Un solo token para todas sus cuentas de MT5.
 3. Descarga `GTFX_JournalSync.ex5` desde la misma tarjeta y sigue los 4 pasos que aparecen en pantalla.
 
-- Varias cuentas de fondeo: un token por cuenta del journal. El servicio se añade una vez por token (MT5 admite varias
-  instancias del mismo servicio). Cada token queda ligado a su cuenta de MT5 y una misma cuenta de MT5 no puede
-  alimentar dos cuentas del journal (409 `login_in_use`), así que un token mal pegado no mezcla datos.
+- Varias cuentas de fondeo: nada más que hacer. Al conectarse en MT5 a otra cuenta, el journal la reconoce por su
+  número o la crea (`MT5 <login>`), y el trader le pone nombre y límites en Cuentas. Un mismo servicio sirve para todas.
 - Si la suscripción vence y está activado "exigir suscripción", la sincronización responde 402 y se reanuda sola al
   renovar: al volver envía todo lo pendiente.
-- Quien opere solo desde el móvil, o en MT4/cTrader/futuros, usa la importación por CSV (esas plataformas no tienen aún
-  servicio automático).
+- Quien opere desde el móvil deja el MT5 del PC abierto con la contraseña de inversor (ver «Un solo token para todo»).
+  MT4/cTrader/futuros usan la importación por CSV (esas plataformas no tienen aún servicio automático).

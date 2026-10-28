@@ -401,6 +401,11 @@ const COLUMN_MIGRATIONS = [
   { table: 'radar_daily_prices', column: 'high', ddl: 'REAL' },
   { table: 'radar_daily_prices', column: 'low', ddl: 'REAL' },
   // Sincronización automática desde MT5 (token por cuenta; solo se guarda su hash).
+  // Token único de sincronización por usuario (vale para cualquier cuenta de MT5 del trader; ver services/mt5Sync.js)
+  { table: 'users', column: 'sync_token_hash', ddl: 'TEXT' },
+  { table: 'users', column: 'sync_token_hint', ddl: 'TEXT' },
+  { table: 'users', column: 'sync_created_at', ddl: 'TEXT' },
+  { table: 'users', column: 'sync_last_at', ddl: 'TEXT' },
   { table: 'accounts', column: 'sync_token_hash', ddl: 'TEXT' },
   { table: 'accounts', column: 'sync_token_hint', ddl: 'TEXT' },
   { table: 'accounts', column: 'sync_created_at', ddl: 'TEXT' },

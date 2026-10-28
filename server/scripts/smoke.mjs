@@ -809,6 +809,55 @@ try {
     assert(del.status === 200 || del.status === 204, `borrar la cuenta sincronizada (${del.status})`);
   });
 
+  await test('sincronización MT5 con token único: una cuenta ya creada, otra nueva se crea sola, guardián por login y revocación', async () => {
+    const me0 = await api('GET', '/auth/me');
+    assert(me0.status === 200 && me0.data.user.sync && me0.data.user.sync.enabled === false && !('sync_token_hash' in me0.data.user), `usuario sin token: ${JSON.stringify(me0.data.user.sync)}`);
+    const acc = await api('POST', '/accounts', { name: 'FTMO 50K', firm: 'FTMO', platform: 'mt5', account_type: 'evaluacion', size: 50000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17, daily_max_loss: 2500 });
+    assert(acc.status === 201, 'cuenta MT5 creada a mano');
+    const tk = await api('POST', '/auth/me/sync-token');
+    assert(tk.status === 201 && /^gtfxu_\d+_[a-f0-9]{48}$/.test(tk.data.token) && tk.data.user.sync.enabled === true && tk.data.user.sync.token_hint === tk.data.token.slice(-4), `genera token único ${JSON.stringify(tk.data.user?.sync)}`);
+    const as = { token: tk.data.token };
+    const gmt = Math.floor(Date.now() / 1000);
+    const mt5 = (login, extra = {}) => ({ login, server: 'FTMO-Server2', currency: 'USD', balance: 50000, equity: 50000, floating: 0, open_positions: 0, server_time: gmt + 10800, gmt_time: gmt, ...extra });
+    // Primer envío: la única cuenta MT5 sin asociar del usuario se queda con este login.
+    const s1 = await api('POST', '/sync/mt5', { account: mt5('6100001'), positions: [] }, as);
+    assert(s1.status === 200 && s1.data.account_id === acc.data.id && s1.data.account_created === false, `primer login → cuenta existente ${JSON.stringify(s1.data)}`);
+    const det = await api('GET', `/accounts/${acc.data.id}`);
+    assert(det.data.sync.login === '6100001' && det.data.sync.enabled === false, `cuenta asociada sin token propio ${JSON.stringify(det.data.sync)}`);
+    // Otro login en el mismo terminal: no da 409, crea una cuenta nueva con los datos de MT5.
+    const open = gmt - 7200;
+    const s2 = await api('POST', '/sync/mt5', { account: mt5('6100002', { balance: 10000, equity: 10000, currency: 'EUR' }), positions: [{ id: '610002', symbol: 'GBPUSD', type: 'sell', volume: 0.2, open_price: 1.3, close_price: 1.299, open_time: open, close_time: open + 600, profit: 20, commission: -1, swap: 0, fee: 0 }] }, as);
+    assert(s2.status === 200 && s2.data.account_created === true && s2.data.imported === 1 && s2.data.account_id !== acc.data.id, `segundo login → cuenta nueva ${JSON.stringify(s2.data)}`);
+    const nueva = await api('GET', `/accounts/${s2.data.account_id}`);
+    assert(nueva.status === 200 && nueva.data.name === 'MT5 6100002' && nueva.data.platform === 'mt5' && nueva.data.currency === 'EUR' && nueva.data.size === 10000 && nueva.data.firm === 'FTMO-Server2' && nueva.data.sync.login === '6100002', `cuenta nueva con datos del terminal ${JSON.stringify({ name: nueva.data.name, currency: nueva.data.currency, size: nueva.data.size, firm: nueva.data.firm })}`);
+    // Reenvío del mismo login: cae en la misma cuenta, sin duplicar.
+    const s3 = await api('POST', '/sync/mt5', { account: mt5('6100002'), positions: [{ id: '610002', symbol: 'GBPUSD', type: 'sell', volume: 0.2, open_price: 1.3, close_price: 1.299, open_time: open, close_time: open + 600, profit: 20, commission: -1, swap: 0, fee: 0 }] }, as);
+    assert(s3.status === 200 && s3.data.account_id === s2.data.account_id && s3.data.account_created === false && s3.data.duplicates === 1, `reenvío → misma cuenta ${JSON.stringify(s3.data)}`);
+    // Guardián: con token único hace falta el login; sin él 400, con él responde el estado de esa cuenta.
+    const sinLogin = await api('GET', '/sync/mt5/estado', undefined, as);
+    assert(sinLogin.status === 400 && sinLogin.data.code === 'bad_login', `estado sin login debería dar 400, dio ${sinLogin.status}`);
+    const est = await api('GET', '/sync/mt5/estado?login=6100001&server=FTMO-Server2', undefined, as);
+    assert(est.status === 200 && est.data.locked === false && est.data.trading_day, `estado por login ${JSON.stringify(est.data)}`);
+    const desconocido = await api('GET', '/sync/mt5/estado?login=6199999', undefined, as);
+    assert(desconocido.status === 200 && desconocido.data.action === 'ninguna' && desconocido.data.pending, 'login aún no sincronizado → sin bloqueo, con aviso');
+    const tv = await api('POST', '/sync/tradingview', { account: {}, orders: [] }, as);
+    assert(tv.status === 400 && tv.data.code === 'account_token_required', `TradingView exige token de cuenta (${tv.status})`);
+    const me1 = await api('GET', '/auth/me');
+    assert(me1.data.user.sync.enabled === true && me1.data.user.sync.last_at, `me refleja el token y la última sincronización ${JSON.stringify(me1.data.user.sync)}`);
+    // Rotar: el anterior deja de valer, las cuentas siguen asociadas a su login.
+    const tk2 = await api('POST', '/auth/me/sync-token');
+    const viejo = await api('POST', '/sync/mt5', { account: mt5('6100001'), positions: [] }, as);
+    assert(viejo.status === 401, `token anterior tras rotar debería dar 401, dio ${viejo.status}`);
+    const s4 = await api('POST', '/sync/mt5', { account: mt5('6100001'), positions: [] }, { token: tk2.data.token });
+    assert(s4.status === 200 && s4.data.account_id === acc.data.id, 'token nuevo sigue cayendo en la misma cuenta');
+    const rev = await api('DELETE', '/auth/me/sync-token');
+    assert(rev.status === 200 && rev.data.user.sync.enabled === false, 'revocar token único');
+    const after = await api('POST', '/sync/mt5', { account: mt5('6100001'), positions: [] }, { token: tk2.data.token });
+    assert(after.status === 401, `token revocado debería dar 401, dio ${after.status}`);
+    await api('DELETE', `/accounts/${s2.data.account_id}`);
+    await api('DELETE', `/accounts/${acc.data.id}`);
+  });
+
   await test('sincronización TradingView: órdenes del panel, emparejado FIFO, duplicados y balance', async () => {
     const acc = await api('POST', '/accounts', { name: 'Plus500 Futures', firm: 'Plus500', platform: 'tradingview', account_type: 'personal', size: 5000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17 });
     assert(acc.status === 201, `cuenta tradingview (${acc.status}) ${JSON.stringify(acc.data)}`);

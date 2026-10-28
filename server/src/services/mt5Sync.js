@@ -1,5 +1,5 @@
 // Sincronización automática desde MetaTrader 5: un servicio de MT5 (GTFX_JournalSync) envía las posiciones cerradas y
-// el balance de la cuenta con un token por cuenta. Nunca se usan ni se guardan contraseñas del bróker.
+// el balance de la cuenta con un token (único por usuario, o uno por cuenta). Nunca se usan ni se guardan contraseñas del bróker.
 import crypto from 'node:crypto';
 import { alignmentFor } from '../radar/engine.js';
 import { evaluateAccountRisk, wasLockedAt } from './risk.js';
@@ -10,6 +10,20 @@ const SYMBOL_RE = /^[A-Z0-9][A-Z0-9 ._\-/:!&=#]{0,19}$/;
 export const MAX_POSITIONS_PER_SYNC = 500;
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
+const num = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Error de sincronización con código HTTP (p. ej. el terminal está conectado a otra cuenta de MT5). */
+export class SyncError extends Error {
+  constructor(status, message, code) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
 
 /** Campos de sincronización que ve el cliente (nunca el hash del token). */
 export function publicSync(account) {
@@ -47,15 +61,80 @@ export function revokeSyncToken(db, accountId) {
   db.prepare('UPDATE accounts SET sync_token_hash = NULL, sync_token_hint = NULL WHERE id = ?').run(accountId);
 }
 
-/** Cuenta asociada a un token, o null. Comparación en tiempo constante sobre el hash. */
+function hashMatches(storedHex, token) {
+  if (!storedHex) return false;
+  const a = Buffer.from(storedHex, 'hex');
+  const b = Buffer.from(sha256(token), 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/** Cuenta asociada a un token de cuenta (`gtfx_<cuenta>_…`), o null. Comparación en tiempo constante sobre el hash. */
 export function accountForToken(db, token) {
   const m = /^gtfx_(\d{1,12})_[a-f0-9]{48}$/.exec(String(token || ''));
   if (!m) return null;
   const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(Number(m[1]));
-  if (!account || !account.sync_token_hash) return null;
-  const a = Buffer.from(account.sync_token_hash, 'hex');
-  const b = Buffer.from(sha256(token), 'hex');
-  return a.length === b.length && crypto.timingSafeEqual(a, b) ? account : null;
+  return account && hashMatches(account.sync_token_hash, token) ? account : null;
+}
+
+// ---------- Token único por usuario ----------
+// Un solo token (`gtfxu_<usuario>_…`) que sirve para todas las cuentas de MT5 del trader: el journal reconoce cada
+// cuenta por su número de login y servidor, y si no existe la crea. Así nadie tiene que generar un token por cuenta
+// ni volver a tocar nada cuando cambia de cuenta de fondeo.
+
+/** Lo que el cliente ve del token de usuario (nunca el hash). */
+export function publicUserSync(user) {
+  return { enabled: !!user?.sync_token_hash, token_hint: user?.sync_token_hint || null, created_at: user?.sync_created_at || null, last_at: user?.sync_last_at || null };
+}
+
+/** Crea (o rota) el token único del usuario. El token en claro solo se devuelve aquí, una vez. */
+export function createUserSyncToken(db, userId) {
+  const token = `${TOKEN_PREFIX}u_${userId}_${crypto.randomBytes(24).toString('hex')}`;
+  db.prepare("UPDATE users SET sync_token_hash = ?, sync_token_hint = ?, sync_created_at = datetime('now') WHERE id = ?").run(sha256(token), token.slice(-4), userId);
+  return token;
+}
+
+export function revokeUserSyncToken(db, userId) {
+  db.prepare('UPDATE users SET sync_token_hash = NULL, sync_token_hint = NULL WHERE id = ?').run(userId);
+}
+
+/** Usuario asociado a un token de usuario, o null. */
+export function userForToken(db, token) {
+  const m = /^gtfxu_(\d{1,12})_[a-f0-9]{48}$/.exec(String(token || ''));
+  if (!m) return null;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(Number(m[1]));
+  return user && !user.is_disabled && hashMatches(user.sync_token_hash, token) ? user : null;
+}
+
+/**
+ * Cuenta del journal a la que corresponde el terminal de MT5 que envía (login y servidor), para un token de usuario:
+ *  1. la cuenta ya asociada a ese login (y servidor, si lo manda);
+ *  2. si no hay ninguna, la única cuenta de MT5 del usuario que aún no tiene MT5 asociado (la que creó a mano antes);
+ *  3. si tampoco, se crea una cuenta nueva «MT5 <login>» con los datos del terminal, para que el trader solo tenga
+ *     que ponerle nombre y límites después.
+ * Devuelve { account, created }.
+ */
+export function resolveAccountForUser(db, user, info) {
+  const login = String(info?.login ?? '').trim().slice(0, 32);
+  if (!/^\d{1,20}$/.test(login)) throw new SyncError(400, 'Falta el número de cuenta de MT5.', 'bad_login');
+  const server = String(info?.server ?? '').trim().slice(0, 64);
+  const byLogin = db.prepare("SELECT * FROM accounts WHERE user_id = ? AND is_archived = 0 AND sync_login = ? ORDER BY CASE WHEN COALESCE(sync_server, '') = ? THEN 0 ELSE 1 END, id").get(user.id, login, server);
+  if (byLogin) return { account: byLogin, created: false };
+  const free = db.prepare("SELECT * FROM accounts WHERE user_id = ? AND is_archived = 0 AND platform = 'mt5' AND sync_login IS NULL AND sync_token_hash IS NULL").all(user.id);
+  if (free.length === 1) return { account: free[0], created: false };
+  const currency = /^[A-Z]{3}$/.test(String(info?.currency ?? '').toUpperCase()) ? String(info.currency).toUpperCase() : 'USD';
+  const balance = num(info?.balance);
+  const name = `MT5 ${login}`.slice(0, 80);
+  const r = db.prepare(
+    `INSERT INTO accounts (user_id, name, firm, platform, account_type, size, currency, timezone, day_reset_hour)
+     VALUES (?, ?, ?, 'mt5', 'evaluacion', ?, ?, 'America/New_York', 17)`,
+  ).run(user.id, name, server.slice(0, 80), balance !== null && balance > 0 ? Math.round(balance) : 0, currency);
+  const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(Number(r.lastInsertRowid));
+  return { account, created: true };
+}
+
+/** Marca la última vez que el token de usuario sincronizó algo. */
+export function touchUserSync(db, userId) {
+  db.prepare("UPDATE users SET sync_last_at = datetime('now') WHERE id = ?").run(userId);
 }
 
 /**
@@ -76,10 +155,6 @@ export function serverTimeToUtcIso(serverEpochSec, offsetNowSec) {
   return new Date((t - (Number.isFinite(off) ? off : 0)) * 1000).toISOString();
 }
 
-const num = (v) => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-};
 const round2 = (n) => Math.round(n * 100) / 100;
 
 /** Valida y normaliza una posición cerrada enviada por MT5. Devuelve { data } o { error }. */
@@ -110,15 +185,6 @@ export function normalizePosition(p, offsetNowSec) {
       external_id: `mt5:pos:${id}`,
     },
   };
-}
-
-/** Error de sincronización con código HTTP (p. ej. el terminal está conectado a otra cuenta de MT5). */
-export class SyncError extends Error {
-  constructor(status, message, code) {
-    super(message);
-    this.status = status;
-    this.code = code;
-  }
 }
 
 /** Aplica una sincronización: inserta lo nuevo (sin duplicar lo ya importado por CSV), guarda el estado y evalúa el riesgo. */

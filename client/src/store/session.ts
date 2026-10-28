@@ -9,6 +9,15 @@ export interface User {
   created_at?: string;
   /** Guía de bienvenida ya vista (la marca el servidor). */
   tour_completed?: boolean;
+  /** Token único de sincronización de MetaTrader 5 (vale para todas las cuentas del usuario). */
+  sync?: UserSync;
+}
+
+export interface UserSync {
+  enabled: boolean;
+  token_hint: string | null;
+  created_at: string | null;
+  last_at: string | null;
 }
 
 export type Platform = 'tradovate' | 'projectx' | 'rithmic' | 'ninjatrader' | 'mt5' | 'mt4' | 'ctrader' | 'tradingview' | 'otro';

@@ -1,7 +1,7 @@
-// Sincronización automática de una cuenta de MetaTrader 5: genera el token, guía la instalación del servicio
-// GTFX_JournalSync y muestra el estado en vivo (última sincronización, balance, equidad, operaciones recibidas).
+// Sincronización automática de una cuenta de MetaTrader 5: token único del usuario (o uno por cuenta, avanzado), guía de
+// instalación del servicio GTFX_JournalSync y estado en vivo (última sincronización, balance, equidad, operaciones recibidas).
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Copy, Download, KeyRound, RefreshCw, ShieldCheck, Unplug } from 'lucide-react';
+import { CheckCircle2, Copy, Download, KeyRound, RefreshCw, ShieldCheck, Smartphone, Unplug } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -10,7 +10,8 @@ import { api } from '../lib/api';
 import { cn } from '../lib/cn';
 import { fmtMoney } from '../lib/format';
 import { fmtSince } from '../lib/radar';
-import type { Account } from '../store/session';
+import { useSession } from '../store/session';
+import type { Account, User } from '../store/session';
 
 type Os = 'mac' | 'windows';
 
@@ -28,7 +29,7 @@ function macCommand(origin: string): string {
 
 const STEP_WEBREQUEST = 'En MetaTrader 5: Herramientas → Opciones → Asesores Expertos → marca «Permitir WebRequest para las URL listadas» y añade la dirección de este journal.';
 const STEP_NAV = 'En el Navegador de MT5 (Ctrl+N o Ver → Navegador): clic derecho en «Servicios» → Actualizar. Luego clic derecho → «Añadir servicio» → GTFX_JournalSync.';
-const STEP_TOKEN = 'En la ventana que se abre, pega el token en el campo «Token» y pulsa Aceptar. Listo: arranca solo cada vez que abras MetaTrader.';
+const STEP_TOKEN = 'En la ventana que se abre, pega el token en el campo «Token» y pulsa Aceptar. Listo: arranca solo cada vez que abras MetaTrader, con cualquier cuenta a la que te conectes.';
 
 const TROUBLE: Array<[string, string]> = [
   ['En Mac sale «No hay ninguna aplicación definida para abrir Instalar-GTFX-JournalSync.bat».', 'Ese instalador es solo para Windows. En Mac usa el comando de Terminal de arriba (copiar, pegar, Intro) o el camino manual: en MetaTrader, Archivo → Abrir carpeta de datos → MQL5 → Services, y arrastra ahí el archivo GTFX_JournalSync.ex5 de Descargas.'],
@@ -121,7 +122,84 @@ function InstallGuide({ origin }: { origin: string }) {
   );
 }
 
+/** Token único del usuario: un solo token para todas sus cuentas de MT5, se genera una vez y no hay que volver a tocarlo. */
+function UserTokenBox({ user, onToken }: { user: User; onToken: (t: string | null) => void }) {
+  const setSession = useSession((s) => s.setSession);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<'rotate' | 'revoke' | null>(null);
+  const sync = user.sync;
+  const enabled = !!sync?.enabled;
+
+  async function generate() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api<{ token: string; user: User }>('/auth/me/sync-token', { method: 'POST' });
+      setSession(r.user);
+      onToken(r.token);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setConfirm(null);
+    }
+  }
+
+  async function revoke() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api<{ user: User }>('/auth/me/sync-token', { method: 'DELETE' });
+      setSession(r.user);
+      onToken(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setConfirm(null);
+    }
+  }
+
+  return (
+    <div className={cn('space-y-3 rounded-lg border p-3', enabled ? 'border-profit/30 bg-profit/5' : 'border-accent/40 bg-accent/5')}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-200"><KeyRound className="h-3.5 w-3.5 text-accent" /> Tu token único de MetaTrader</p>
+        <Badge variant={enabled ? 'profit' : 'warn'}>{enabled ? `Activo · termina en …${sync?.token_hint ?? '????'}` : 'Sin generar'}</Badge>
+      </div>
+      {error && <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-xs text-loss" role="alert">{error}</p>}
+      <p className="text-xs text-gray-300">
+        Un solo token para <span className="text-white">todas</span> tus cuentas de MetaTrader 5. Lo pegas una vez en el servicio y ya está: el journal reconoce cada cuenta por su número; si te conectas a una cuenta nueva (otra evaluación, otra prop firm), la crea sola con su balance y luego solo le pones nombre y límites en Cuentas. Nunca pide otro token ni se queja de que el terminal cambió de cuenta.
+      </p>
+      {!enabled ? (
+        <Button className="w-full" onClick={() => void generate()} loading={busy} leftIcon={<KeyRound className="h-4 w-4" />}>Generar mi token único</Button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+          <span>{sync?.last_at ? `Última sincronización ${fmtSince(`${sync.last_at.replace(' ', 'T')}Z`, Date.now())}` : 'Todavía no ha enviado nada: instala el servicio abajo.'}</span>
+          <span className="ml-auto flex gap-1">
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('rotate')} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>Generar otro</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('revoke')} leftIcon={<Unplug className="h-3.5 w-3.5 text-loss" />}>Desactivar</Button>
+          </span>
+        </div>
+      )}
+      <ConfirmModal
+        open={confirm !== null}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => void (confirm === 'rotate' ? generate() : revoke())}
+        loading={busy}
+        title={confirm === 'rotate' ? '¿Generar un token nuevo?' : '¿Desactivar el token único?'}
+        message={confirm === 'rotate'
+          ? 'El token actual deja de funcionar en todos tus MetaTrader. Tendrás que pegar el nuevo en el servicio. Las cuentas siguen asociadas a su número de MT5.'
+          : 'Ningún MetaTrader podrá enviar operaciones con este token. Lo que ya llegó se conserva. Los tokens por cuenta, si los tienes, siguen funcionando.'}
+        confirmText={confirm === 'rotate' ? 'Generar' : 'Desactivar'}
+        danger={confirm === 'revoke'}
+      />
+    </div>
+  );
+}
+
 export default function Mt5SyncCard({ account, onChange }: { account: Account; onChange: (a: Account) => void }) {
+  const user = useSession((s) => s.user);
   const [token, setToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -129,7 +207,11 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
   const [confirm, setConfirm] = useState<'rotate' | 'revoke' | null>(null);
   const [now, setNow] = useState(Date.now());
   const sync = account.sync;
-  const enabled = !!sync?.enabled;
+  const ownToken = !!sync?.enabled;
+  const userToken = !!user?.sync?.enabled;
+  // La cuenta recibe datos si tiene token propio o si el usuario tiene el token único (y MT5 ya la asoció o lo hará al primer envío).
+  const enabled = ownToken || userToken;
+  const linked = !!sync?.login;
   const origin = window.location.origin;
 
   // Estado en vivo mientras la tarjeta está abierta: en cuanto MT5 envía algo, se ve aquí.
@@ -191,7 +273,7 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
       subtitle="Cada operación que cierres en MetaTrader llega sola al journal, con tu balance."
       actions={
         <Badge variant={!enabled ? 'warn' : live ? 'profit' : 'default'}>
-          {!enabled ? 'Sin activar' : live ? 'En vivo' : sync?.last_at ? 'Esperando a MT5' : 'Pendiente de instalar'}
+          {!enabled ? 'Sin activar' : live ? 'En vivo' : sync?.last_at ? 'Esperando a MT5' : linked ? 'Asociada' : 'Pendiente de instalar'}
         </Badge>
       }
     >
@@ -199,17 +281,34 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
         {error && <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-xs text-loss" role="alert">{error}</p>}
 
         {!enabled && (
-          <>
-            <p>Un pequeño servicio dentro de tu MetaTrader 5 envía al journal cada posición que cierras y tu balance. No opera, no toca tus órdenes y no necesita tu contraseña: se identifica con un token propio de esta cuenta.</p>
-            <div className="flex gap-2 rounded-lg border border-profit/30 bg-profit/5 p-3 text-xs text-gray-300">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-profit" />
-              <span>
-                <span className="font-semibold text-white">Pensado para prop firms.</span> Nadie inicia sesión en tu cuenta desde otro sitio: el servicio corre dentro de tu propio MetaTrader, en tu PC y con tu IP de siempre. El journal nunca se conecta a tu bróker ni conoce tu contraseña (tampoco la de inversor), y el servicio no abre, modifica ni cierra órdenes: solo lee tu historial y lo envía a este journal.
-              </span>
-            </div>
-            <p className="text-xs text-gray-400">Funciona mientras MetaTrader esté abierto. Si el PC estuvo apagado, al abrirlo envía todo lo que se cerró mientras tanto, sin duplicar lo que ya importaste por CSV. No lo instales en un VPS o en otro PC distinto del que usas para operar: eso sí sería una conexión nueva a tu cuenta.</p>
-            <Button className="w-full" onClick={() => void generate()} loading={busy} leftIcon={<KeyRound className="h-4 w-4" />}>Activar y generar token</Button>
-          </>
+          <p>Un pequeño servicio dentro de tu MetaTrader 5 envía al journal cada posición que cierras y tu balance. No opera, no toca tus órdenes y no necesita tu contraseña: se identifica con un token tuyo.</p>
+        )}
+
+        {user && <UserTokenBox user={user} onToken={(t) => { setToken(t); setCopied(false); }} />}
+
+        {token && (
+          <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/5 p-3">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-accent-soft"><KeyRound className="h-3.5 w-3.5" /> Tu token (solo se muestra ahora)</p>
+            <code className="block select-all break-all rounded bg-bg px-2 py-1.5 text-xs text-gray-100">{token}</code>
+            <Button size="sm" variant="secondary" onClick={() => void copy()} leftIcon={copied ? <CheckCircle2 className="h-3.5 w-3.5 text-profit" /> : <Copy className="h-3.5 w-3.5" />}>{copied ? 'Copiado' : 'Copiar token'}</Button>
+            <p className="text-xs text-gray-400">Trátalo como una llave: quien lo tenga puede enviar operaciones a tu journal (nada más). Si lo pierdes, genera otro.</p>
+          </div>
+        )}
+
+        <div className="flex gap-2 rounded-lg border border-border bg-bg/40 p-3 text-xs text-gray-300">
+          <Smartphone className="h-4 w-4 shrink-0 text-accent" />
+          <span>
+            <span className="font-semibold text-white">¿Operas desde el móvil?</span> La app de MetaTrader del teléfono no puede ejecutar el servicio, así que deja abierto el MetaTrader del PC de casa conectado a la misma cuenta con la <span className="text-gray-100">contraseña de inversor</span> (la de solo lectura, que da tu bróker junto a la principal). Él envía al journal lo que operes desde el móvil: mismo PC e IP de siempre, sin poder abrir ni cerrar nada. Si el PC estuvo apagado, al encenderlo envía todo lo que faltaba.
+          </span>
+        </div>
+
+        {!enabled && (
+          <div className="flex gap-2 rounded-lg border border-profit/30 bg-profit/5 p-3 text-xs text-gray-300">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-profit" />
+            <span>
+              <span className="font-semibold text-white">Pensado para prop firms.</span> Nadie inicia sesión en tu cuenta desde otro sitio: el servicio corre dentro de tu propio MetaTrader, en tu PC y con tu IP de siempre. El journal nunca se conecta a tu bróker ni conoce tu contraseña (tampoco la de inversor), y el servicio no abre, modifica ni cierra órdenes: solo lee tu historial y lo envía a este journal.
+            </span>
+          </div>
         )}
 
         {enabled && (
@@ -219,16 +318,7 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
             <Stat label="Balance" value={sync?.balance != null ? fmtMoney(sync.balance, account.currency, { sign: false }) : '—'} />
             <Stat label="Equidad" value={sync?.equity != null ? fmtMoney(sync.equity, account.currency, { sign: false }) : '—'} hint={sync?.open_positions ? `${sync.open_positions} abiertas · flotante ${fmtMoney(sync.floating ?? 0, account.currency)}` : undefined} />
             <Stat label="Operaciones recibidas" value={String(sync?.trades_total ?? 0)} />
-            <Stat label="Token" value={`termina en …${sync?.token_hint ?? '????'}`} />
-          </div>
-        )}
-
-        {token && (
-          <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/5 p-3">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-accent-soft"><KeyRound className="h-3.5 w-3.5" /> Tu token (solo se muestra ahora)</p>
-            <code className="block select-all break-all rounded bg-bg px-2 py-1.5 text-xs text-gray-100">{token}</code>
-            <Button size="sm" variant="secondary" onClick={() => void copy()} leftIcon={copied ? <CheckCircle2 className="h-3.5 w-3.5 text-profit" /> : <Copy className="h-3.5 w-3.5" />}>{copied ? 'Copiado' : 'Copiar token'}</Button>
-            <p className="text-xs text-gray-400">Trátalo como una llave: quien lo tenga puede enviar operaciones a esta cuenta del journal (nada más). Si lo pierdes, genera otro.</p>
+            <Stat label="Token que usa" value={ownToken ? `propio, termina en …${sync?.token_hint ?? '????'}` : `único, termina en …${user?.sync?.token_hint ?? '????'}`} />
           </div>
         )}
 
@@ -250,11 +340,12 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
                 <li>No inicia sesión en tu cuenta desde ningún otro sitio ni usa tu contraseña. El único envío sale de tu PC hacia este journal por HTTPS; tu bróker no recibe nada.</li>
                 <li>Tienes el código fuente completo (.mq5) y puedes compilarlo tú mismo en MetaEditor (F7). No copia operaciones de nadie ni comparte las tuyas con otros traders.</li>
                 <li>Si tu firma exige avisar del uso de herramientas, dile que es un servicio local de solo lectura que exporta el historial a un diario de trading, sin credenciales ni operaciones.</li>
+                <li>No lo instales en un VPS ni en otro PC distinto del que usas para operar: eso sí sería una conexión nueva a tu cuenta.</li>
               </ul>
             </div>
             <div className="rounded-lg border border-loss/40 bg-loss/5 p-3 text-xs text-gray-300">
               <p className="font-semibold text-gray-100">Guardián del límite (bloqueo estricto dentro de MetaTrader)</p>
-              <p className="mt-1 text-gray-400">Un Asesor Experto que pregunta al journal cada 5 segundos. Si la cuenta está bloqueada con bloqueo estricto, cierra todas las posiciones, borra las pendientes y vuelve a cerrar al instante cualquier posición que abras, hasta el reinicio del día. Usa el mismo token que el servicio.</p>
+              <p className="mt-1 text-gray-400">Un Asesor Experto que pregunta al journal cada 5 segundos. Si la cuenta está bloqueada con bloqueo estricto, cierra todas las posiciones, borra las pendientes y vuelve a cerrar al instante cualquier posición que abras, hasta el reinicio del día. Usa el mismo token que el servicio (único o de la cuenta).</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-400">
                 <li>Activa «Bloqueo estricto» en la ficha de la cuenta (Cuentas → editar).</li>
                 <li>Descarga el código <a href="/descargas/GTFX_JournalGuard.mq5" download className="text-accent hover:underline">GTFX_JournalGuard.mq5</a> y ábrelo en MetaEditor (Archivo → Abrir) o pégalo en un Asesor Experto nuevo con ese nombre. Compila (F7).</li>
@@ -264,12 +355,23 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
               <p className="mt-2 text-gray-500">Límite físico: si quitas el EA o apagas AutoTrading, deja de vigilar. Lo que operes en bloqueo llega igual al journal y queda marcado como violación.</p>
             </div>
             {origin !== 'https://journal.cesarzorrilla.com' && <p className="text-xs text-warn">Estás en {origin}: al añadir el servicio, cambia también el campo «JournalUrl» por esta dirección.</p>}
-            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('rotate')} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>Generar token nuevo</Button>
-              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('revoke')} leftIcon={<Unplug className="h-3.5 w-3.5 text-loss" />}>Desactivar</Button>
-            </div>
           </>
         )}
+
+        <details className="rounded-lg border border-border bg-bg/40 p-3 text-xs" open={ownToken}>
+          <summary className="cursor-pointer font-semibold text-gray-200">Token solo para esta cuenta (avanzado){ownToken ? ` · activo, termina en …${sync?.token_hint ?? '????'}` : ''}</summary>
+          <p className="mt-2 text-gray-400">Un token que solo escribe en esta cuenta del journal y queda ligado a la primera cuenta de MT5 que lo use. Útil si prefieres que un terminal no pueda crear ni tocar otras cuentas; para el día a día basta el token único de arriba.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {!ownToken ? (
+              <Button size="sm" variant="secondary" onClick={() => void generate()} loading={busy} leftIcon={<KeyRound className="h-3.5 w-3.5" />}>Generar token de esta cuenta</Button>
+            ) : (
+              <>
+                <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('rotate')} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>Generar token nuevo</Button>
+                <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirm('revoke')} leftIcon={<Unplug className="h-3.5 w-3.5 text-loss" />}>Desactivar</Button>
+              </>
+            )}
+          </div>
+        </details>
       </div>
 
       <ConfirmModal
@@ -277,10 +379,10 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
         onClose={() => setConfirm(null)}
         onConfirm={() => void (confirm === 'rotate' ? generate() : revoke())}
         loading={busy}
-        title={confirm === 'rotate' ? '¿Generar un token nuevo?' : '¿Desactivar la sincronización?'}
+        title={confirm === 'rotate' ? '¿Generar un token nuevo?' : '¿Desactivar el token de esta cuenta?'}
         message={confirm === 'rotate'
           ? 'El token actual deja de funcionar y la cuenta se desvincula del MT5 asociado. Tendrás que pegar el nuevo en el servicio de MetaTrader.'
-          : 'MetaTrader dejará de poder enviar operaciones a esta cuenta. Las que ya llegaron se conservan.'}
+          : 'MetaTrader dejará de poder enviar operaciones a esta cuenta con ese token. Las que ya llegaron se conservan. Si tienes el token único, sigue funcionando.'}
         confirmText={confirm === 'rotate' ? 'Generar' : 'Desactivar'}
         danger={confirm === 'revoke'}
       />
