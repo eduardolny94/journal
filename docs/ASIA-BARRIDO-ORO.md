@@ -87,6 +87,27 @@ extremo es positiva de forma estable (R̄ 2R de −0,16 a +0,08).
 Pistas con n pequeño (no adoptables): mecha larga (> 50 % del rango) con stop fijo 0,5 × rango: 1R 61 %, R̄ +0,26
 (n = 94); barrida a las 14–17 h servidor: llega al otro lado 40–42 % (n = 159).
 
+## Patrones de entrada en M5 y M1 (`asia-barrido-m5.mjs`)
+
+Exportaciones M5 (2025-06 → 2026-10, 347 barridas) y M1 (2026-07 → 2026-10, 67 barridas). Qué deja la barrida:
+
+- Cierra dentro en ≤ 3 h: 88 % (M5) / 91 % (M1), casi siempre en la primera vela; la mecha mediana es solo el 3–5 % del
+  rango. **Deja un FVG de M5 en la dirección de la vuelta el 87 % de las veces**, el 90 % de ellos se vuelve a tocar en
+  ≤ 3 h y la mitad se rellena entero. Cambio de estructura (cierre más allá del último pivote) solo 33 % en M5.
+
+| Entrada (M5, 347 barridas) | n | riesgo mediano | 1R | 2R | R̄ 2R |
+|---|---|---|---|---|---|
+| A. cierre de la vela que vuelve dentro, stop extremo + spread | 307 | 5,0 $ | 45 % | 28 % | −0,05 |
+| B. retest del nivel, stop extremo (pesimista / optimista) | 266 | 2,5 $ | 34 / 42 % | 24 / 32 % | −0,17 / +0,07 |
+| **C. límite en el borde del FVG, stop extremo de la barrida** | 271 | 7,9 $ | **54 %** | **36 %** | **+0,18** |
+| C con stop al otro lado del hueco | 271 | 1,4 $ | 32 % | 28 % | −0,08 |
+| D. cierre tras cambio de estructura | 115 | 19,2 $ | 41 % | 20 % | −0,01 |
+
+C por trimestre (R̄ 2R): −0,37 · +0,33 · +0,42 · +0,38 · −0,22 · +0,11 · +0,18 → positivo en 5 de 7, **no en todos**.
+Mejor a las 10–13 h (+0,31, n = 105) y sin barrida del día anterior (+0,22, n = 155); a las 14–17 h ≈ 0.
+Con M1 en los últimos 3 meses: el retest sale igual de negativo con o sin ambigüedad (−0,13; la vela de 1 min ya
+resuelve el stop), y el FVG de 1 min no sirve (−0,27): el hueco útil es el de 5 min, no el de 1.
+
 ## Conclusión
 
 - Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la
@@ -94,8 +115,10 @@ Pistas con n pequeño (no adoptables): mecha larga (> 50 % del rango) con stop f
 - La señal que de verdad avisa de la vuelta es **que la vela H1 de la barrida cierre de vuelta dentro** (76 % vuelve;
   si en 3 velas no ha vuelto, lo normal es que siga: 48 %). Asia estrecha y barrida en contra del cierre de Asia ayudan;
   barrer además el alto/bajo del día anterior o un rango de Asia ancho hacen más probable que siga.
-- Como estrategia con stop en la mecha no paga (R̄ ≈ 0 en todos los cortes), y el retest ajustado no se puede
-  demostrar con velas de 15–30 min. Sirve como contexto: no perseguir la
+- Como estrategia con stop en la mecha no paga (R̄ ≈ 0 en todos los cortes); el retest ajustado sale negativo
+  también en M1. La única entrada con algo es la **límite en el borde del FVG de M5 con stop en el extremo de la
+  barrida** (+0,18R a 2R, 54 % a 1R), pero falla en 2 de 7 trimestres y el stop es grande (8 $): candidata a
+  vigilar, no adoptable todavía por la regla de la casa. Sirve como contexto: no perseguir la
   ruptura del rango de Asia en la apertura de Londres hasta ver dónde cierra esa vela.
 - Desde 2025 el patrón vuelve menos (50–52 %): la tendencia del oro pesa más que el rango de Asia.
 
