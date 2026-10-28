@@ -118,6 +118,21 @@ Stops más ajustados para esa misma entrada: detrás de la vela que cierra dentr
 a mitad de camino hasta el extremo (2,5 $): 3R 22 %, R̄ −0,05. Acortar el stop no mejora: lo que se gana en R se
 pierde en acierto.
 
+## SMT con la plata (`asia-barrido-smt.mjs`)
+
+Pregunta del usuario: ¿los días que «no manipulan» se distinguen porque la plata no acompaña? SMT = en la vela en que
+el oro barre su lado de Asia, la plata aún no ha barrido el suyo. Pasa el 51–54 % de las veces.
+
+| Datos | caso | n | vuelve al medio | sigue | A: 2R | R̄ 2R |
+|---|---|---|---|---|---|---|
+| M15 2022-08 → 2026-10 | SMT (plata no barrió) | 534 | 56 % | 26 % | 29 % | −0,03 |
+| | sin SMT (plata también barrió) | 520 | 51 % | 28 % | 28 % | +0,01 |
+| M5 2025-06 → 2026-10 | SMT | 188 | 46 % | 26 % | 26 % | −0,18 |
+| | sin SMT | 158 | 47 % | 22 % | 31 % | +0,10 |
+
+Por año el signo cambia (2023–2024 SMT algo mejor, 2025 mucho peor, 2026 igual). **La divergencia con la plata no
+separa los días que vuelven de los que siguen**: diferencia de 0–5 puntos que se invierte entre muestras. Descartado.
+
 ## Conclusión
 
 - Lo que el usuario «ve mucho» es real: el oro se lleva un lado de Asia casi todos los días (97 %), casi siempre en la
@@ -131,6 +146,7 @@ pierde en acierto.
   vigilar, no adoptable todavía por la regla de la casa. Sirve como contexto: no perseguir la
   ruptura del rango de Asia en la apertura de Londres hasta ver dónde cierra esa vela.
 - Desde 2025 el patrón vuelve menos (50–52 %): la tendencia del oro pesa más que el rango de Asia.
+- El SMT oro/plata no distingue las barridas que vuelven de las que siguen (medido en M15 y M5).
 
 Comandos: `node server/scripts/asia-barrido.mjs --archivo data/mt5-largo/XAUUSD_M30.csv --simbolo XAUUSD`
 (o `--dir data/mt5 --pares XAUUSD` con los 17 meses del servicio RadarPrecios).
