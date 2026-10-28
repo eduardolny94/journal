@@ -321,3 +321,18 @@ A 1,5R el radar no separa nada (en contra incluso mejor). A 2R sí hay una difer
 35 %, +0,12/+0,18R frente a −0,10R): para el objetivo largo conviene **no operar contra el radar**, pero exigirlo a favor
 no sube el acierto por encima de lo que da el filtro de Asia ancha. En GBPNZD con Asia ancha solo hay 47 operaciones con
 radar (10–19 por grupo): no se puede concluir nada por par; el sesgo diario de ayer tampoco (sección 1 y 3: 48–51 %).
+
+## 13) El oro (28-10-2026)
+
+Misma regla (FVG de Asia, Asia a favor, toque tardío) en XAUUSD con velas MT5 de mayo 2024 a octubre 2026, pip = 10 centavos,
+spread 3 pips + 1,5 de coste extra. Con stop de 20 pips (2 $) tras el borde:
+
+| Variante | 1R | 1,5R | 2R |
+|---|---|---|---|
+| FVG 4 h en el borde, todo (n=82) | 60 % · +0,18R | 56 % · +0,35R | 51 % · +0,40R |
+| FVG 4 h al 50 %, toque tardío (n=34) | 74 % · +0,46R | 56 % · +0,38R | 53 % · +0,57R |
+| FVG 1 h en el borde, toque tardío (n=62) | 63 % · +0,25R | 56 % · +0,40R | 50 % · +0,47R |
+
+Los números son mejores que en cualquier par de divisas (a 2R, 50–53 % frente a 40 %), pero la muestra es de 34–82 operaciones en
+2,4 años: no basta para afirmarlo. El stop de 10 pips (1 $) es demasiado corto para el oro (41–50 %); 20–30 pips funciona. Para
+medirlo de verdad hace falta histórico de 1 h del oro más largo (FXCM no lo da; Yahoo solo 2 años): pendiente conseguirlo.
