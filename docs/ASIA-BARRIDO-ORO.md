@@ -114,6 +114,9 @@ Es la entrada A (cierre de vuelta dentro, stop detrás del extremo de la barrida
 3R se alcanza el **21 %** (hace falta 25 % para empatar) → R̄ a 3R −0,01; por trimestres alterna (−0,23, +0,12,
 −0,19, +0,26, −0,18, −0,07, +0,12). Si antes de volver dentro **acumula fuera ≥ 15 min** (como su operación de hoy):
 n = 56, 1R 52 %, 3R 18 %, R̄ 3R +0,15; con hora 09–13 n = 45, R̄ +0,20. Pista, no prueba (n pequeño).
+Stops más ajustados para esa misma entrada: detrás de la vela que cierra dentro (riesgo 4,0 $): 3R 23 %, R̄ −0,00;
+a mitad de camino hasta el extremo (2,5 $): 3R 22 %, R̄ −0,05. Acortar el stop no mejora: lo que se gana en R se
+pierde en acierto.
 
 ## Conclusión
 

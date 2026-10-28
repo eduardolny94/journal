@@ -81,6 +81,10 @@ for (let i = 1; i < days.length; i++) {
   if (aIdx >= 0) {
     row.wickR = Math.abs(extremeUpTo(aIdx) - level) / R; row.minsToSignal = aIdx * barMin;
     row.v.A_cierre = sim(rest, dir, rest[aIdx].c, stopFrom(aIdx), aIdx + 1, mid, opp);
+    // Stops más ajustados: detrás de la vela que cierra dentro, o a mitad de camino entre la entrada y el extremo.
+    const eb = rest[aIdx]; const stopVela = (dir > 0 ? eb.l : eb.h) - dir * SPREAD;
+    row.v.A_stopVela = sim(rest, dir, eb.c, stopVela, aIdx + 1, mid, opp);
+    row.v.A_stopMitad = sim(rest, dir, eb.c, eb.c - dir * Math.abs(eb.c - stopFrom(aIdx)) / 2, aIdx + 1, mid, opp);
     // B. retest del nivel (2 h tras A)
     const stop = stopFrom(aIdx);
     for (let j = aIdx + 1; j < Math.min(rest.length, aIdx + 1 + 2 * PH); j++) {
@@ -134,7 +138,7 @@ console.log(`XAUUSD · velas de ${barMin} min · ${T.length} barridas (${T[0].da
 console.log(`Cierra dentro en ≤ 3 h: ${pct(T.filter((t) => t.signal).length, T.length)} (mediana ${med(T.filter((t) => t.signal).map((t) => t.minsToSignal))} min tras la barrida; mecha mediana ${(100 * med(T.filter((t) => t.signal).map((t) => t.wickR))).toFixed(0)} % del rango).`);
 console.log(`Deja FVG en la dirección de la vuelta en ≤ 2 h: ${pct(T.filter((t) => t.fvg).length, T.length)}; de esos, vuelve a tocarlo en ≤ 3 h: ${pct(T.filter((t) => t.fvgTouched).length, T.filter((t) => t.fvg).length)}; lo rellena entero: ${pct(T.filter((t) => t.fvgFilled).length, T.filter((t) => t.fvgTouched).length)}.`);
 console.log(`Cambio de estructura (cierre más allá del último pivote) en ≤ 3 h: ${pct(T.filter((t) => t.v.D_choch).length, T.length)} (mediana ${med(T.filter((t) => t.v.D_choch).map((t) => t.chochMins))} min).`);
-const VARS = ['A_cierre', 'B_retest_pes', 'B_retest_opt', 'C_fvg_pes', 'C_fvg_opt', 'C_fvg_stopHueco_pes', 'D_choch'];
+const VARS = ['A_cierre', 'A_stopVela', 'A_stopMitad', 'B_retest_pes', 'B_retest_opt', 'C_fvg_pes', 'C_fvg_opt', 'C_fvg_stopHueco_pes', 'D_choch'];
 function table(label, S) {
   if (S.length < 15) return;
   console.log(`\n${label}  (barridas = ${S.length})`);
