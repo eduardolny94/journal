@@ -69,3 +69,16 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
   (regla nueva: tras un dato grande, la lectura posterior prevalece sobre una manual anterior al dato).
 - Radar: USD +3,66. Lectura de la semana: dólar fuerte confirmado por datos y por tipos; el checklist swing sigue sin
   par válido (EURUSD nivel C y extendido tras el movimiento).
+
+## 2026-10-28 · Decisión de la Fed (19:00 Madrid, rueda de prensa 19:30; sin proyecciones ni dot plot)
+
+- Tipo actual 3,75–4,00 % (última subida en septiembre). Contexto: IPC sept. 3,7 % a/a (subyacente 2,6 %), NFP +29 k.
+- Descontado antes: hoy **mantener ~90 %** (subida 4–10 % según Kalshi/Polymarket/OIS); **diciembre subida 25 pb**:
+  lectura automática del radar 95,8 % (futuros de fondos federales 2026-12, 06:41 UTC), CME FedWatch ~80 %, Reuters
+  100/100 economistas. Bono 2 años 4,74 % («descontado subida»). Radar: USD +2,55 (2.º más fuerte), CHF −2,96, EUR −3,31;
+  USDCHF alcista fuerte, diff +5,5, p5 59, confianza 92. VIX 17,4 (calma). SNB en 0 % desde sept. y dispuesto a
+  intervenir contra la fortaleza del franco.
+- Asimetría: el tono halcón (subida en diciembre) ya está en precio; lo que no está en precio es una Fed que dude de
+  diciembre por el empleo (NFP 29 k). Escenarios en la respuesta al usuario (largo en USDCHF).
+- Pendiente: texto del comunicado, confirmación 2 años → DXY → oro/Nasdaq → petróleo, FedWatch antes → después y tono
+  manual con nota.
