@@ -108,7 +108,7 @@ export default function HoyCard({ intradia, swing, queOperar }: { intradia: Intr
 
 // ── Muros de opciones (docs/MUROS-OPCIONES.md): strikes con más interés abierto, de Databento, una vez al día ─────────
 type MuroNivel = { price: number; oi: number; stars: number };
-type MurosPar = { symbol: string; root: string; vencimiento: string; calls: MuroNivel[]; puts: MuroNivel[] };
+type MurosPar = { symbol: string; root: string; vencimiento: string; calls: MuroNivel[]; puts: MuroNivel[]; pc_ratio?: number | null; pc_aprox?: boolean; lectura?: 'defensivo' | 'neutral' | 'ofensivo' | null };
 type Muros = { fecha: string | null; pares: MurosPar[]; pine: string; ultima?: { at: string; errores?: string[] } | null; config?: { auto: boolean; hora: string; tz: string; con_clave: boolean } };
 const stars = (n: number) => '★★★★★'.slice(0, Math.max(1, Math.min(5, n)));
 export function MurosCard({ owner }: { owner: boolean }) {
@@ -129,7 +129,7 @@ export function MurosCard({ owner }: { owner: boolean }) {
           const top = (arr: MuroNivel[]) => [...arr].sort((a, b) => b.stars - a.stars || b.oi - a.oi).slice(0, 3);
           return (
             <li key={p.symbol} className="px-4 py-2.5 text-sm">
-              <div className="flex items-center gap-3"><span className="font-semibold text-white">{p.symbol}</span><span className="text-[11px] text-gray-500">vence {p.vencimiento}</span></div>
+              <div className="flex items-center gap-3"><span className="font-semibold text-white">{p.symbol}</span><span className="text-[11px] text-gray-500">vence {p.vencimiento}</span>{p.pc_ratio != null && <span className={`text-[11px] ${p.lectura === 'defensivo' ? 'text-emerald-300' : p.lectura === 'ofensivo' ? 'text-red-300' : 'text-gray-400'}`} title="Interés abierto en puts dividido por el de calls, cerca del precio. Más puts = cobertura (defensivo); más calls = apuesta alcista (ofensivo).">put/call {p.pc_ratio.toFixed(2)} · {p.lectura}{p.pc_aprox ? ' (aprox.)' : ''}</span>}</div>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
                 <span className="text-red-300">calls {top(p.calls).map((x) => `${x.price.toFixed(dec)} ${stars(x.stars)}`).join(' · ') || '—'}</span>
                 <span className="text-emerald-300">puts {top(p.puts).map((x) => `${x.price.toFixed(dec)} ${stars(x.stars)}`).join(' · ') || '—'}</span>

@@ -340,6 +340,13 @@ CREATE TABLE IF NOT EXISTS radar_opciones (
   stars INTEGER NOT NULL,
   PRIMARY KEY (fecha, symbol, side, price)
 );
+CREATE TABLE IF NOT EXISTS radar_opciones_resumen (
+  fecha TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  call_oi INTEGER NOT NULL,
+  put_oi INTEGER NOT NULL,
+  PRIMARY KEY (fecha, symbol)
+);
 
 CREATE TABLE IF NOT EXISTS radar_news (
   id TEXT PRIMARY KEY,

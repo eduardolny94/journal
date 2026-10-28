@@ -152,7 +152,9 @@ export async function murosDeRaiz(key, raiz, fecha, { log = () => {}, precioVivo
   const centro = precioReferencia(raiz, sides, precioVivo);
   const banda = raiz.root === 'OG' ? 0.08 : 0.06;
   const top = (m) => { const arr = [...m.entries()].map(([price, oi]) => ({ price, oi })).filter((x) => !centro || Math.abs(x.price / centro - 1) <= banda).sort((a, b) => b.oi - a.oi).slice(0, 10); const max = arr[0]?.oi || 1; return arr.map((x) => ({ ...x, stars: estrellas(x.oi, max) })).filter((x) => x.stars >= 2).sort((a, b) => a.price - b.price); };
-  return { symbol: raiz.symbol, root: raiz.root, fecha, vencimiento: venc, total_oi: data.total, calls: top(sides.call), puts: top(sides.put) };
+  // Interés abierto total de cada lado dentro de la banda: da el ratio put/call («defensivo» si hay más puts que calls).
+  const enBanda = (m) => [...m.entries()].filter(([price]) => !centro || Math.abs(price / centro - 1) <= banda).reduce((a, [, oi]) => a + oi, 0);
+  return { symbol: raiz.symbol, root: raiz.root, fecha, vencimiento: venc, total_oi: data.total, call_oi: enBanda(sides.call), put_oi: enBanda(sides.put), calls: top(sides.call), puts: top(sides.put) };
 }
 
 export async function actualizarMuros({ fecha = null, log = (s) => console.log('[muros]', s), trigger = 'manual' } = {}) {
@@ -173,7 +175,8 @@ export async function actualizarMuros({ fecha = null, log = (s) => console.log('
 
 export function guardar(db, m) {
   const del = db.prepare('DELETE FROM radar_opciones WHERE fecha = ? AND symbol = ?'); const ins = db.prepare('INSERT INTO radar_opciones (fecha, symbol, root, vencimiento, side, price, oi, stars) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-  db.exec('BEGIN'); try { del.run(m.fecha, m.symbol); for (const side of ['calls', 'puts']) for (const r of m[side]) ins.run(m.fecha, m.symbol, m.root, m.vencimiento, side === 'calls' ? 'call' : 'put', r.price, r.oi, r.stars); db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; }
+  const res = db.prepare('INSERT OR REPLACE INTO radar_opciones_resumen (fecha, symbol, call_oi, put_oi) VALUES (?, ?, ?, ?)');
+  db.exec('BEGIN'); try { del.run(m.fecha, m.symbol); for (const side of ['calls', 'puts']) for (const r of m[side]) ins.run(m.fecha, m.symbol, m.root, m.vencimiento, side === 'calls' ? 'call' : 'put', r.price, r.oi, r.stars); if (Number.isFinite(m.call_oi) && Number.isFinite(m.put_oi)) res.run(m.fecha, m.symbol, Math.round(m.call_oi), Math.round(m.put_oi)); db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; }
 }
 
 /** Muros guardados de la última fecha disponible (o de `fecha`). */
@@ -183,14 +186,18 @@ export function leerMuros(db, fecha = null) {
   const rows = db.prepare('SELECT symbol, root, vencimiento, side, price, oi, stars FROM radar_opciones WHERE fecha = ? ORDER BY symbol, side, price').all(dia).filter((r) => activos.has(r.symbol));
   const by = new Map();
   for (const r of rows) { if (!by.has(r.symbol)) by.set(r.symbol, { symbol: r.symbol, root: r.root, vencimiento: r.vencimiento, calls: [], puts: [] }); by.get(r.symbol)[r.side === 'call' ? 'calls' : 'puts'].push({ price: r.price, oi: r.oi, stars: r.stars }); }
+  // Ratio put/call del vencimiento: con los totales guardados; si la fecha es anterior a esa columna, aproximado con los muros.
+  const resumen = new Map(db.prepare('SELECT symbol, call_oi, put_oi FROM radar_opciones_resumen WHERE fecha = ?').all(dia).map((r) => [r.symbol, r]));
+  for (const m of by.values()) { const r = resumen.get(m.symbol); const call = r ? r.call_oi : m.calls.reduce((a, x) => a + x.oi, 0); const put = r ? r.put_oi : m.puts.reduce((a, x) => a + x.oi, 0); m.call_oi = call; m.put_oi = put; m.pc_ratio = call > 0 ? Number((put / call).toFixed(2)) : null; m.pc_aprox = !r; m.lectura = m.pc_ratio === null ? null : m.pc_ratio >= 1.2 ? 'defensivo' : m.pc_ratio <= 0.8 ? 'ofensivo' : 'neutral'; }
   const meta = (() => { try { return JSON.parse(db.prepare("SELECT value FROM radar_meta WHERE key = 'muros_ultima'").get()?.value || 'null'); } catch { return null; } })();
   return { fecha: dia, pares: [...by.values()], ultima: meta, config: { auto: configMuros().auto, hora: configMuros().hora, tz: configMuros().tz, con_clave: !!configMuros().api_key } };
 }
 
-/** Texto para el campo "Niveles por símbolo" del indicador GTFX · Muros de opciones (una línea por símbolo). */
+/** Texto para el campo "Niveles por símbolo" del indicador GTFX · Muros de opciones (una línea por símbolo: SÍMBOLO | calls | puts | pc). */
 export function tablaPine(muros) {
   const f = (x, dec) => `${Number(x.price).toFixed(dec)}:${x.stars}`;
-  return muros.pares.map((m) => { const dec = RAICES.find((r) => r.symbol === m.symbol)?.dec ?? 4; return `${m.symbol} | ${m.calls.map((x) => f(x, dec)).join(', ')} | ${m.puts.map((x) => f(x, dec)).join(', ')}`; }).join('\n');
+  // Cuarto campo opcional: ratio put/call («pc:1.53»), que el indicador muestra como defensivo/neutral/ofensivo.
+  return muros.pares.map((m) => { const dec = RAICES.find((r) => r.symbol === m.symbol)?.dec ?? 4; return `${m.symbol} | ${m.calls.map((x) => f(x, dec)).join(', ')} | ${m.puts.map((x) => f(x, dec)).join(', ')}${m.pc_ratio ? ` | pc:${m.pc_ratio.toFixed(2)}` : ''}`; }).join('\n');
 }
 
 function horaLocal(date, tz) { const parts = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false }).formatToParts(date); const get = (t) => parts.find((p) => p.type === t)?.value; return { hhmm: `${get('hour')}:${get('minute')}`, weekday: get('weekday') }; }

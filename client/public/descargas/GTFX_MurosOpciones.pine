@@ -1,23 +1,29 @@
 //@version=6
-// GTFX · Muros de opciones — strikes con más interés abierto (CALLS por encima = resistencias, PUTS por debajo = soportes), con
-// estrellas según el tamaño del interés abierto. Datos de cierre del CME (una vez al día). Una sola tabla sirve para todos los
-// símbolos: una línea por símbolo, y el indicador elige la del gráfico abierto.
-//   Formato por línea:  SIMBOLO | calls: precio:estrellas, precio:estrellas | puts: precio:estrellas, precio:estrellas
-//   Ejemplo:            XAUUSD | 4146:5, 4091.5:5, 4036.9:5 | 3982.4:5, 3927.8:5, 3818.7:5, 3764.2:4
-//   Divisas: las opciones del CME son sobre los futuros 6E (EURUSD), 6B (GBPUSD), 6A (AUDUSD), 6N (NZDUSD), 6C (USDCAD, invertido),
-//   6S (USDCHF, invertido) y 6J (USDJPY, invertido: USDJPY = 1 / strike). Los cruces (EURGBP, AUDJPY…) no tienen opciones del CME.
-indicator("GTFX · Muros de opciones", overlay = true, max_boxes_count = 80, max_labels_count = 80)
+// GTFX · Muros de opciones — strikes con más interés abierto en las opciones del CME (una vez al día, vía Databento).
+//   PROTECCIÓN = muro de PUTS más cercano por debajo del precio (soporte de opciones, caja azul).
+//   LIQUIDEZ   = muro de CALLS más cercano por encima del precio (techo/objetivo de opciones, caja naranja).
+//   El resto de muros con estrellas suficientes se pintan como líneas finas. Las estrellas miden el interés abierto.
+//   put/call   = interés abierto en puts / calls cerca del precio: ≥ 1,2 defensivo (cobertura), ≤ 0,8 ofensivo (apuesta alcista).
+// Una sola tabla sirve para todos los símbolos: una línea por símbolo y el indicador elige la del gráfico abierto.
+//   Formato por línea:  SIMBOLO | calls: precio:estrellas, … | puts: precio:estrellas, … | pc:ratio   (el 4.º campo es opcional)
+//   Ejemplo:            XAUUSD | 4146:5, 4091.5:5 | 3982.4:5, 3927.8:5 | pc:1.53
+//   Divisas: opciones del CME sobre los futuros 6E (EURUSD), 6B (GBPUSD), 6A (AUDUSD), 6N (NZDUSD), 6C (USDCAD, invertido),
+//   6S (USDCHF, invertido) y 6J (USDJPY, invertido). Los cruces (EURGBP, AUDJPY…) no tienen opciones del CME.
+// Medido (docs/MUROS-OPCIONES.md): en EURUSD, GBPUSD y USDCHF los muros rebotan igual que un nivel al azar. Son contexto, no señal.
+indicator("GTFX · Muros de opciones", overlay = true, max_boxes_count = 40, max_labels_count = 80, max_lines_count = 80)
 
-tabla     = input.text_area("EURUSD | 1.1300:5, 1.1350:4, 1.1375:3, 1.1400:5, 1.1450:4, 1.1500:4, 1.1550:4, 1.1600:5, 1.1650:4, 1.1700:5 | 1.0850:2, 1.0900:2, 1.0950:3, 1.1000:2, 1.1050:3, 1.1100:5, 1.1150:3, 1.1200:5, 1.1250:5, 1.1350:3\nGBPUSD | 1.3300:2, 1.3325:2, 1.3350:3, 1.3400:5, 1.3425:4, 1.3450:3, 1.3500:2, 1.3550:2, 1.3650:2, 1.3700:2 | 1.2900:3, 1.2950:3, 1.3000:5, 1.3050:3, 1.3100:5, 1.3125:3, 1.3150:5, 1.3200:2, 1.3300:4, 1.3650:2\nUSDCHF | 0.8163:5, 0.8299:4, 0.8333:5, 0.8403:5 | 0.7905:4, 0.7937:2, 0.7968:5, 0.8032:5, 0.8130:3, 0.8163:5, 0.8197:3\nXAUUSD | 3955.0:2, 4050.0:2, 4100.0:3, 4150.0:2, 4175.0:2, 4200.0:5, 4225.0:3, 4250.0:3, 4300.0:5, 4350.0:3 | 3750.0:2, 3800.0:3, 3900.0:5, 3950.0:4, 4000.0:5, 4050.0:3, 4100.0:3, 4200.0:3, 4250.0:3, 4300.0:3", "Niveles por símbolo (una línea cada uno: SÍMBOLO | calls | puts)")
+tabla     = input.text_area("EURUSD | 1.1300:5, 1.1350:4, 1.1375:3, 1.1400:5, 1.1450:4, 1.1500:4, 1.1550:4, 1.1600:5, 1.1650:4, 1.1700:5 | 1.0850:2, 1.0900:2, 1.0950:3, 1.1000:2, 1.1050:3, 1.1100:5, 1.1150:3, 1.1200:5, 1.1250:5, 1.1350:3 | pc:2.03\nGBPUSD | 1.3300:2, 1.3325:2, 1.3350:3, 1.3400:5, 1.3425:4, 1.3450:3, 1.3500:2, 1.3550:2, 1.3650:2, 1.3700:2 | 1.2900:3, 1.2950:3, 1.3000:5, 1.3050:3, 1.3100:5, 1.3125:3, 1.3150:5, 1.3200:2, 1.3300:4, 1.3650:2 | pc:1.21\nUSDCHF | 0.8163:5, 0.8299:4, 0.8333:5, 0.8403:5 | 0.7905:4, 0.7937:2, 0.7968:5, 0.8032:5, 0.8130:3, 0.8163:5, 0.8197:3 | pc:2.21\nXAUUSD | 3955.0:2, 4050.0:2, 4100.0:3, 4150.0:2, 4175.0:2, 4200.0:5, 4225.0:3, 4250.0:3, 4300.0:5, 4350.0:3 | 3750.0:2, 3800.0:3, 3900.0:5, 3950.0:4, 4000.0:5, 4050.0:3, 4100.0:3, 4200.0:3, 4250.0:3, 4300.0:3 | pc:1.79", "Niveles por símbolo (una línea cada uno: SÍMBOLO | calls | puts)")
 fecha     = input.string("2026-10-23", "Fecha de los datos (solo informativa)")
-minEst    = input.int(4, "Estrellas mínimas para pintar (menos ruido)", minval = 1, maxval = 5, tooltip = "Solo se dibujan los strikes con al menos estas estrellas. El azul es el más cercano entre los que se pintan.")
-altoPct   = input.float(0.25, "Alto de cada muro (% del precio)", minval = 0.02, maxval = 2, step = 0.05)
+minEst    = input.int(3, "Estrellas mínimas para considerar un muro", minval = 1, maxval = 5, tooltip = "PROTECCIÓN y LIQUIDEZ se eligen entre los muros con al menos estas estrellas.")
+otros     = input.bool(true, "Pintar el resto de muros como líneas")
+altoPct   = input.float(0.25, "Alto de las cajas (% del precio)", minval = 0.02, maxval = 2, step = 0.05)
 largo     = input.int(300, "Velas hacia atrás", minval = 20, maxval = 2000)
 mostrarEt = input.bool(true, "Mostrar etiquetas")
 alertaPct = input.float(0.15, "Alerta al acercarse a un muro (% del precio)", minval = 0.01, maxval = 2, step = 0.05)
-colCall   = input.color(color.new(#e5484d, 70), "Color CALLS")
-colPut    = input.color(color.new(#30a46c, 70), "Color PUTS")
-colCerca  = input.color(color.new(#3e63dd, 55), "Color del muro más cercano")
+colLiq    = input.color(color.new(#f5a524, 60), "Color LIQUIDEZ (calls por encima)")
+colProt   = input.color(color.new(#3e63dd, 60), "Color PROTECCIÓN (puts por debajo)")
+colCall   = input.color(color.new(#e5484d, 30), "Color líneas CALLS")
+colPut    = input.color(color.new(#30a46c, 30), "Color líneas PUTS")
 
 estrellas(int n) =>
     n >= 5 ? "★★★★★" : n == 4 ? "★★★★" : n == 3 ? "★★★" : n == 2 ? "★★" : "★"
@@ -38,10 +44,21 @@ parsear(string txt) =>
                 array.push(niveles, math.max(1, math.min(5, st)))
     [precios, niveles]
 
+// "pc:1.53" → 1.53 (na si no viene)
+parsearPc(string txt) =>
+    float v = na
+    s = str.trim(txt)
+    if str.length(s) > 0
+        kv = str.split(s, ":")
+        if array.size(kv) > 1
+            v := str.tonumber(str.trim(array.get(kv, 1)))
+    v
+
 // busca la línea del símbolo del gráfico (OANDA:XAUUSD → XAUUSD; también vale "GOLD" o "XAU" si se escribe así en la tabla)
 lineaDelSimbolo(string txt) =>
     string callsTxt = ""
     string putsTxt = ""
+    string pcTxt = ""
     bool ok = false
     tick = str.upper(syminfo.ticker)
     lineas = str.split(txt, "\n")
@@ -52,23 +69,34 @@ lineaDelSimbolo(string txt) =>
             if str.length(sym) > 0 and (sym == tick or str.contains(tick, sym) or str.contains(sym, tick))
                 callsTxt := array.get(campos, 1)
                 putsTxt := array.get(campos, 2)
+                pcTxt := array.size(campos) >= 4 ? array.get(campos, 3) : ""
                 ok := true
-    [ok, callsTxt, putsTxt]
+    [ok, callsTxt, putsTxt, pcTxt]
 
 var boxes  = array.new_box()
 var labels = array.new_label()
+var lineas = array.new_line()
 
-dibujar(float precio, int st, color col, string tipo, bool cercano) =>
+caja(float precio, int st, color col, string nombre) =>
     h = precio * altoPct / 100
-    b = box.new(bar_index - largo, precio + h / 2, bar_index + 20, precio - h / 2, border_color = color.new(col, 40), bgcolor = cercano ? colCerca : col, extend = extend.right)
+    b = box.new(bar_index - largo, precio + h / 2, bar_index + 20, precio - h / 2, border_color = color.new(col, 20), bgcolor = col, extend = extend.right)
     array.push(boxes, b)
     if mostrarEt
-        l = label.new(bar_index - largo + 2, precio, tipo + " " + str.tostring(precio, format.mintick) + " · " + estrellas(st), style = label.style_label_left, color = color.new(col, 10), textcolor = color.white, size = size.small)
+        l = label.new(bar_index - largo + 2, precio, nombre + " " + str.tostring(precio, format.mintick) + " · " + estrellas(st), style = label.style_label_left, color = color.new(col, 0), textcolor = color.white, size = size.small)
         array.push(labels, l)
 
-[hay, callsTxt, putsTxt] = lineaDelSimbolo(tabla)
+linea(float precio, int st, color col, string tipo) =>
+    ln = line.new(bar_index - largo, precio, bar_index + 20, precio, color = col, style = line.style_dotted, width = 1, extend = extend.right)
+    array.push(lineas, ln)
+    if mostrarEt
+        l = label.new(bar_index + 20, precio, tipo + " " + str.tostring(precio, format.mintick) + " " + estrellas(st), style = label.style_label_left, color = color.new(col, 85), textcolor = color.new(col, 0), size = size.tiny)
+        array.push(labels, l)
+
+[hay, callsTxt, putsTxt, pcTxt] = lineaDelSimbolo(tabla)
 [cpA, csA] = parsear(callsTxt)
 [ppA, psA] = parsear(putsTxt)
+pc = parsearPc(pcTxt)
+lecturaPc = na(pc) ? "" : pc >= 1.2 ? "defensivo (más puts: cobertura)" : pc <= 0.8 ? "ofensivo (más calls: apuesta alcista)" : "neutral"
 
 if barstate.islast
     for b in boxes
@@ -77,22 +105,34 @@ if barstate.islast
     for l in labels
         label.delete(l)
     array.clear(labels)
+    for ln in lineas
+        line.delete(ln)
+    array.clear(lineas)
     float callCerca = na
+    int callCercaSt = 0
     float putCerca = na
+    int putCercaSt = 0
     for [i, v] in cpA
         if array.get(csA, i) >= minEst and v > close and (na(callCerca) or v < callCerca)
             callCerca := v
+            callCercaSt := array.get(csA, i)
     for [i, v] in ppA
         if array.get(psA, i) >= minEst and v < close and (na(putCerca) or v > putCerca)
             putCerca := v
-    for [i, v] in cpA
-        if array.get(csA, i) >= minEst
-            dibujar(v, array.get(csA, i), colCall, "CALLS", v == callCerca)
-    for [i, v] in ppA
-        if array.get(psA, i) >= minEst
-            dibujar(v, array.get(psA, i), colPut, "PUTS", v == putCerca)
+            putCercaSt := array.get(psA, i)
+    if not na(callCerca)
+        caja(callCerca, callCercaSt, colLiq, "LIQUIDEZ")
+    if not na(putCerca)
+        caja(putCerca, putCercaSt, colProt, "PROTECCIÓN")
+    if otros
+        for [i, v] in cpA
+            if array.get(csA, i) >= minEst and v != callCerca
+                linea(v, array.get(csA, i), colCall, "calls")
+        for [i, v] in ppA
+            if array.get(psA, i) >= minEst and v != putCerca
+                linea(v, array.get(psA, i), colPut, "puts")
     var table t = table.new(position.top_right, 1, 1)
-    txt = not hay ? "Muros de opciones · sin niveles para " + syminfo.ticker + " (añade una línea en los ajustes)" : array.size(cpA) + array.size(ppA) == 0 ? "Muros de opciones · " + syminfo.ticker + " sin niveles cargados" : "Muros de opciones · " + syminfo.ticker + " · ≥ " + str.tostring(minEst) + "★ · datos del " + fecha + (na(callCerca) ? "" : " · call más cercana " + str.tostring(callCerca, format.mintick)) + (na(putCerca) ? "" : " · put más cercana " + str.tostring(putCerca, format.mintick))
+    txt = not hay ? "Muros de opciones · sin niveles para " + syminfo.ticker + " (añade una línea en los ajustes)" : array.size(cpA) + array.size(ppA) == 0 ? "Muros de opciones · " + syminfo.ticker + " sin niveles cargados" : "Muros · " + syminfo.ticker + " · datos del " + fecha + (na(callCerca) ? "" : " · LIQUIDEZ " + str.tostring(callCerca, format.mintick) + " " + estrellas(callCercaSt)) + (na(putCerca) ? "" : " · PROTECCIÓN " + str.tostring(putCerca, format.mintick) + " " + estrellas(putCercaSt)) + (na(pc) ? "" : " · put/call " + str.tostring(pc, "#.##") + " " + lecturaPc)
     table.cell(t, 0, 0, txt, text_color = color.white, bgcolor = color.new(hay ? color.black : color.orange, 30), text_size = size.small)
 
 // alertas: el precio entra en la zona de un muro (±alertaPct)
@@ -104,5 +144,5 @@ for [i, v] in cpA
 for [i, v] in ppA
     if array.get(psA, i) >= minEst and math.abs(close - v) <= v * alertaPct / 100
         tocaPut := true
-alertcondition(tocaCall, "Precio en muro de CALLS", "GTFX: el precio está en un muro de CALLS (resistencia de opciones)")
-alertcondition(tocaPut, "Precio en muro de PUTS", "GTFX: el precio está en un muro de PUTS (soporte de opciones)")
+alertcondition(tocaCall, "Precio en muro de CALLS (LIQUIDEZ)", "GTFX: el precio está en un muro de CALLS (techo de opciones)")
+alertcondition(tocaPut, "Precio en muro de PUTS (PROTECCIÓN)", "GTFX: el precio está en un muro de PUTS (soporte de opciones)")
