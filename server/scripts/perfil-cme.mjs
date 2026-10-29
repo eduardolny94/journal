@@ -62,9 +62,12 @@ async function descargarDia(date) {
   const { start, end } = ventana(date);
   // El día se pide en trozos de 3 h en formato DBN comprimido (zstd): 5–10 veces más ligero que JSON. Cada trozo se
   // reintenta 4 veces (504, 429 o corte de red) y se bajan 4 trozos a la vez.
-  const trozos = []; const t0 = Date.parse(start), t1 = Date.parse(end); for (let a = t0; a < t1; a += 3 * 3600_000) trozos.push([new Date(a).toISOString(), new Date(Math.min(a + 3 * 3600_000, t1)).toISOString()]);
+  // Un día entero en DBN+zstd pesa 1–3 MB y tarda ~20 s: se pide de una vez; solo si el servidor da 5xx se parte en 3 h.
+  const t0 = Date.parse(start), t1 = Date.parse(end);
+  const partir = (h) => { const out = []; for (let a = t0; a < t1; a += h * 3600_000) out.push([new Date(a).toISOString(), new Date(Math.min(a + h * 3600_000, t1)).toISOString()]); return out; };
+  let trozos = partir(24);
   const bajar = async ([a, b]) => {
-    for (let intento = 1; intento <= 4; intento++) {
+    for (let intento = 1; intento <= 6; intento++) {
       try {
         const body = new URLSearchParams({ dataset: 'GLBX.MDP3', symbols: `${root}.FUT`, stype_in: 'parent', schema: 'trades', encoding: 'dbn', compression: 'zstd', start: a, end: b });
         const r = await fetch('https://hist.databento.com/v0/timeseries.get_range', { method: 'POST', headers: { ...auth, 'Content-Type': 'application/x-www-form-urlencoded' }, body });
@@ -72,13 +75,16 @@ async function descargarDia(date) {
         const t = await r.text();
         if (/dataset_unavailable_range|no data/i.test(t)) return [];
         if (r.status < 500 && r.status !== 429) throw new Error(`${r.status} ${t.slice(0, 200)}`);
+        if (r.status >= 500 && b === end && a === start) { console.log(`${date}: ${r.status} con el día entero; se parte en 3 h`); throw new Error('PARTIR'); }
         console.log(`${date} ${a.slice(11, 16)}: ${r.status}, reintento ${intento}`);
-      } catch (e) { if (intento === 4) throw e; console.log(`${date} ${a.slice(11, 16)}: ${e.message.slice(0, 60)}, reintento ${intento}`); }
-      await new Promise((res) => setTimeout(res, 4000 * intento));
+      } catch (e) { if (intento === 6) throw e; console.log(`${date} ${a.slice(11, 16)}: ${e.message.slice(0, 60)}, reintento ${intento}`); }
+      await new Promise((res) => setTimeout(res, 8000 * intento));
     }
     throw new Error(`${date}: Databento no responde (${a} → ${b})`);
   };
-  const rowsAll = []; for (let i = 0; i < trozos.length; i += 4) for (const part of await Promise.all(trozos.slice(i, i + 4).map(bajar))) rowsAll.push(...part);
+  const rowsAll = [];
+  try { for (let i = 0; i < trozos.length; i += 4) for (const part of await Promise.all(trozos.slice(i, i + 4).map(bajar))) rowsAll.push(...part); }
+  catch (e) { if (e.message !== 'PARTIR') throw e; rowsAll.length = 0; trozos = partir(3); for (let i = 0; i < trozos.length; i += 4) for (const part of await Promise.all(trozos.slice(i, i + 4).map(bajar))) rowsAll.push(...part); }
   if (!rowsAll.length) { console.log(`${date}: vacío`); return null; }
   const volById = new Map(); const rows = rowsAll;
   for (const t of rows) volById.set(t.id, (volById.get(t.id) || 0) + t.size);
@@ -162,7 +168,10 @@ function evaluar() {
   if (flag('--descargar')) {
     const dias = [...diasHabiles(DESDE, HASTA)]; const falta = dias.filter((d) => !existsSync(path.join(DIR, `${d}.json`)));
     if (falta.length) console.log(`${root}: ${falta.length} días por descargar (coste aprox. ${(await coste(ventana(falta[0]).start, ventana(falta.at(-1)).end)).toFixed(2)} $)`);
-    for (const d of dias) { const r = await descargarDia(d); if (r) console.log(`${d}: ${P.pair} POC ${toPair(r.poc).toFixed(P.dec === 2 ? 1 : 4)} · valor ${toPair(P.invert ? r.vah : r.val).toFixed(P.dec === 2 ? 1 : 4)}–${toPair(P.invert ? r.val : r.vah).toFixed(P.dec === 2 ? 1 : 4)} · vol ${r.total} · delta ${r.delta > 0 ? '+' : ''}${r.delta} · mayor ${r.grandes[0].size} ${r.grandes[0].side} @ ${toPair(r.grandes[0].price).toFixed(P.dec === 2 ? 1 : 4)}`); }
+    let fallos = 0; const PAR = Number(arg('--paralelo', '4'));
+    const uno = async (d) => { let r = null; try { r = await descargarDia(d); } catch (e) { fallos++; console.log(`${d}: FALLÓ (${e.message.slice(0, 80)}); se sigue con el siguiente`); return; } if (r) console.log(`${d}: ${P.pair} POC ${toPair(r.poc).toFixed(P.dec === 2 ? 1 : 4)} · valor ${toPair(P.invert ? r.vah : r.val).toFixed(P.dec === 2 ? 1 : 4)}–${toPair(P.invert ? r.val : r.vah).toFixed(P.dec === 2 ? 1 : 4)} · vol ${r.total} · delta ${r.delta > 0 ? '+' : ''}${r.delta} · mayor ${r.grandes[0].size} ${r.grandes[0].side} @ ${toPair(r.grandes[0].price).toFixed(P.dec === 2 ? 1 : 4)}`); };
+    for (let i = 0; i < dias.length; i += PAR) await Promise.all(dias.slice(i, i + PAR).map(uno));
+    if (fallos) { console.log(`${root}: ${fallos} días fallidos; vuelve a lanzar --descargar para completarlos`); process.exitCode = 2; }
   }
   if (flag('--evaluar')) evaluar();
 })().catch((e) => { console.error(e.message); process.exit(1); });
