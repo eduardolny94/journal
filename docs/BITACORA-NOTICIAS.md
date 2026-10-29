@@ -96,3 +96,26 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
   tramo largo sube por prima de plazo (empinamiento), no por la Fed: no ayuda al dólar. **Tono manual: +1 halcón, sin
   cambio** (la dirección sigue siendo subida en diciembre; el matiz es que la Fed no la ha prometido).
 - Próximo catalizador real: nóminas (6-nov) e IPC de octubre; diciembre se decide con datos, no con discursos.
+
+## 2026-10-29 · PIB 3T y PCE de EE. UU. (13:30) + BCE (14:15, Lagarde 14:45)
+
+- Descontado antes: PIB 3,2 %, PCE subyacente 0,3 % m/m; BCE mantiene (depósito 2,50 %), diciembre subida ~60–65 %.
+  Fed diciembre 85 % (CME) tras la reunión de ayer. EURUSD 1,1159 al cierre de ayer, radar EUR −3,3 (la más débil),
+  fondos cortos de EUR en percentil 2.
+- **Datos:** PIB **3,4 %** (cons. 3,2; sorpresa a favor del dólar), PCE subyacente 0,3 % m/m = consenso (3,1 % a/a),
+  general 0,5 % (3,6 % a/a), renta 0,2 % (cons. 0,3). Reacción 1.ª hora: EURUSD −27 pips hasta **1,1114** (justo el
+  mínimo de 20 días anotado ayer), DXY 102,28, oro −30 $. Bonos no acompañaron (10 a 5,045 → 5,00): dólar por
+  crecimiento, no por tipos.
+- **BCE:** mantiene (depósito 2,50 %, refi 2,65 %), **unánime**, pero Lagarde: «el Consejo debatió si era apropiado subir»
+  (pausa halcón); inflación 3,8 % «máximo de 3 años», subyacente estable; «tenemos instrumentos» ante la deuda francesa
+  (rendimientos franceses en máximos desde 2002) sin anunciar nada; **Lagarde se va el 7-02-2027**, nueve meses antes.
+  Diciembre BCE: 67 % de subida tras la rueda de prensa.
+- **Reacción al cierre (19:30 Madrid):** EURUSD **1,1114 → 1,1169** (+55 pips desde el mínimo, +10 en el día), DXY
+  **101,96** (mínimo del día y por debajo del cierre post-Fed), USDCHF 0,8289 → **0,8261**, GBPUSD 1,3366 (+39),
+  **oro 4.020 (−47 $ en el día, mínimo 4.017)**, 10 años **4,99 %** (−6 pb). El rebote del euro anunciado ayer se dio
+  desde el nivel exacto (1,1114) y por el motivo previsto (BCE halcón), tras el susto del PIB.
+- **Lectura:** dólar sin catalizador propio hasta nóminas (6-nov) y con el 10 años cayendo; el euro gana apoyo de tipos
+  (BCE «debatió subir»); el oro cae con bonos bajando → flujo/posicionamiento, no tipos. Radar tras la actualización
+  automática: USD +1,83 (antes +2,55), EUR −1,89 (antes −3,31), CHF −2,25; **FedWatch automático diciembre 81,7 %**
+  (antes 95,8 %). **Tono manual BCE: +1 halcón** (pausa con debate de subida); Fed sin cambio.
+- Los datos entraron en `radar_calendar` con la actualización de las 20:25 (actual = real).
