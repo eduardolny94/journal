@@ -41,6 +41,27 @@ Por año, entrada H4 a favor del diario (R̄):
 - XAUUSD: 18 −0,02 · 19 −0,10 · **20 +0,66** · 21 −0,09 · 22 −0,16 · 23 −0,08 · 24 +0,35 · 25 +0,12 · 26 −0,02 → 3 de 9.
 - EURGBP: 9 de 12 años negativos (2025: −0,40). EURCAD: −0,12 con 25 % de acierto.
 
+## Con objetivo fijo («sacar la tajada»): 1R, 1,5R, 2R
+
+Misma entrada; salida en el objetivo, en el stop o en el cruce contrario, lo que llegue antes.
+
+| par | n | 1R acierto · R̄ | 1,5R acierto · R̄ | 2R acierto · R̄ | años positivos a 2R |
+|---|---|---|---|---|---|
+| **AUDJPY** | 101 | 50 % · +0,13 | 45 % · +0,20 | **42 % · +0,19** | 3 años de datos |
+| **USDJPY** | 489 | 44 % · +0,06 | 39 % · +0,09 | **38 % · +0,12** | **10 de 12** |
+| **EURJPY** | 117 | 42 % · −0,02 | 38 % · +0,05 | 36 % · +0,12 | 3 años |
+| NAS100 | 84 | 45 % · +0,04 | 43 % · +0,12 | 40 % · +0,10 | 2 años |
+| US30 | 92 | 45 % · +0,06 | 39 % · +0,06 | 38 % · +0,02 | 2 años |
+| GBPJPY | 121 | 40 % · −0,01 | 36 % · +0,03 | 31 % · +0,01 | — |
+| XAUUSD | 373 | 43 % · +0,02 | 35 % · −0,01 | 33 % · 0,00 | 5 de 9 |
+| EURUSD · GBPUSD · USDCHF · USDCAD · AUDUSD | ~500 | 39–42 % · ≈ −0,02 | 34–37 % · ≈ −0,02 | 33–35 % · ≈ −0,02 | mitad |
+| EURAUD · NZDJPY · EURGBP · CADJPY · EURCAD · AUDNZD · CADCHF | 110–500 | −0,03 a −0,24 | −0,07 a −0,22 | −0,08 a −0,22 | pocos |
+
+Con objetivo fijo el resultado mejora frente a salir en el cruce (menos devolución), y los únicos que pagan de forma
+consistente son los **pares de yen**: USDJPY (10 de 12 años positivos a 2R, el único que pasa la regla de la casa),
+AUDJPY y EURJPY (solo 3 años de datos, pero los mejores de la muestra). Los índices van detrás. EURCAD y EURGBP siguen
+siendo los peores. Lista SWING de TradingView actualizada el 31-10-2026: USDJPY, AUDJPY, EURJPY.
+
 ## Conclusiones
 
 1. **«Meses en la misma tendencia» casi no existe con la 8/18 diaria.** El tramo mediano es de 11–16 días en todos los
@@ -56,5 +77,5 @@ Por año, entrada H4 a favor del diario (R̄):
    (+0,10/+0,18R, A/B +0,42/+0,61R), no elegir el par por tendencia.
 
 Recomendación para la lista de enero: en lugar de «los más tendenciales», los pares donde el cruce H4 a favor del
-diario no pierde (**USDJPY, GBPUSD, AUDJPY, EURJPY, XAUUSD**) y operarlos solo con el radar a favor. Quitar EURCAD y
-EURGBP de la idea de swing por cruce.
+diario con objetivo fijo paga (**USDJPY, AUDJPY, EURJPY**; índices NAS100/US30 detrás) y operarlos con el radar a favor.
+Quitar EURCAD, EURGBP, EURAUD, NZDJPY y CADJPY de la idea de swing por cruce.
