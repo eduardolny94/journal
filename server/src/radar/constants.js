@@ -23,8 +23,11 @@ export const PAIR_LIQUIDITY = {
 export const MAX_FAVORITES = 3;
 export const PAIRS = [...FETCHED_PAIRS, ...SYNTHETIC_CROSS_PAIRS];
 
+/** Pares que el usuario sigue en TradingView (31-10-2026): el radar solo muestra estos (el motor sigue calculando y
+ *  guardando los 28 para los backtests). RADAR_PAIRS en el entorno lo cambia sin tocar código. */
+export const RADAR_PAIRS = (process.env.RADAR_PAIRS || 'USDJPY,AUDJPY,EURJPY,USDCHF,EURGBP,EURUSD,GBPUSD,USDCAD').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
 /** Pares "principales" del usuario (arriba en la UI). */
-export const MAIN_PAIRS = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];
+export const MAIN_PAIRS = RADAR_PAIRS;
 
 /** Nombre en español de cada divisa (para las razones). */
 export const CURRENCY_NAMES = {

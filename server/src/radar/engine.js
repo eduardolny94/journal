@@ -2,7 +2,7 @@
 // máximo 60 s de antigüedad), guarda un histórico horario y nunca deja caer el snapshot por una fuente rota.
 import { readFileSync } from 'node:fs';
 import { getDb } from '../db.js';
-import { CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
+import { RADAR_PAIRS, CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
 import { computeSwing } from './swing.js';
 import { computeIntradia } from './intradia.js';
@@ -325,6 +325,8 @@ async function compute() {
   let jump = null;
   try { jump = currentJumpRegime(Object.fromEntries(JUMP_LEGS.map(([s]) => [s, closesAsOf(s)]))); } catch (e) { console.warn('[radar] régimen de salto:', e.message); }
   const core = computeRadar(db, { prices, cot, expectations: expByCcy, manual, policy, now, weights, backtest, closesAsOf, jump });
+  // Solo los pares que el usuario sigue (RADAR_PAIRS); el motor calcula los 28 y el histórico se guarda completo.
+  const visiblePairs = core.pairs.filter((p) => RADAR_PAIRS.includes(p.symbol));
   let instruments = [];
   try {
     const usd = core.currencies.find((c) => c.code === 'USD');
@@ -336,15 +338,15 @@ async function compute() {
   const sentiment = sentimentOf(prices.market, core.pairData, cot.byCurrency);
   let swing = null;
   try {
-    swing = computeSwing(prices, core.pairs, { now });
+    swing = computeSwing(prices, visiblePairs, { now });
   } catch (e) {
     console.warn('[radar] swing:', e.message);
   }
   let intradia = null;
-  try { intradia = computeIntradia(prices, core.pairs, { now }); } catch (e) { console.warn('[radar] intradía:', e.message); }
+  try { intradia = computeIntradia(prices, visiblePairs, { now }); } catch (e) { console.warn('[radar] intradía:', e.message); }
   let datoDelDia = null;
   try { datoDelDia = readingOfDay(db, prices, { now }); } catch (e) { console.warn('[radar] lectura del dato:', e.message); }
-  const week = weekPlan(db, { now: nowDate, expectations, pairs: core.pairs, cotByCurrency: cot.byCurrency, market, news: listNews(db, { limit: 60 }) });
+  const week = weekPlan(db, { now: nowDate, expectations, pairs: visiblePairs, cotByCurrency: cot.byCurrency, market, news: listNews(db, { limit: 60 }) });
   const newsTop = listNews(db, { limit: 5, minUrgency: 7 });
   const snapshot = {
     computed_at: nowDate.toISOString(),
@@ -359,10 +361,10 @@ async function compute() {
     },
     regime: { key: regimeKey, label: REGIMES[regimeKey].label, vix: vixNow, weights_name: rsel ? rsel.name : 'vigente', weights, evidence: rsel ? rsel.evidence : null, jump },
     currencies: core.currencies,
-    pairs: core.pairs,
+    pairs: visiblePairs,
     instruments,
     upcoming: core.upcoming,
-    que_operar: core.que_operar || null,
+    que_operar: core.que_operar ? { ...core.que_operar, best: (core.que_operar.best || []).filter((x) => RADAR_PAIRS.includes(x.symbol)) } : null,
     swing,
     intradia,
     dato_del_dia: datoDelDia,
@@ -379,7 +381,7 @@ async function compute() {
   if (now - state.lastSnapshotSaved >= 3600_000) {
     try {
       // Los índices y metales se guardan junto a los pares para medir su acierto con el tiempo.
-      saveSnapshot(db, { ...snapshot, pairs: [...snapshot.pairs, ...instruments] }, nowDate);
+      saveSnapshot(db, { ...snapshot, pairs: [...core.pairs, ...instruments] }, nowDate); // histórico completo (28 pares) para los backtests
       state.lastSnapshotSaved = now;
     } catch (e) {
       console.warn('[radar] no se pudo guardar el snapshot:', e.message);

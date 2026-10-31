@@ -73,7 +73,7 @@ export const RADAR_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDJPY', 'US
 export const MAX_FAVORITES = 3;
 
 /** Pares "principales" del usuario (arriba en la UI). */
-export const MAIN_PAIRS: readonly string[] = ['EURUSD', 'GBPUSD', 'USDCAD', 'USDJPY', 'AUDUSD'];
+export const MAIN_PAIRS: readonly string[] = ['USDJPY', 'AUDJPY', 'EURJPY', 'USDCHF', 'EURGBP', 'EURUSD', 'GBPUSD', 'USDCAD'];
 
 export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas' | 'taylor' | 'descontado' | 'real' | 'tot' | 'ciclo';
 
