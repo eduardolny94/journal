@@ -11,6 +11,10 @@ import { isoWeekKey, currentTradingDay } from '../services/tradingDay.js';
 export const SWING_ACCOUNT_USD = 500;
 export const SWING_RISK_PCT = 1;
 export const SWING_MAX_PAIRS = 4;
+// Universo del swing (31-10-2026): los pares que el usuario sigue en TradingView. Los de yen son los únicos con evidencia
+// medida para el cruce 8/18 + radar (docs/TENDENCIA-8-18.md); el resto se muestra como «sin evidencia». SWING_PAIRS en .env lo cambia.
+export const SWING_PAIRS = (process.env.SWING_PAIRS || 'USDJPY,AUDJPY,EURJPY,USDCHF,EURGBP,EURUSD,GBPUSD,USDCAD').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+export const SWING_EVIDENCE_PAIRS = ['AUDJPY', 'EURJPY', 'USDJPY'];
 const FAST = 8, SLOW = 18, TREND = 200, STRUCT_BARS = 10, RECENT_BARS = 6;
 
 function ema(values, n) {
@@ -135,6 +139,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
   const thisWeek = isoWeekKey(today);
   const rows = [];
   for (const p of pairs) {
+    if (SWING_PAIRS.length && !SWING_PAIRS.includes(p.symbol)) continue;
     const s = symbols[p.symbol];
     if (!s || !Array.isArray(s.h1) || s.h1.length < 100 || !Array.isArray(s.d1) || s.d1.length < 40) continue;
     const level = Math.min(5, Math.round(Math.abs(p.diff) / 2));
@@ -199,6 +204,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
     };
     rows.push({
       symbol: p.symbol, base: p.base, quote: p.quote, synthetic: !!p.synthetic, price, digits,
+      evidencia: SWING_EVIDENCE_PAIRS.includes(p.symbol) ? 'medida' : 'sin_evidencia',
       bias: p.bias, diff: p.diff, level, tier, p5: p.conviction ? p.conviction.p5 : null,
       trend: p.structure ? p.structure.trend : null, er20: p.fluidity ? p.fluidity.er20 : null, liquidity: PAIR_LIQUIDITY[p.symbol] ?? 0.5,
       weekly: { dir: w1.dir, since: w1.since, ok: semanalOk },
@@ -214,13 +220,14 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
   }
   const order = { entrada: 0, en_curso: 1, esperando_cruce: 2, semanal_en_contra: 3, sin_sesgo: 4 };
   const tierRank = { A: 0, B: 1, C: 2 };
-  rows.sort((a, b) => (order[a.estado] - order[b.estado]) || (b.calidad.puntos - a.calidad.puntos) || ((tierRank[a.tier] ?? 3) - (tierRank[b.tier] ?? 3)) || (b.level - a.level) || (b.liquidity - a.liquidity));
+  const evRank = { medida: 0, sin_evidencia: 1 };
+  rows.sort((a, b) => (order[a.estado] - order[b.estado]) || (evRank[a.evidencia] - evRank[b.evidencia]) || (b.calidad.puntos - a.calidad.puntos) || ((tierRank[a.tier] ?? 3) - (tierRank[b.tier] ?? 3)) || (b.level - a.level) || (b.liquidity - a.liquidity));
   const selected = rows.filter((r) => ['entrada', 'en_curso', 'esperando_cruce'].includes(r.estado)).slice(0, SWING_MAX_PAIRS);
   return {
     as_of: new Date(now).toISOString(),
     account: { usd: accountUsd, risk_pct: riskPct, max_pairs: SWING_MAX_PAIRS },
     rules: { be_trigger_r: BE_TRIGGER_R, targets_r: TARGETS_R, early: { adx_max: EARLY_ADX_MAX, cross_atr_max: EARLY_CROSS_ATR_MAX, daily_max_days: EARLY_DAILY_MAX_DAYS } },
-    evidence: { text: 'Medido 2024-2026 en 14 pares con el sesgo del radar del día anterior (sin información del futuro). Cruce 8/18 en H4 con la semana 8/18 alineada y el radar a favor, stop en el día anterior y objetivo 2R: 39 % de acierto, +0,17R (n=318); el radar mejora al azar con p = 0,02. Con 2 de 3 señales de entrada temprana (ADX diario < 20, cruce suave < 0,5 ATR, diario a favor ≤ 10 días): 51 % a 2R (+0,52R) y 59 % a 1,5R (+0,47R), n=75, positivo los tres años; descontando los 42 filtros probados, p = 0,17: prometedor, no demostrado. Pasar el stop a la entrada en +1,1R resta entre 5 y 8 puntos de acierto y deja el R igual. El cruce sin el radar no gana.' },
+    evidence: { text: 'Regla medida (docs/TENDENCIA-8-18.md, radar point-in-time 2023-2026): en pares de yen, cruce 8/18 en H4 a favor del diario con el radar a favor (fuerza ≥ 2), stop en el día anterior y objetivo 2R: AUDJPY 50 % y +0,31R (n=52), EURJPY 44 % y +0,29R (n=34), USDJPY 42 % y +0,19R (n=64); con el radar en contra pierden. En el resto de pares de la lista el radar no separa y el cruce queda en cero: se muestran como «sin evidencia».' },
     selected: selected.map((r) => r.symbol),
     pairs: rows,
   };

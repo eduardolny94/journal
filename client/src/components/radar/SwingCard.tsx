@@ -133,7 +133,7 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
   return (
     <Card
       title={<span className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-accent" /> Swing · C4L en 4 horas guiado por el radar</span>}
-      subtitle={`Hasta ${plan.account.max_pairs} pares con sesgo del radar (fuerza ≥ 2/5) y semana 8/18 alineada. Compras solo si la azul está sobre la roja en semanal y cruza en H4; ventas al revés. Objetivo 1,5R–2R, stop en el día anterior; las mejores entradas juntan 2 de 3 señales tempranas (ADX diario < 20, cruce suave, diario joven). Cuenta ${plan.account.usd} $ · riesgo ${riskPct} % por operación.`}
+      subtitle={`Solo los pares de tu TradingView. Hasta ${plan.account.max_pairs} con sesgo del radar (fuerza ≥ 2/5) y semana 8/18 alineada; los de yen primero (son los medidos). Compras solo si la azul está sobre la roja en semanal y cruza en H4; ventas al revés. Objetivo 1,5R–2R, stop en el día anterior; las mejores entradas juntan 2 de 3 señales tempranas (ADX diario < 20, cruce suave, diario joven). Cuenta ${plan.account.usd} $ · riesgo ${riskPct} % por operación.`}
       actions={
         <span className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
           <span title="Se recalcula solo: el servidor rehace el plan cada minuto con el último precio, las velas de 1 h se renuevan cada 5 minutos y las diarias cada 30 (Yahoo); la página se refresca cada 60 s sin tocar nada." className="rounded border border-border px-1.5 py-0.5 text-[11px] text-gray-500">actualizado {fmtSince(plan.as_of)} · automático</span>
@@ -163,6 +163,7 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-100">{p.base && p.quote ? `${flagOf(p.base)}${flagOf(p.quote)} ` : ''}{p.symbol}</span>
                   {p.tier && <TierBadge tier={p.tier} p5={p.p5} />}
+                  {p.evidencia === 'medida' ? <Badge variant="profit" size="sm" title="Par de yen: la regla cruce 8/18 H4 + radar a favor + objetivo 2R está medida (AUDJPY +0,31R, EURJPY +0,29R, USDJPY +0,19R).">medido</Badge> : p.evidencia === 'sin_evidencia' ? <Badge variant="outline" size="sm" title="En este par el cruce con el radar no mostró ventaja en lo medido (2023-2026). Está en la lista porque lo sigues; opéralo con otra lógica o con tamaño menor.">sin evidencia</Badge> : null}
                 </span>
                 <span className={cn('block text-xs font-semibold uppercase tracking-wide', dir > 0 ? 'text-profit' : dir < 0 ? 'text-loss' : 'text-gray-500')}>{dir > 0 ? 'solo compras' : dir < 0 ? 'solo ventas' : 'sin dirección'} · fuerza {p.level}/5</span>
                 <span className="flex flex-wrap gap-1">

@@ -282,6 +282,8 @@ export interface SwingFrame { dir: 1 | -1 | 0; since: number | null; ok: boolean
 export interface SwingSizing { risk_pips: number; lots: number; risk_usd: number; pip_value_usd?: number }
 export interface SwingPair {
   symbol: string; base: CurrencyCode | null; quote: CurrencyCode | null; synthetic: boolean; price: number | null; digits: number;
+  /** 'medida' = par de yen con la regla cruce + radar medida; 'sin_evidencia' = el resto de la lista. */
+  evidencia?: 'medida' | 'sin_evidencia';
   bias: Bias; diff: number; level: number; tier: 'A' | 'B' | 'C' | null; p5: number | null;
   trend: { w1: string; d1: string; h4: string } | null; er20: number | null; liquidity: number;
   weekly: SwingFrame; daily: SwingFrame;
