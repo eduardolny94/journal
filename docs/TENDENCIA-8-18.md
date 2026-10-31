@@ -79,3 +79,21 @@ siendo los peores. Lista SWING de TradingView actualizada el 31-10-2026: USDJPY,
 Recomendación para la lista de enero: en lugar de «los más tendenciales», los pares donde el cruce H4 a favor del
 diario con objetivo fijo paga (**USDJPY, AUDJPY, EURJPY**; índices NAS100/US30 detrás) y operarlos con el radar a favor.
 Quitar EURCAD, EURGBP, EURAUD, NZDJPY y CADJPY de la idea de swing por cruce.
+
+## «Lateraliza y luego expande» (31-10-2026, `compresion-expansion.mjs`)
+
+Compresión = rango de 15 días mínimo en 60 días. Diario, 2015→2026 (oro 2018→).
+
+| par | compresiones | rango de los 10 d siguientes frente a lo normal | ruptura (1× rango): acierto · R̄ | mejor lado |
+|---|---|---|---|---|
+| USDJPY | 185 | **×0,87** (más pequeño) | 34 % · −0,17 | ninguno |
+| EURUSD | 192 | ×1,01 | 32 % · −0,21 | ninguno |
+| GBPUSD | 183 | ×0,92 | 34 % · −0,18 | alcista +0,11 |
+| USDCHF | 173 | ×1,01 | 51 % · +0,21 | ambos, pero 2019/2021/2023 negativos |
+| XAUUSD | 146 | ×0,95 | 34 % · −0,20 | alcista +0,12 |
+| USDCAD · AUDUSD · EURGBP · GBPNZD · EURNZD | 145–183 | ×0,90–1,04 | −0,40 a +0,07 | — |
+
+La compresión **no anuncia** expansión: tras un rango mínimo, los 10 días siguientes se mueven igual (o menos) que
+cualquier otro periodo. Lo que se ve en el gráfico es la alternancia normal de la volatilidad vista a posteriori. La
+ruptura del rango comprimido pierde en 8 de 10 pares. Asimetría de USDJPY: caídas de 10 días ×1,07 las subidas (los
+desplomes de mayo/agosto/septiembre 2026 son eventos raros de carry/intervención, no la norma).
