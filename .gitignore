@@ -15,3 +15,4 @@ README.tmp
 .node/
 data/mt5-largo/
 data/cme-perfil/
+data/cme-ohlcv/

@@ -24,17 +24,18 @@ const sma = (v, n) => v.map((_, i) => (i + 1 < n ? null : v.slice(i + 1 - n, i +
 
 // ---------- datos ----------
 function loadBars(sym) {
-  const files = [path.join(ROOT, 'data', 'mt5-largo', `${sym}_M30.csv`), path.join(ROOT, 'data', 'mt5-fxcm', `${sym}_PERIOD_H1.csv`), path.join(ROOT, 'data', 'mt5', `${sym}_PERIOD_H1.csv`)].filter(existsSync);
+  // Fuentes de más larga a más corta: futuros CME continuos (2010→, cme-ohlcv), M30 exportado, FXCM 2015→, servicio MT5 2023→.
+  const files = [path.join(ROOT, 'data', 'cme-ohlcv', `${sym}_PERIOD_H1.csv`), path.join(ROOT, 'data', 'mt5-largo', `${sym}_M30.csv`), path.join(ROOT, 'data', 'mt5-fxcm', `${sym}_PERIOD_H1.csv`), path.join(ROOT, 'data', 'mt5', `${sym}_PERIOD_H1.csv`)].filter(existsSync);
   if (!files.length) return null;
-  const byKey = new Map(); // clave "fecha hora" → vela H1 (se agregan M30 y se funden fuentes; la más larga manda)
-  for (const file of files) {
+  const byKey = new Map(); // clave "fecha hora" → vela H1. Dentro de un archivo se agregan las M30; entre archivos manda el primero (más largo), sin mezclar precios de fuentes distintas.
+  files.forEach((file, src) => {
     for (const line of readFileSync(file, 'utf8').trim().split(/\r?\n/)) {
       if (/^[<a-z]/i.test(line)) continue; const tab = line.includes('\t'); const f = tab ? line.split('\t') : line.split(',');
       const d = (tab ? f[0] : f[0].split(' ')[0]).replace(/\./g, '-'); const hm = tab ? f[1] : f[0].split(' ')[1]; const [o, h, l, c] = (tab ? f.slice(2, 6) : f.slice(1, 5)).map(Number);
       if (!Number.isFinite(c) || d < FROM) continue; const key = `${d} ${hm.slice(0, 2)}`;
-      const b = byKey.get(key); if (!b) byKey.set(key, { date: d, hour: Number(hm.slice(0, 2)), o, h, l, c }); else { b.h = Math.max(b.h, h); b.l = Math.min(b.l, l); b.c = c; }
+      const b = byKey.get(key); if (!b) byKey.set(key, { date: d, hour: Number(hm.slice(0, 2)), o, h, l, c, src }); else if (b.src === src) { b.h = Math.max(b.h, h); b.l = Math.min(b.l, l); b.c = c; }
     }
-  }
+  });
   return [...byKey.values()].sort((a, b) => (a.date + a.hour < b.date + b.hour ? -1 : 1)).sort((a, b) => (a.date === b.date ? a.hour - b.hour : a.date < b.date ? -1 : 1));
 }
 const agg = (bars, keyFn) => { const out = []; for (const b of bars) { const k = keyFn(b); const last = out.at(-1); if (last && last.k === k) { last.h = Math.max(last.h, b.h); last.l = Math.min(last.l, b.l); last.c = b.c; } else out.push({ k, date: b.date, hour: b.hour, o: b.o, h: b.h, l: b.l, c: b.c }); } return out; };
@@ -82,7 +83,7 @@ function analizar(sym) {
 
 export { analizar, ema, sma, agg, loadBars };
 if (!process.env.SIN_SALIDA) {
-const dirs = ['mt5-largo', 'mt5-fxcm', 'mt5'].map((d) => path.join(ROOT, 'data', d)).filter(existsSync);
+const dirs = ['cme-ohlcv', 'mt5-largo', 'mt5-fxcm', 'mt5'].map((d) => path.join(ROOT, 'data', d)).filter(existsSync);
 const syms = [...new Set(dirs.flatMap((d) => readdirSync(d).map((f) => f.match(/^([A-Z0-9]+)_(PERIOD_H1|M30)\.csv$/)?.[1]).filter(Boolean)))].filter((s) => !SOLO || SOLO.includes(s)).sort();
 const R = syms.map(analizar).filter(Boolean);
 const pct = (x) => `${(100 * x).toFixed(0)} %`;
