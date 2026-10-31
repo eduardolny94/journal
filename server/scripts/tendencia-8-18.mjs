@@ -59,6 +59,7 @@ function analizar(sym) {
     const di = dayIdx.get(h4[i].date); if (di === undefined || di < SLOW + 1) continue;
     const dDir = dirD[di - 1]; // diario del día anterior (cerrado)
     if (dDir !== dirH[i]) continue; // solo a favor del diario
+    let age = 0; for (let k = di - 1; k >= SLOW && dirD[k] === dDir; k--) age++; // días que lleva el diario alineado
     const dir = dirH[i], entry = h4[i].c; const prevDay = d1[di - 1]; const stop = dir > 0 ? prevDay.l - spread : prevDay.h + spread; const risk = Math.abs(entry - stop); if (!(risk > 0)) continue;
     let r = null, exitIdx = null;
     // Objetivos fijos («sacar la tajada»): +1R, +1,5R y +2R; si antes llega el cruce contrario, se sale ahí; si el stop, −1.
@@ -70,7 +71,7 @@ function analizar(sym) {
       if (r !== null) { for (const k of Object.keys(tg)) if (out[k] === undefined) out[k] = r; break; }
     }
     if (r === null) continue;
-    T.push({ year: h4[i].date.slice(0, 4), date: h4[i].date, hour: h4[i].hour, dir, entry, stop, exitDate: h4[exitIdx].date, exitPrice: r === -1 ? stop : h4[exitIdx].c, r, r1: out.r1, r15: out.r15, r2: out.r2, dur: exitIdx - i, riskPips: risk / pip });
+    T.push({ year: h4[i].date.slice(0, 4), date: h4[i].date, hour: h4[i].hour, dir, age, entry, stop, exitDate: h4[exitIdx].date, exitPrice: r === -1 ? stop : h4[exitIdx].c, r, r1: out.r1, r15: out.r15, r2: out.r2, dur: exitIdx - i, riskPips: risk / pip });
   }
   const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
   const byYear = {}; for (const t of T) (byYear[t.year] ||= []).push(t.r);
