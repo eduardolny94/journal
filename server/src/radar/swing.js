@@ -12,7 +12,8 @@ export const SWING_ACCOUNT_USD = 500;
 export const SWING_RISK_PCT = 1;
 export const SWING_MAX_PAIRS = 4;
 // Universo del swing (31-10-2026): los pares que el usuario sigue en TradingView. Los de yen son los únicos con evidencia
-// medida para el cruce 8/18 + radar (docs/TENDENCIA-8-18.md); el resto se muestra como «sin evidencia». SWING_PAIRS en .env lo cambia.
+// medida para el cruce 8/18 + RADAR A FAVOR (2023-2026; con 16 años ningún par gana solo, docs/TENDENCIA-8-18.md); el resto
+// se muestra como «sin evidencia». SWING_PAIRS en .env lo cambia.
 export const SWING_PAIRS = (process.env.SWING_PAIRS || 'USDJPY,AUDJPY,EURJPY,USDCHF,EURGBP,EURUSD,GBPUSD,USDCAD').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
 export const SWING_EVIDENCE_PAIRS = ['AUDJPY', 'EURJPY', 'USDJPY'];
 const FAST = 8, SLOW = 18, TREND = 200, STRUCT_BARS = 10, RECENT_BARS = 6;
@@ -227,7 +228,7 @@ export function computeSwing(prices, pairs, { now = Date.now(), accountUsd = SWI
     as_of: new Date(now).toISOString(),
     account: { usd: accountUsd, risk_pct: riskPct, max_pairs: SWING_MAX_PAIRS },
     rules: { be_trigger_r: BE_TRIGGER_R, targets_r: TARGETS_R, early: { adx_max: EARLY_ADX_MAX, cross_atr_max: EARLY_CROSS_ATR_MAX, daily_max_days: EARLY_DAILY_MAX_DAYS } },
-    evidence: { text: 'Regla medida (docs/TENDENCIA-8-18.md, radar point-in-time 2023-2026): en pares de yen, cruce 8/18 en H4 a favor del diario con el radar a favor (fuerza ≥ 2), stop en el día anterior y objetivo 2R: AUDJPY 50 % y +0,31R (n=52), EURJPY 44 % y +0,29R (n=34), USDJPY 42 % y +0,19R (n=64); con el radar en contra pierden. En el resto de pares de la lista el radar no separa y el cruce queda en cero: se muestran como «sin evidencia».' },
+    evidence: { text: 'Medido (docs/TENDENCIA-8-18.md). Con 16 años de futuros CME (2010-2026) ningún par gana por sí solo con el cruce 8/18 H4 a favor del diario y objetivo 2R: USDJPY +0,07R (11 de 17 años positivos), AUDJPY −0,03, EURJPY −0,04, USDCAD −0,06. Lo que separa es el radar (medido 2023-2026, radar point-in-time): con radar a favor (fuerza ≥ 2) AUDJPY 50 % y +0,31R (n=52), EURJPY 44 % y +0,29R (n=34), USDJPY 42 % y +0,19R (n=64); con radar en contra pierden. Regla: solo yenes, solo con radar a favor, objetivo 2R, stop en el día anterior.' },
     selected: selected.map((r) => r.symbol),
     pairs: rows,
   };

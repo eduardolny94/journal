@@ -126,3 +126,25 @@ no separa o separa al revés (USDCHF, NZDJPY, CADJPY mejor en contra: n pequeño
 
 Conclusión: la combinación que funciona es **par de yen + radar a favor (≥ 2) + cruce H4 a favor del diario + objetivo
 2R**: 39–50 % de acierto y +0,12/+0,31R. Ni «tendencia» sola ni «fundamental» solo; y solo en yenes.
+
+## Con 16 años (futuros CME continuos 2010→2026, `cme-ohlcv.mjs`) — corrección (31-10-2026)
+
+Velas horarias de 6E, 6A, 6J, 6C (≈ 1 $ cada uno en Databento) convertidas a EURUSD, AUDUSD, USDJPY, USDCAD y cruces
+AUDJPY/EURJPY. Misma entrada (cruce H4 a favor del diario, stop día anterior), objetivo fijo:
+
+| par (2010→2026) | n | 1R | 1,5R | **2R** | años positivos a 2R |
+|---|---|---|---|---|---|
+| **USDJPY** | 683 | 43 % · +0,05 | 38 % · +0,07 | **35 % · +0,07** | 11 de 17 |
+| AUDUSD | 694 | 41 % · −0,01 | 36 % · −0,01 | 34 % · −0,02 | 8 de 17 |
+| **AUDJPY** | 679 | 39 % · −0,03 | 33 % · −0,04 | **31 % · −0,03** | 7 de 17 |
+| EURUSD | 690 | 42 % · −0,01 | 36 % · −0,02 | 33 % · −0,04 | 8 de 17 |
+| **EURJPY** | 669 | 38 % · −0,04 | 32 % · −0,05 | **30 % · −0,04** | 8 de 17 |
+| USDCAD | 737 | 38 % · −0,09 | 34 % · −0,06 | 32 % · −0,06 | 7 de 17 |
+
+Lo que cambia respecto a la tabla de 3 años: **AUDJPY (+0,19) y EURJPY (+0,12) eran un buen periodo, no una propiedad
+del par**: en 16 años quedan en cero (AUDJPY positivo en 2012, 2017, 2020–2022 y poco más). **USDJPY es el único que se
+mantiene positivo** (+0,07R, 11 de 17 años), y es modesto. Ningún par tiene ventaja por sí mismo con el cruce 8/18.
+
+Lo que sigue en pie es lo medido con el radar (2023→2026, único periodo con radar point-in-time): AUDJPY +0,31 / EURJPY
++0,29 / USDJPY +0,19 con radar a favor frente a −0,31 / −0,20 / +0,11 en contra. Es decir: **la ventaja, si existe, la
+pone el radar, no el par**; y solo se ha podido medir 3 años. Etiquetas de la pestaña Swing corregidas en consecuencia.

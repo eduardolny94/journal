@@ -163,7 +163,7 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-100">{p.base && p.quote ? `${flagOf(p.base)}${flagOf(p.quote)} ` : ''}{p.symbol}</span>
                   {p.tier && <TierBadge tier={p.tier} p5={p.p5} />}
-                  {p.evidencia === 'medida' ? <Badge variant="profit" size="sm" title="Par de yen: la regla cruce 8/18 H4 + radar a favor + objetivo 2R está medida (AUDJPY +0,31R, EURJPY +0,29R, USDJPY +0,19R).">medido</Badge> : p.evidencia === 'sin_evidencia' ? <Badge variant="outline" size="sm" title="En este par el cruce con el radar no mostró ventaja en lo medido (2023-2026). Está en la lista porque lo sigues; opéralo con otra lógica o con tamaño menor.">sin evidencia</Badge> : null}
+                  {p.evidencia === 'medida' ? <Badge variant="profit" size="sm" title="Par de yen: con el RADAR A FAVOR, el cruce 8/18 H4 + objetivo 2R está medido 2023-2026 (AUDJPY +0,31R, EURJPY +0,29R, USDJPY +0,19R; con radar en contra pierden). Sin radar, en 16 años ningún par gana solo.">medido</Badge> : p.evidencia === 'sin_evidencia' ? <Badge variant="outline" size="sm" title="En este par el cruce con el radar no mostró ventaja en lo medido (2023-2026). Está en la lista porque lo sigues; opéralo con otra lógica o con tamaño menor.">sin evidencia</Badge> : null}
                 </span>
                 <span className={cn('block text-xs font-semibold uppercase tracking-wide', dir > 0 ? 'text-profit' : dir < 0 ? 'text-loss' : 'text-gray-500')}>{dir > 0 ? 'solo compras' : dir < 0 ? 'solo ventas' : 'sin dirección'} · fuerza {p.level}/5</span>
                 <span className="flex flex-wrap gap-1">
