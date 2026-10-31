@@ -7,7 +7,7 @@ import { Info, TrendingUp } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/cn';
-import { flagOf, type RadarPair, type RadarRegime, type SwingFrame, type SwingPair, type SwingPlan, type SwingSizing } from '../../lib/radar';
+import { flagOf, fmtSince, type RadarPair, type RadarRegime, type SwingFrame, type SwingPair, type SwingPlan, type SwingSizing } from '../../lib/radar';
 import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react';
 import { TierBadge } from './QueOperarCard';
 
@@ -136,6 +136,7 @@ export default function SwingCard({ plan }: { plan: SwingPlan | null }) {
       subtitle={`Hasta ${plan.account.max_pairs} pares con sesgo del radar (fuerza ≥ 2/5) y semana 8/18 alineada. Compras solo si la azul está sobre la roja en semanal y cruza en H4; ventas al revés. Objetivo 1,5R–2R, stop en el día anterior; las mejores entradas juntan 2 de 3 señales tempranas (ADX diario < 20, cruce suave, diario joven). Cuenta ${plan.account.usd} $ · riesgo ${riskPct} % por operación.`}
       actions={
         <span className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+          <span title="Se recalcula solo: el servidor rehace el plan cada minuto con el último precio, las velas de 1 h se renuevan cada 5 minutos y las diarias cada 30 (Yahoo); la página se refresca cada 60 s sin tocar nada." className="rounded border border-border px-1.5 py-0.5 text-[11px] text-gray-500">actualizado {fmtSince(plan.as_of)} · automático</span>
           <label className="flex items-center gap-1.5">riesgo
             <select value={riskPct} onChange={(e) => changeRisk(Number(e.target.value))} className="rounded border border-border bg-transparent px-1 py-0.5 text-xs text-gray-200">
               {RISK_OPTIONS.map((v) => <option key={v} value={v} className="bg-gray-900">{v} %</option>)}
