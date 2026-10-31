@@ -97,3 +97,32 @@ La compresión **no anuncia** expansión: tras un rango mínimo, los 10 días si
 cualquier otro periodo. Lo que se ve en el gráfico es la alternancia normal de la volatilidad vista a posteriori. La
 ruptura del rango comprimido pierde en 8 de 10 pares. Asimetría de USDJPY: caídas de 10 días ×1,07 las subidas (los
 desplomes de mayo/agosto/septiembre 2026 son eventos raros de carry/intervención, no la norma).
+
+## Tendencia + fundamental: ¿el radar ve venir los rallys? (31-10-2026, `rallys-radar.mjs`)
+
+Radar point-in-time (radar_daily_bias, desde 2023-10-22) el día del cruce diario 8/18, alineado con la dirección del tramo.
+
+| radar al empezar el tramo | tramos | duración mediana | ≥ 20 d | ≥ 40 d | recorrido medio |
+|---|---|---|---|---|---|
+| a favor (≥ 2) | 431 | 14 d | 29 % | **6 %** | 0,4 ATR |
+| neutro | 807 | 12 d | 27 % | 3 % | 0,2 ATR |
+| en contra | 380 | 12 d | 25 % | 3 % | 0,3 ATR |
+
+El radar **duplica** la probabilidad de que el tramo sea un rally (≥ 40 d: 6 % frente a 3 %), pero el rally sigue siendo
+raro: 94 de cada 100 tramos con radar a favor no lo son. No se puede «anticipar el rally»; sí se puede entrar en el
+lado donde es más probable.
+
+Entrada H4 a favor del diario, objetivo 2R, según el radar:
+
+| | todos los pares | pares de yen |
+|---|---|---|
+| radar a favor | n = 1.188 · 32 % · −0,06 | **n = 313 · 39 % · +0,12** |
+| neutro | n = 1.654 · 29 % · −0,11 | n = 388 · 31 % · −0,01 |
+| en contra | n = 581 · 30 % · −0,05 | n = 119 · 34 % · +0,02 |
+
+Por par (a favor frente a en contra): **AUDJPY 50 % · +0,31 frente a 19 % · −0,31** (n 52/16); **EURJPY 44 % · +0,29
+frente a 23 % · −0,20** (34/13); **USDJPY 42 % · +0,19 frente a 36 % · +0,11** (64/14). En el resto de pares el radar
+no separa o separa al revés (USDCHF, NZDJPY, CADJPY mejor en contra: n pequeño y señal de que ahí no hay nada).
+
+Conclusión: la combinación que funciona es **par de yen + radar a favor (≥ 2) + cruce H4 a favor del diario + objetivo
+2R**: 39–50 % de acierto y +0,12/+0,31R. Ni «tendencia» sola ni «fundamental» solo; y solo en yenes.
