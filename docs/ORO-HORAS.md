@@ -30,3 +30,27 @@ Rango y neto en % del ATR diario de 14 días, para que 2022 (1 800 $) y 2026 (4 
 Lo que esto cambia en la operativa de Asia (docs/ASIA-BARRIDO-ORO.md): el barrido con reacción buscado a las 02:00–04:00 NY
 ocurre en las horas más lentas; la expansión real es 05:00–08:00 NY. Un barrido de Asia a las 02:00 NY y la vuelta al medio
 se desarrollan con el 16 % del ATR por hora; el movimiento grande del día viene después, con la sesión americana acercándose.
+
+## Horas de Londres, en hora local de Londres (`server/scripts/oro-horas-londres.mjs`)
+
+Mismos datos, pero con el reloj de Londres real (horario de verano de Londres y de Nueva York por separado), sesión 07:00–17:00.
+
+| Londres | rango medio por hora (% ATR) | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|
+| 07:00 | 17 % | 18 | 16 | 16 | 19 | 17 |
+| 08:00 apertura | 16 % | 18 | 15 | 16 | 18 | 15 |
+| 09:00 | 17 % | 18 | 17 | 18 | 17 | 15 |
+| 10:00 | 25 % | 27 | 32 | 27 | 20 | 18 |
+| **11:00** | **32 %** | 34 | 38 | 36 | 28 | 25 |
+| **12:00** | **33 %** | 34 | 37 | 35 | 32 | 29 |
+| **13:00** | **29 %** | 29 | 29 | 29 | 32 | 28 |
+| 14:00 | 23 % | 20 | 21 | 22 | 25 | 25 |
+| 15:00 | 19 % | 18 | 19 | 18 | 21 | 19 |
+| 16:00 | 17 % | 19 | 16 | 16 | 17 | 17 |
+
+- Ranking: 12:00 > 11:00 > 13:00 > 10:00 > 14:00 > 15:00 > 07:00 ≈ 09:00 ≈ 16:00 > **08:00 (la apertura es la hora más lenta)**.
+- En 2025-26 el pico se ha desplazado una hora más tarde: 10:00 y 11:00 se enfrían (de 27-38 % a 18-28 %) y 13:00-14:00
+  se calientan (de 20-29 % a 25-32 %). El movimiento del oro es cada vez más el de la premercado americana (12:00–14:00
+  Londres = 07:00–09:00 NY, con los datos de EE. UU. a las 13:30 Londres).
+- Por media hora (M5, último año y medio): mínimo 09:00–10:00 (11 %), arranque a las 11:00 (15,5 %), 11:30 ya 19 %, máximo
+  12:30–13:00 (22 %), y a partir de las 14:30 vuelve al nivel de la mañana.
