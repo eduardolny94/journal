@@ -78,14 +78,17 @@ export const CURRENCY_REGION = {
 };
 
 /** Pesos de los pilares (suman 100). */
+// Pesos reponderados el 01-11-2026 con el radar histórico 2011-2026 (docs/RADAR-HISTORICO.md, radar-bias-optimizar.mjs):
+// el signo del sesgo a 20 días acierta 55,3 % (56,6 % con |diff| ≥ 4) frente a 52,8 % con los pesos anteriores, mejora
+// en los tres bloques de años y en 15 de 16 años. Momentum y expectativas restaban (solos: 48–49 %); riesgo sube a 20.
 export const PILLAR_WEIGHTS = {
   tasas: 20,
-  expectativas: 15,
+  expectativas: 0,
   inflacion: 10,
   crecimiento: 15,
   posicionamiento: 10,
-  riesgo: 10,
-  momentum: 15,
+  riesgo: 20,
+  momentum: 0,
   tono: 5,
   // Fórmulas cuantitativas (docs/FORMULAS-CUANT.md). Peso 0 hasta que el backtest demuestre que aportan:
   // valor (PPP / tipo de cambio real), tendencia (retorno 3 y 12 meses / volatilidad), sorpresas (índice tipo Citi).

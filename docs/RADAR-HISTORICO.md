@@ -62,3 +62,26 @@ favor supera al radar en contra en 10 de 16 años (2021-2026 sí, 2013/2016/2017
   −0,24 cada año desde 2021). Vale como filtro de «no hacer», no como generador de entradas.
 - Para enero: no hay evidencia para operar el cruce H4 con 500 $ esperando ganar. Si se opera, USDJPY con radar a favor,
   tamaño mínimo y registro en el journal; y sabiendo que lo medido a 15 años es ≈ 0.
+
+## Acierto del sesgo fundamental a 15 años y reponderación (01-11-2026, `radar-bias-optimizar.mjs`)
+
+Signo del sesgo (base − cotizada) frente a la dirección del precio a 5/10/20 días, 28 pares, 2011-2026, pares-día con
+|diff| ≥ 2 (n ≈ 30.000). Pesos oficiales hasta hoy: **52,8 %** a 20 días (52,9 % con |diff| ≥ 4); por bloques 59,3 / 45,6 /
+54,2 %; 2016-2020 por debajo del azar. Por pilar solo: riesgo 53,7 %, inflación 51,9 %, tasas 51,8 %, COT 51,7 %,
+crecimiento 51,6 %, **expectativas 48,9 %, momentum 48,0 %** (restan).
+
+| variante | n | 20 d | fuerte (≥ 4) | 2011-15 | 2016-20 | 2021-26 | años mejor que el oficial |
+|---|---|---|---|---|---|---|---|
+| oficial (tasas 20, exp 15, infl 10, crec 15, COT 10, riesgo 10, mom 15) | 29.256 | 52,8 % | 52,9 % | 59,3 | 45,6 | 54,2 | — |
+| sin momentum | 29.620 | 54,1 % | 55,5 % | 61,4 | 47,5 | 55,4 | 13 de 16 |
+| sin momentum ni expectativas | 31.448 | 55,4 % | 56,4 % | 62,1 | 49,5 | 56,7 | 13 de 16 |
+| **sin momentum ni expectativas, riesgo 20** | 33.204 | **55,3 %** | **56,6 %** | 62,0 | 50,7 | 55,8 | **15 de 16** |
+| tasas 30, infl 10, crec 20, COT 10, riesgo 20 | 32.178 | 55,4 % | 57,0 % | 61,5 | 50,0 | 56,6 | — |
+
+Adoptada (regla de la casa: mejora en los tres bloques y en 15 de 16 años): **tasas 20, inflación 10, crecimiento 15,
+posicionamiento 10, riesgo 20, momentum 0, expectativas 0, tono 5** (`PILLAR_WEIGHTS`). Con ella: 5 d 53,4 %, 10 d 54,0 %,
+20 d 55,3 %; |diff| ≥ 4 a 20 d 56,6 %; |diff| ≥ 6 56,0 %.
+
+Techo honesto: el sesgo fundamental acierta la dirección a 20 días **55–57 %** de las veces, no más. No existe versión
+«infalible»: 2016-2020 (tipos en cero, guerra comercial, COVID) se queda en 50 %. Lo que sí se puede exigir: solo |diff| ≥ 4,
+horizonte de 10-20 días (no 5), y no operar en contra.

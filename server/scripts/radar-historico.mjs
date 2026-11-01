@@ -71,7 +71,7 @@ const tradingDays = [...closes.EURUSD.keys()].filter((d) => d >= DESDE).sort();
 function cotZ(c, date) { const rows = (cotRows[c] || []).filter((r) => r.avail <= date).slice(-52); if (rows.length < 20) return null; const xs = rows.map((r) => r.ratio); const m = xs.reduce((a, b) => a + b, 0) / xs.length; const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1)) || 0; return sd ? (xs.at(-1) - m) / sd : 0; }
 function mom(p, date) { const e = closes[p].get(date); if (!e) return null; const { d1, i } = e; if (i < 60) return null; const tr = []; for (let k = i - 14; k <= i; k++) tr.push(Math.max(d1[k].h - d1[k].l, Math.abs(d1[k].h - d1[k - 1].c), Math.abs(d1[k].l - d1[k - 1].c))); const atrPct = (tr.reduce((a, b) => a + b, 0) / tr.length) / d1[i].c; const mk = (k) => clamp((d1[i].c / d1[i - k].c - 1) / (atrPct * Math.sqrt(k)), -3, 3); return { m1: mk(1), m5: mk(5), m20: mk(20) }; }
 
-const out = ['date,pair,diff,score_base,score_quote']; const scoresByDate = new Map();
+const out = ['date,pair,diff,score_base,score_quote']; const scoresByDate = new Map(); const pilaresByDate = [];
 for (const date of tradingDays) {
   const r = {}, ex = {}, inf = {}, gro = {}, cz = {}, mo = Object.fromEntries(CCY.map((c) => [c, { m1: [], m5: [], m20: [] }]));
   for (const c of CCY) {
@@ -89,20 +89,23 @@ for (const date of tradingDays) {
   const oilRet = oil.at(date) !== null && oil.changeOver(date, 28) !== null ? (oil.changeOver(date, 28) / (oil.at(date) - oil.changeOver(date, 28))) * 100 : null;
   const v = vix.at(date); let riskOn = spRet === null ? 0 : clamp(spRet / 3, -2, 2); if (v !== null) riskOn -= v > 25 ? 1 : v < 15 ? -0.5 : 0; const oilV = oilRet === null ? 0 : clamp(oilRet / 8, -2, 2);
   const zPolicy = zscores(CCY.map((c) => r[c].policy)), zLevel = zscores(CCY.map((c) => r[c].level)), zD20 = zscores(CCY.map((c) => ex[c].d20)), zD60 = zscores(CCY.map((c) => ex[c].d60)), zInfl = zscores(CCY.map((c) => (inf[c] === null ? null : inf[c] - 2))), zGro = zscores(CCY.map((c) => gro[c])), zMom = zscores(CCY.map((c) => momRaw[c]));
-  const score = {};
+  const score = {}; const valsByCcy = {};
   CCY.forEach((c, i) => {
     const tasas = clamp((r[c].policy === null ? 0 : (r[c].level === null ? 1 : 0.5) * zPolicy[i]) + (r[c].level === null ? 0 : (r[c].policy === null ? 1 : 0.5) * zLevel[i]), -2, 2);
     const e = ex[c]; const expv = e.d20 !== null ? clamp(0.6 * zD20[i] + 0.4 * (e.d60 === null ? zD20[i] : zD60[i]), -2, 2) : e.d60 !== null ? clamp(zD60[i], -2, 2) : 0;
     const cotv = cz[c] === null ? 0 : clamp(cz[c], -2, 2) * (Math.abs(cz[c]) >= 1.5 ? 0.5 : 1);
     const riskv = clamp(RISK[c].risk * riskOn + RISK[c].oil * oilV, -2, 2);
     const vals = { tasas, expectativas: expv, inflacion: inf[c] === null ? 0 : zInfl[i], crecimiento: gro[c] === null ? 0 : zGro[i], posicionamiento: cotv, riesgo: riskv, momentum: momRaw[c] === null ? 0 : zMom[i] };
+    valsByCcy[c] = Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, Math.round(v * 1000) / 1000]));
     let num = 0, den = 0; for (const k of Object.keys(W)) { num += W[k] * vals[k]; den += W[k]; }
     score[c] = Math.round(((5 * num) / den) * 100) / 100;
   });
   scoresByDate.set(date, score);
+  pilaresByDate.push([date, Object.fromEntries(CCY.map((c) => [c, valsByCcy[c]]))]);
   for (const p of PAIRS) { const b = p.slice(0, 3), q = p.slice(3); const diff = Math.round((score[b] - score[q]) * 100) / 100; out.push(`${date},${p},${diff},${score[b]},${score[q]}`); }
 }
 writeFileSync(path.join(H, 'radar_hist.csv'), out.join('\n') + '\n');
+writeFileSync(path.join(H, 'radar_hist_pilares.json'), JSON.stringify(pilaresByDate)); // valores de pilar por divisa y día, para reponderar sin recalcular
 console.log(`radar_hist.csv: ${tradingDays.length} días (${tradingDays[0]} → ${tradingDays.at(-1)}), ${PAIRS.length} pares`);
 
 // ---------- validación frente al radar real (radar_daily_bias, point-in-time, desde 2023-10) ----------
