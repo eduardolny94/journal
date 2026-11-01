@@ -72,3 +72,27 @@ vigilado), no al sesgo. Los tipos reales, el momentum de tipos y el flujo COT no
 Regímenes (vigente, 20 d): VIX > 25 **61,6 %** (n = 3 298) frente a 54,6 % con VIX ≤ 25; |diff| 4-6 56,9 %, ≥ 6 56,0 %
 (no hay más acierto por encima de 4). La dispersión de tipos entre bancos centrales **no** explica el bloque flojo
 2016-20 (dispersión baja 56,3 %, alta 55,3 %): la hipótesis «el sesgo solo funciona con tipos dispersos» queda descartada.
+
+## 2026-11-01 · ¿Mueve la noticia o la expectativa? (`server/scripts/expectativa-vs-noticia.mjs`)
+
+898 eventos de impacto alto con consenso y dato (2023-09 → 2026-10, sorpresa ≠ 0), velas H1 propias, movimientos en ATR
+diarios en el sentido de la sorpresa. USD = media frente a 6 divisas; resto, su par con el dólar.
+
+| familia | n | 1.ª hora | 4 h | deriva 1 d | 5 d | 20 d |
+|---|---|---|---|---|---|---|
+| todos | 898 | 65 % (0,12) | 62 % | 51 % | 52 % (0,09) | 54 % (0,17) |
+| inflación | 210 | 77 % (0,24) | 73 % | 49 % | **59 % (0,28)** | **61 % (0,39)** |
+| empleo | 146 | 72 % (0,19) | 68 % | 48 % | 51 % | 56 % (0,37) |
+| actividad (PMI, ventas, GDP…) | 538 | 58 % (0,05) | 57 % | 52 % | 50 % | 50 % |
+| decisiones de tipos con sorpresa | 4 | (casi nunca sorprenden: el resto va descontado) | | | | |
+
+- La sorpresa explica la **primera hora** (65 %, inflación 77 %) y casi nada el día siguiente (51 %). Solo la **inflación**
+  deja deriva (59–61 % a 5–20 d, 0,3–0,4 ATR): es el dato que reprecia la senda de tipos. Actividad: nada.
+- El movimiento de los 5 días previos **no anticipa la sorpresa** (50 %, con previo fuerte 52 %): el mercado no «sabe» el dato.
+- «Compra el rumor, vende la noticia» medido: con previo fuerte (≥ 1 ATR) a favor de la sorpresa, reacción 0,07 ATR y
+  1 d / 5 d −0,10 / −0,07 (nada o revierte); con previo flojo, la sorpresa da el mayor movimiento y persiste (5 d 0,16, 20 d 0,21, 56 %).
+- JPY: los datos japoneses no mueven al yen (1.ª hora 40 %). CAD y GBP reaccionan fuerte la 1.ª hora y lo devuelven.
+
+Decisión: el pilar «sorpresas» (peso 0) debería ponderar **inflación > empleo > actividad** y descontar la sorpresa cuando
+la divisa ya corrió ≥ 1 ATR en esa dirección los 5 días previos. Candidato a medir en el ciclo (n = 210 en 3 años, no hay
+historial de consensos para 15 años).
