@@ -124,7 +124,9 @@ router.put('/manual/:currency', (req, res) => {
   if (!isCurrency(c)) return res.status(404).json({ error: 'Divisa desconocida.' });
   const tone = Number(req.body?.cb_tone);
   if (!Number.isInteger(tone) || tone < -2 || tone > 2) return res.status(400).json({ error: 'El tono debe ser un entero entre -2 y 2.' });
-  const note = typeof req.body?.note === 'string' ? req.body.note.slice(0, 500) : '';
+  // Nota con prefijo «manual» para que el tono automático (sources/tono.js) no la pise hasta la siguiente decisión.
+  const raw = typeof req.body?.note === 'string' ? req.body.note.slice(0, 480) : '';
+  const note = /^manual/i.test(raw) ? raw : `manual: ${raw}`.trim();
   setManual(getDb(), c, { cb_tone: tone, note });
   return res.json({ currency: c, cb_tone: tone, note });
 });

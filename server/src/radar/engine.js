@@ -18,6 +18,8 @@ import { runBacktest, lastBacktest } from './backtest.js';
 import { FEATURE_VERSION } from './conviction.js';
 import { refreshCot, cotRows } from './sources/cot.js';
 import { refreshNews, listNews } from './sources/news.js';
+import { refreshTono } from './sources/tono.js';
+import { clienteApi } from '../mesa/agentes.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
 import { readExpectation, weekPlan } from './week.js';
 import { getMeta, getMetaJson, setMeta, listManual, setManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, latestSnapshotRow } from './store.js';
@@ -125,6 +127,8 @@ export function refreshSources({ force = false } = {}) {
       runSource(db, 'cot', REFRESH_MS.cot, () => refreshCot(db), { force, now }),
       runSource(db, 'news', REFRESH_MS.news, () => refreshNews(db), { force, now }),
     ]);
+    // El tono va después de calendario y noticias (los necesita) y usa Claude si hay clave; si no, la regla simple.
+    await runSource(db, 'tono', REFRESH_MS.tono, async () => { let llamar = null; try { if (process.env.ANTHROPIC_API_KEY) llamar = clienteApi(); } catch { llamar = null; } return refreshTono(db, { llamar, log: (m) => console.log('[radar tono]', m) }); }, { force, now });
   })().finally(() => {
     state.refreshing = null;
   });

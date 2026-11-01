@@ -136,6 +136,7 @@ export const YAHOO_MARKET_SYMBOLS = {
 /** Intervalos de refresco (ms) de cada bloque de datos. */
 export const REFRESH_MS = {
   live: 60_000,
+  tono: 60 * 60_000, // tono automático de bancos centrales tras cada decisión (sources/tono.js)
   h1: 5 * 60_000,
   d1: 30 * 60_000,
   market: 15 * 60_000,
