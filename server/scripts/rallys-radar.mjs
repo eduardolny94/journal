@@ -15,7 +15,12 @@ const med = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ?
 const pct = (a, b) => (b ? `${((100 * a) / b).toFixed(0)} %` : '—');
 
 const bias = new Map(); let minDate = '9999';
-{ const db = new DatabaseSync(path.join(ROOT, 'server', 'data', 'journal.db'), { readOnly: true }); for (const r of db.prepare('SELECT date, symbol, diff FROM radar_daily_bias ORDER BY symbol, date').all()) { (bias.get(r.symbol) || bias.set(r.symbol, []).get(r.symbol)).push(r); if (r.date < minDate) minDate = r.date; } }
+const HIST = process.argv.includes('--hist') ? process.argv[process.argv.indexOf('--hist') + 1] : null;
+if (HIST) { // radar histórico reconstruido (radar-historico.mjs): date,pair,diff,…
+  const { readFileSync } = await import('node:fs');
+  for (const l of readFileSync(path.resolve(ROOT, HIST), 'utf8').trim().split('\n').slice(1)) { const [date, symbol, diff] = l.split(','); (bias.get(symbol) || bias.set(symbol, []).get(symbol)).push({ date, symbol, diff: Number(diff) }); if (date < minDate) minDate = date; }
+  for (const rows of bias.values()) rows.sort((a, b) => (a.date < b.date ? -1 : 1));
+} else { const db = new DatabaseSync(path.join(ROOT, 'server', 'data', 'journal.db'), { readOnly: true }); for (const r of db.prepare('SELECT date, symbol, diff FROM radar_daily_bias ORDER BY symbol, date').all()) { (bias.get(r.symbol) || bias.set(r.symbol, []).get(r.symbol)).push(r); if (r.date < minDate) minDate = r.date; } }
 function biasBefore(sym, date) { const rows = bias.get(sym); if (!rows) return null; let lo = 0, hi = rows.length - 1, ans = null; while (lo <= hi) { const m = (lo + hi) >> 1; if (rows[m].date < date) { ans = rows[m]; lo = m + 1; } else hi = m - 1; } return ans && (new Date(date) - new Date(ans.date)) / 86400000 <= 5 ? Number(ans.diff) : null; }
 const clase = (diff, dir) => (diff === null ? null : Math.sign(diff) === dir && Math.abs(diff) >= 2 ? 'favor' : Math.sign(diff) === -dir && Math.abs(diff) >= 2 ? 'contra' : 'neutro');
 
