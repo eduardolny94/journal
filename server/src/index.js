@@ -213,6 +213,14 @@ app.use('/descargas', (req, res, next) => {
   }
   next();
 });
+// Inglés de la familia (English Lab): una página estática aparte del journal, en client/public/ingles/index.html.
+// No se indexa (robots.txt + meta noindex) y no se cachea para que cada actualización llegue al momento.
+app.get(['/ingles', '/ingles/'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(path.join(clientDist, 'ingles', 'index.html'), (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: 'Recurso no encontrado.' });
+  });
+});
 // Caché: los archivos de /assets llevan hash en el nombre (inmutables, un año); el resto de estáticos una hora;
 // index.html nunca se cachea para que un despliegue nuevo llegue al momento.
 app.use(

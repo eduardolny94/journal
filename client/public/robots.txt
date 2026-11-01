@@ -16,5 +16,6 @@ Disallow: /importar
 Disallow: /suscripcion
 Disallow: /radar
 Disallow: /admin
+Disallow: /ingles
 
 Sitemap: https://journal.cesarzorrilla.com/sitemap.xml
