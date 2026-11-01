@@ -96,3 +96,16 @@ diarios en el sentido de la sorpresa. USD = media frente a 6 divisas; resto, su 
 Decisión: el pilar «sorpresas» (peso 0) debería ponderar **inflación > empleo > actividad** y descontar la sorpresa cuando
 la divisa ya corrió ≥ 1 ATR en esa dirección los 5 días previos. Candidato a medir en el ciclo (n = 210 en 3 años, no hay
 historial de consensos para 15 años).
+
+## 2026-11-01 · Aplicado: sorpresas por persistencia, descuento de lo corrido, materias primas a 20, régimen en la tarjeta
+
+- **CATEGORY_WEIGHTS** (crecimiento y CESI) pasa a pesos por persistencia: inflación 2,0 · empleo 1,0 · tasas 0,8 · actividad
+  0,2–0,4; el CESI deja de ponderar por la β de la primera hora. **preRunFactor**: la sorpresa pesa un cuarto si la divisa ya
+  corrió ≥ 1 ATR a favor en 5 días (cierres diarios point-in-time, anteriores al dato). `FEATURE_VERSION` 9: el modelo de
+  convicción se recalcula al arrancar.
+- **tot (materias primas)** a peso 20 con valor crudo (no z entre divisas), igual que se midió 15 años: único candidato que
+  mejora en los 3 bloques, a 5/10/20 d y en 13 de 16 años. Mejora pequeña (+0,8 pt), adoptada por consistencia y revisable
+  por el backtest semanal: si en dos backtests seguidos el nivel A empeora frente a la versión 8, vuelve a 0.
+- **Tarjeta Volatilidad**: con VIX > 25 muestra que el sesgo acertó el 61,6 % a 20 d (n 3 298) frente al 54,6 % en calma.
+- Lo que **no** se aplicó, por no mejorar: tipos reales, momentum de tipos a 6 m, momentum de inflación, flujo COT, pesos por
+  régimen VIX. Siguen a peso 0 o fuera.

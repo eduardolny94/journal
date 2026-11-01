@@ -9,8 +9,7 @@
 //      (vida media 45 días) y peso = impacto medido de cada indicador en el precio (β de calibrar-impacto.mjs).
 //   4. Probabilidad calibrada (Platt 1999): regresión logística P(a favor | diferencia de puntuación) por horizonte
 //      y por par (con contracción hacia el global), ajustada con el historial del propio backtest.
-import { readFileSync } from 'node:fs';
-import { CURRENCIES, PAIRS, FRED_BY_CURRENCY, CPI_EVENT_TITLES, CATEGORY_WEIGHTS, IMPACT_WEIGHTS, splitPair } from './constants.js';
+import { CURRENCIES, PAIRS, FRED_BY_CURRENCY, CPI_EVENT_TITLES, CATEGORY_WEIGHTS, IMPACT_WEIGHTS, SURPRISE_PRE_RUN, splitPair } from './constants.js';
 import { getSeries } from './sources/fred.js';
 
 /** Serie interanual completa a partir de un índice mensual: [{ date, value }] (valor = % frente a 12 meses antes). */
@@ -177,28 +176,48 @@ export function trendByCurrency(closesAsOf) {
 
 const CESI_WINDOW_DAYS = 90;
 const CESI_HALF_LIFE_DAYS = 45;
-let betaCache = null;
-function impactBetas() {
-  if (betaCache) return betaCache;
-  try {
-    const j = JSON.parse(readFileSync(new URL('./data/event-impact.json', import.meta.url), 'utf8'));
-    betaCache = {};
-    for (const [k, e] of Object.entries(j.events || {})) if (e.currency && e.currency.h1 && e.currency.h1.beta !== null) betaCache[k] = Math.abs(e.currency.h1.beta);
-  } catch {
-    betaCache = {};
+
+/** Par con el dólar y signo con el que se lee cada divisa (USD = media de las seis). */
+const USD_LEG = { EUR: ['EURUSD', 1], GBP: ['GBPUSD', 1], AUD: ['AUDUSD', 1], NZD: ['NZDUSD', 1], JPY: ['USDJPY', -1], CHF: ['USDCHF', -1], CAD: ['USDCAD', -1] };
+
+/**
+ * Movimiento de la divisa en los `days` días anteriores a una fecha (cierres diarios point-in-time: solo velas con fecha
+ * anterior), en ATR diarios de 14 días. null si no hay precio.
+ */
+export function preRunAtr(closesAsOf, ccy, dateYmd, days = SURPRISE_PRE_RUN.days) {
+  if (typeof closesAsOf !== 'function') return null;
+  const legs = ccy === 'USD' ? Object.values(USD_LEG).map(([p, s]) => [p, -s]) : USD_LEG[ccy] ? [USD_LEG[ccy]] : [];
+  const vals = [];
+  for (const [sym, sign] of legs) {
+    const rows = (closesAsOf(sym) || []).filter((r) => r.date < dateYmd);
+    if (rows.length < days + 15) continue;
+    const last = rows[rows.length - 1];
+    const prev = rows[rows.length - 1 - days];
+    let atr = 0;
+    for (let i = rows.length - 14; i < rows.length; i++) atr += Math.max(rows[i].high - rows[i].low, Math.abs(rows[i].high - rows[i - 1].close), Math.abs(rows[i].low - rows[i - 1].close));
+    atr /= 14;
+    if (!(atr > 0) || !(last.close > 0) || !(prev.close > 0)) continue;
+    vals.push((sign * (last.close - prev.close)) / atr);
   }
-  return betaCache;
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
+/** Factor de una sorpresa según lo ya corrido: 0,25 si la divisa llevaba ≥ 1 ATR a favor de la sorpresa en 5 días; 1 si no. */
+export function preRunFactor(closesAsOf, ev, surpriseSign) {
+  if (!surpriseSign) return 1;
+  const run = preRunAtr(closesAsOf, ev.country, String(ev.at_utc || '').slice(0, 10));
+  return run !== null && run * surpriseSign >= SURPRISE_PRE_RUN.atr ? SURPRISE_PRE_RUN.factor : 1;
 }
 
 /**
  * Índice de sorpresas de una divisa: Σ w·z·decay / Σ w·decay sobre 90 días, con vida media de 45 días y
- * w = impacto medido del indicador (β, pips por σ) o, si no está calibrado, peso por categoría e impacto.
+ * w = impacto del calendario × categoría por persistencia (CATEGORY_WEIGHTS) × factor de lo ya corrido (preRunFactor).
+ * Ya no pondera por la β de la primera hora: medido, la reacción inmediata no dice nada de la deriva a 5-20 días.
  * @param {Array} events  eventos ya cargados (con actual y forecast), o null para consultarlos
  */
-export function surpriseIndex(db, ccy, now, events, eventsBetween) {
+export function surpriseIndex(db, ccy, now, events, eventsBetween, closesAsOf = null) {
   const from = new Date(now - CESI_WINDOW_DAYS * 86400000).toISOString();
   const list = (events ? events.filter((e) => e.country === ccy) : eventsBetween(db, from, new Date(now).toISOString(), { countries: [ccy] })).filter((e) => e.at_utc >= from);
-  const betas = impactBetas();
   let num = 0;
   let den = 0;
   let n = 0;
@@ -207,9 +226,8 @@ export function surpriseIndex(db, ccy, now, events, eventsBetween) {
     const s = surpriseOf(ev, db);
     const z = s.z !== null ? s.z : s.norm === null ? null : 2 * s.norm;
     if (z === null) continue;
-    const beta = betas[`${ev.country}|${ev.title}`];
     const cw = CATEGORY_WEIGHTS[ev.category || categorize(ev.title)];
-    const w = beta !== undefined ? beta : (IMPACT_WEIGHTS[ev.impact] || 1) * (cw === undefined ? 0.5 : cw) * 2;
+    const w = (IMPACT_WEIGHTS[ev.impact] || 1) * (cw === undefined ? 0.5 : cw) * 2 * preRunFactor(closesAsOf, ev, Math.sign(z));
     if (!w) continue;
     const ageDays = (now - new Date(ev.at_utc).getTime()) / 86400000;
     const decay = Math.pow(0.5, ageDays / CESI_HALF_LIFE_DAYS);

@@ -37,9 +37,15 @@ CTA; ajustar por volatilidad evita que un par volátil domine.
 CESI_ccy = Σ w_i · z_i · 0,5^(edad_i / 45 días)  /  Σ w_i · 0,5^(edad_i / 45 días)      (ventana 90 días)
 ```
 `z_i` = sorpresa estandarizada (dato − consenso) / desviación de las 36 sorpresas previas del indicador;
-`w_i` = **impacto medido** del indicador en el precio (β pips/σ de `calibrar-impacto.mjs`, docs/IMPACTO-EVENTOS.md),
-que es justo como Citi pondera; si no está calibrado, peso por categoría e impacto. Vida media de 45 días: la memoria
-del mercado es corta.
+`w_i` = impacto del calendario × **peso de la categoría por persistencia medida** (`CATEGORY_WEIGHTS`: inflación 2,0,
+empleo 1,0, tasas 0,8, actividad 0,2–0,4) × **factor de lo ya corrido** (0,25 si la divisa llevaba ≥ 1 ATR diario a favor
+de la sorpresa en los 5 días previos, `preRunFactor`). Vida media de 45 días: la memoria del mercado es corta.
+
+Hasta el 01-11-2026 `w_i` era la β de la primera hora (`calibrar-impacto.mjs`). Se cambió porque, medido con 898
+sorpresas de impacto alto 2023-26 (`expectativa-vs-noticia.mjs`), la reacción de la primera hora no dice nada de la
+deriva a 5-20 días: solo la inflación persiste (59-61 %), el empleo algo a 20 d (56 %) y la actividad nada (50 %); y con
+la divisa ya corrida ≥ 1 ATR a favor, la noticia no da nada (1 y 5 d −0,10 / −0,07 ATR). El pilar `crecimiento` (60 días,
+en el sesgo) usa la misma tabla y el mismo factor.
 
 ### 4. Probabilidad calibrada (regresión logística, Platt 1999)
 

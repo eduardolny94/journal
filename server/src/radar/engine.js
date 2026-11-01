@@ -322,7 +322,9 @@ async function compute() {
   const regimeKey = regimeOf(vixNow);
   const rw = getMetaJson(db, 'regime_weights', null);
   const rsel = rw && rw.apply && rw.regimes && rw.regimes[regimeKey] && rw.regimes[regimeKey].weights ? rw.regimes[regimeKey] : null;
-  const weights = rsel ? rsel.weights : PILLAR_WEIGHTS;
+  // 'vigente' = los pesos del código: no usar la copia guardada en el backtest, que se queda vieja al reponderar (01-11-2026:
+  // la copia del 20-10 seguía con expectativas 15 / riesgo 10 / momentum 15 y anulaba la reponderación del 30-10).
+  const weights = rsel && rsel.name !== 'vigente' ? rsel.weights : PILLAR_WEIGHTS;
   const backtest = lastBacktest(db);
   persistDailyCloses(db, prices, now);
   const closesAsOf = dailyClosesProvider(db);

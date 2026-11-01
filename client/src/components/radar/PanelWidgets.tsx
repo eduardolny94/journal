@@ -315,6 +315,12 @@ export function VolatilityCard({ market }: { market: MarketContext | null }) {
         <span className={cn('text-sm tnum', (v.change_pct ?? 0) > 0 ? 'text-loss' : 'text-profit')}>{fmtSignedPct(v.change_pct)}</span>
       </p>
       <p className="mt-1 text-xs text-gray-400">{v.label === 'calma' ? 'Volatilidad baja. Mercado estable.' : v.label === 'tension' ? 'Volatilidad alta. Modo refugio.' : 'Volatilidad normal.'}</p>
+      {/* Medido 2011-2026 (radar-pilares-candidatos.mjs): acierto del signo del sesgo a 20 días, |diff| ≥ 2. */}
+      <p className={cn('mt-2 max-w-xs text-[11px] leading-snug', v.label === 'tension' ? 'text-accent-soft' : 'text-gray-500')}>
+        {v.label === 'tension'
+          ? 'Con VIX > 25 el sesgo fundamental acertó el 61,6 % a 20 días (2011-2026, n 3 298) frente al 54,6 % en calma: fíate más del radar.'
+          : 'Con VIX ≤ 25 el sesgo fundamental acierta el 54,6 % a 20 días (2011-2026, n 29 906): es apoyo, no señal; manda el precio.'}
+      </p>
       </div>
       <div className="grid flex-1 grid-cols-3 gap-2 text-xs sm:max-w-sm">
         {[

@@ -11,7 +11,7 @@ import { isBigFour, lastSurpriseDirections } from './surprise-direction.js';
 import { aggregateNyDays, aggregateH4, aggregateWeeks, atr, ema, efficiencyRatio, trendByEma, trendWeekly, trendBySwings, momentumAtr, zscores, round, mean, NY } from './indicators.js';
 import { isoWeekKey } from '../services/tradingDay.js';
 import { currentTradingDay } from '../services/tradingDay.js';
-import { valueByCurrency, trendByCurrency, surpriseIndex, probFavor } from './quant.js';
+import { valueByCurrency, trendByCurrency, surpriseIndex, preRunFactor, probFavor } from './quant.js';
 import { signalFeatures, predictProb, tierOf, explain } from './conviction.js';
 import { crossConfirm, crossConfirmText, yieldMove1d } from './cross-confirm.js';
 import { fundamentalsFor, termsOfTrade } from './fundamentals.js';
@@ -81,7 +81,7 @@ function inflationPillar(db, ccy, now, lagDays = 0) {
   return null;
 }
 
-function growthPillar(db, ccy, now, lagDays = 0, preloaded = null) {
+function growthPillar(db, ccy, now, lagDays = 0, preloaded = null, closesAsOf = null) {
   const from = new Date(now - SURPRISE_WINDOW_DAYS * 86400000).toISOString();
   const events = preloaded ? preloaded.filter((e) => e.country === ccy) : eventsBetween(db, from, new Date(now).toISOString(), { countries: [ccy] });
   let num = 0;
@@ -91,7 +91,8 @@ function growthPillar(db, ccy, now, lagDays = 0, preloaded = null) {
     const s = surpriseOf(ev, db);
     if (s.norm === null) continue;
     const cw = CATEGORY_WEIGHTS[ev.category || categorize(ev.title)];
-    const w = (IMPACT_WEIGHTS[ev.impact] || 1) * (cw === undefined ? 0.5 : cw);
+    // Peso por persistencia medida (inflación > empleo > actividad) y un cuarto si la divisa ya corrió ≥ 1 ATR a favor (constants.js).
+    const w = (IMPACT_WEIGHTS[ev.impact] || 1) * (cw === undefined ? 0.5 : cw) * preRunFactor(closesAsOf, ev, Math.sign(s.norm));
     if (!w) continue;
     num += s.norm * w;
     den += w;
@@ -308,20 +309,20 @@ export function computeCurrencies(db, input) {
   const exps = {};
   const infl = {};
   const growth = {};
+  // Cierres diarios "a fecha": valor, tendencia y el descuento de lo ya corrido en las sorpresas (quant.js).
+  const closesAsOf = typeof input.closesAsOf === 'function' ? input.closesAsOf : null;
   for (const c of CURRENCIES) {
     rates[c] = ratesPillar(db, c, policyMap[c], expMap[c], now);
     exps[c] = expectationsPillar(db, c, now, lagDays);
     infl[c] = inflationPillar(db, c, now, lagDays);
-    growth[c] = growthPillar(db, c, now, lagDays, preloaded);
+    growth[c] = growthPillar(db, c, now, lagDays, preloaded, closesAsOf);
   }
   const risk = riskPillar(market);
   const momC = momentumByCurrency(pairData);
-  // Fórmulas cuantitativas (quant.js): valor y tendencia necesitan cierres diarios "a fecha"; sorpresas, el calendario.
-  const closesAsOf = typeof input.closesAsOf === 'function' ? input.closesAsOf : null;
   const valueC = closesAsOf ? valueByCurrency(db, closesAsOf, now) : null;
   const trendC = closesAsOf ? trendByCurrency(closesAsOf).byCurrency : null;
   const sidx = {};
-  for (const c of CURRENCIES) sidx[c] = surpriseIndex(db, c, now, preloaded, eventsBetween);
+  for (const c of CURRENCIES) sidx[c] = surpriseIndex(db, c, now, preloaded, eventsBetween, closesAsOf);
   // Fase 2: Taylor, descontado frente a debido, tipo real, términos de intercambio (fundamentals.js).
   const fund = {};
   for (const c of CURRENCIES) fund[c] = fundamentalsFor(db, c, { policy: rates[c].policy, inflation: infl[c] ? infl[c].value : null, now, lagDays });
@@ -332,7 +333,6 @@ export function computeCurrencies(db, input) {
   const zTaylor = zscores(CURRENCIES.map((c) => fund[c].taylor_gap));
   const zPriced = zscores(CURRENCIES.map((c) => (exps[c].d60 !== null ? exps[c].d60 : exps[c].d20)));
   const zReal = zscores(CURRENCIES.map((c) => fund[c].real));
-  const zTot = zscores(CURRENCIES.map((c) => totC[c].raw));
   const zValue = zscores(CURRENCIES.map((c) => (valueC && valueC[c] ? valueC[c].raw : null)));
   const zTrend = zscores(CURRENCIES.map((c) => (trendC && trendC[c] ? trendC[c].raw : null)));
   const zSidx = zscores(CURRENCIES.map((c) => sidx[c].raw));
@@ -393,7 +393,8 @@ export function computeCurrencies(db, input) {
         text: fund[c].real === null ? 'sin datos' : `tipo real ${fund[c].real >= 0 ? '+' : ''}${fmt(fund[c].real, 2)} % (tasa menos inflación)` },
       ciclo: { value: cyc[c].value, raw: cyc[c].value, missing: cyc[c].pmi === null, phase: cyc[c].phase, pmi: cyc[c].pmi, pmi_slope: cyc[c].pmi_slope, unemp6: cyc[c].unemp6, infl_gap: cyc[c].infl_gap, curve: cyc[c].curve,
         text: cyc[c].text },
-      tot: { value: round(totC[c].raw === null ? 0 : zTot[i]), raw: round(totC[c].raw), missing: totC[c].raw === null,
+      // Valor crudo (no z entre divisas): así se midió 15 años (radar-pilares-candidatos.mjs); las divisas sin materia prima valen 0.
+      tot: { value: round(totC[c].raw === null ? 0 : totC[c].raw), raw: round(totC[c].raw), missing: totC[c].raw === null,
         text: totC[c].raw === null ? 'sin exposición a materias primas' : `materias primas ${totC[c].raw >= 0 ? 'a favor' : 'en contra'} (petróleo ${totC[c].oil === null ? '—' : (totC[c].oil >= 0 ? '+' : '') + fmt(totC[c].oil, 1) + ' %'}, cobre ${totC[c].copper === null ? '—' : (totC[c].copper >= 0 ? '+' : '') + fmt(totC[c].copper, 1) + ' %'} en 20 d)` },
     };
     let num = 0;

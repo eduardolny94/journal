@@ -79,21 +79,21 @@ export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' |
 
 export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: number; hint: string }> = [
   { key: 'tasas', label: 'Tasas', weight: 20, hint: 'Tasa de política y nivel del bono a 2 años (carry y lo ya descontado)' },
-  { key: 'expectativas', label: 'Expectativas', weight: 15, hint: 'Cambio del bono a 2 años en 1 y 3 meses: lo que el mercado descuenta para los próximos meses' },
+  { key: 'expectativas', label: 'Expectativas', weight: 0, hint: 'Cambio del bono a 2 años en 1 y 3 meses: lo que el mercado descuenta para los próximos meses' },
   { key: 'inflacion', label: 'Inflación', weight: 10, hint: 'CPI interanual frente al objetivo del 2 %' },
-  { key: 'crecimiento', label: 'Crecimiento', weight: 15, hint: 'Índice de sorpresas macro de 60 días' },
+  { key: 'crecimiento', label: 'Crecimiento', weight: 15, hint: 'Sorpresas macro de 60 días ponderadas por persistencia medida (inflación > empleo > actividad), a un cuarto si la divisa ya había corrido 1 ATR a favor, y variación del paro' },
   { key: 'posicionamiento', label: 'Posicionamiento', weight: 10, hint: 'COT: fondos apalancados frente a 52 semanas' },
-  { key: 'riesgo', label: 'Riesgo', weight: 10, hint: 'Apetito de riesgo (S&P, VIX) y petróleo' },
-  { key: 'momentum', label: 'Momentum', weight: 15, hint: 'Retornos a 1, 5 y 20 días normalizados por ATR' },
-  { key: 'tono', label: 'Tono', weight: 5, hint: 'Ajuste manual del tono del banco central' },
+  { key: 'riesgo', label: 'Riesgo', weight: 20, hint: 'Apetito de riesgo (S&P, VIX) y petróleo' },
+  { key: 'momentum', label: 'Momentum', weight: 0, hint: 'Retornos a 1, 5 y 20 días normalizados por ATR' },
+  { key: 'tono', label: 'Tono', weight: 5, hint: 'Tono del banco central tras cada decisión: comunicado oficial, decisión frente a consenso y bono a 2 años, leído automáticamente (−2 a +2 frente a lo esperado); se puede fijar a mano' },
   // Fórmulas cuantitativas (docs/FORMULAS-CUANT.md). Peso 0 = informativo hasta que el backtest las valide.
   { key: 'valor', label: 'Valor (PPP)', weight: 0, hint: 'Tipo de cambio real frente a su media de 3 años: positivo = divisa barata (Rogoff; Asness, Moskowitz y Pedersen)' },
   { key: 'tendencia', label: 'Tendencia', weight: 0, hint: 'Retorno a 3 y 12 meses dividido por la volatilidad (time-series momentum, Moskowitz–Ooi–Pedersen)' },
-  { key: 'sorpresas', label: 'Sorpresas (CESI)', weight: 0, hint: 'Índice de sorpresas macro de 90 días con decaimiento (vida media 45 días) y peso por impacto medido, estilo Citi' },
+  { key: 'sorpresas', label: 'Sorpresas (CESI)', weight: 0, hint: 'Índice de sorpresas macro de 90 días con decaimiento (vida media 45 días), ponderado por persistencia medida (inflación > empleo > actividad) y a un cuarto si la divisa ya había corrido 1 ATR a favor' },
   { key: 'taylor', label: 'Regla de Taylor', weight: 0, hint: 'Tasa que pide la regla de Taylor (inflación y actividad: PMI y paro) menos la tasa actual: positivo = el banco central va por detrás' },
   { key: 'descontado', label: 'Descontado vs debido', weight: 0, hint: 'Lo que piden los datos (Taylor) menos lo que el mercado ya descuenta (bono a 2 años): la oportunidad está donde aún no está en precio' },
   { key: 'real', label: 'Tipo real', weight: 0, hint: 'Tasa de política menos inflación interanual' },
-  { key: 'tot', label: 'Materias primas', weight: 0, hint: 'Petróleo (CAD +, JPY −) y cobre (AUD, NZD) a 20 días: términos de intercambio' },
+  { key: 'tot', label: 'Materias primas', weight: 20, hint: 'Petróleo (CAD +, JPY −) y cobre (AUD, NZD) a 20 días: términos de intercambio. Medido 15 años: único pilar nuevo que mejora el acierto en todos los cortes (+0,8 pt a 20 días)' },
   { key: 'ciclo', label: 'Fase del ciclo', weight: 0, hint: 'Expansión, pico, recesión o recuperación según PMI y su pendiente, paro a 6 meses, inflación frente al 2 % y curva 10-2 (método de Daniel Curto). Peso 0 hasta que el backtest lo valide' },
 ];
 

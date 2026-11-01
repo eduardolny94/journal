@@ -99,7 +99,9 @@ export const PILLAR_WEIGHTS = {
   taylor: 0,
   descontado: 0,
   real: 0,
-  tot: 0,
+  // Materias primas (01-11-2026): medido 15 años point-in-time (radar-pilares-candidatos.mjs), único candidato que mejora en los
+  // 3 bloques, a 5/10/20 d y en 13 de 16 años (+0,8 pt a 20 d; en los pares seguidos, fuerte 60,4 % frente a 58,7 %). Valor crudo, no z.
+  tot: 20,
   // Fase 3 (cycle-phase.js, método Curto): fase del ciclo por economía. Peso 0 hasta que el backtest lo valide.
   ciclo: 0,
 };
@@ -249,8 +251,18 @@ export const RISK_COEFFS = {
 /** Pesos por impacto para el índice de sorpresas. */
 export const IMPACT_WEIGHTS = { High: 3, Medium: 2, Low: 1 };
 
-/** Peso de cada categoría en el índice de sorpresas (lo que más mueve divisas pesa más; discursos no tienen sorpresa). */
-export const CATEGORY_WEIGHTS = { inflacion: 1.5, empleo: 1.3, crecimiento: 1.2, confianza: 1.0, tasas: 0.8, comercio: 0.5, otros: 0.5, vivienda: 0.4, energia: 0.2, discursos: 0 };
+/**
+ * Peso de cada categoría en los índices de sorpresas (crecimiento y CESI): por PERSISTENCIA medida, no por reacción.
+ * 898 sorpresas de impacto alto 2023-26 (expectativa-vs-noticia.mjs): la primera hora la explica cualquier dato (65 %), pero a
+ * 5-20 días solo la inflación deja deriva (59-61 %, 0,3-0,4 ATR), empleo algo a 20 d (56 %) y actividad nada (50 %).
+ */
+export const CATEGORY_WEIGHTS = { inflacion: 2.0, empleo: 1.0, tasas: 0.8, crecimiento: 0.4, confianza: 0.3, otros: 0.3, comercio: 0.2, vivienda: 0.2, energia: 0.1, discursos: 0 };
+
+/**
+ * «Compra el rumor, vende la noticia», medido: si la divisa ya corrió ≥ 1 ATR diario en los 5 días previos en el sentido de la
+ * sorpresa, la noticia no da nada (1.ª hora 0,07 ATR; 1 y 5 días −0,10 / −0,07). Esa sorpresa pesa un cuarto en los índices.
+ */
+export const SURPRISE_PRE_RUN = { days: 5, atr: 1, factor: 0.25 };
 
 // ---------- Regímenes de mercado ----------
 
