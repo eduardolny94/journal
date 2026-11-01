@@ -119,3 +119,19 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
   automática: USD +1,83 (antes +2,55), EUR −1,89 (antes −3,31), CHF −2,25; **FedWatch automático diciembre 81,7 %**
   (antes 95,8 %). **Tono manual BCE: +1 halcón** (pausa con debate de subida); Fed sin cambio.
 - Los datos entraron en `radar_calendar` con la actualización de las 20:25 (actual = real).
+
+## 01-11-2026 · Verificación de tasas y tono por banco (fuentes oficiales)
+
+| banco | tasa oficial | radar antes | radar ahora | tono |
+|---|---|---|---|---|
+| Fed (28-10) | 3,75–4,00 % (10–2, Cook y Hammack por subir) | 4,00 (techo) | 4,00 | +1 ✓ |
+| BCE (29-10) | depósito 2,50 %, refinanciación 2,65 % | **2,65 (refinanciación)** | **2,50 (depósito)**, como el BIS y FRED desde 09-2024 | +1 ✓ (riesgos al alza por energía) |
+| BoE (17-09) | 3,75 % (6–3, tres por subir a 4 %) | 3,75 | 3,75 | +1 ✓ |
+| BoJ (30-10) | 1,25 % (mantiene; la web del BoJ no sirve el texto, fuentes secundarias 8–1 con un voto por subir) | 1,25 | 1,25 | +1 (noticias) |
+| BNS (24-09) | 0 % | 0 | 0 | 0 ✓ |
+| BoC (28-10) | 2,50 % (+25 pb, «could be a need to increase further») | 2,50 | 2,50 | +1 ✓ |
+| RBA (29-09) | 4,60 % (+25 pb, «increasing further if needed») | 4,60 | 4,60 | **0 → +1 manual** (RSS bloqueado; la automática solo vio la decisión) |
+| RBNZ (28-10) | 2,75 % (mantuvo con 3,00 % esperado, 4–3) | 2,75 | 2,75 | −1 ✓ |
+
+Bonos a 2 años al 29-10 (fuentes oficiales, frescos): USD 4,61 · EUR 3,01 · GBP 4,92 (gilt a 5 años) · JPY 1,90 · CHF 0,24 ·
+CAD 3,36 · AUD 4,94 · NZD 3,80 (TradingView). Próximas: RBA 03-11 (consenso 4,85 %), BoE 05-11 (consenso 4,00 %).

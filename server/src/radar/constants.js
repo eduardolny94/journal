@@ -200,7 +200,9 @@ export const FRED_LONG_HISTORY_IDS = new Set(
 /** Título del evento del calendario con la decisión de tasas, por divisa. */
 export const POLICY_EVENT_TITLES = {
   USD: ['Fed Interest Rate Decision', 'Federal Funds Rate'],
-  EUR: ['ECB Interest Rate Decision', 'Main Refinancing Rate'],
+  // Desde septiembre de 2024 la tasa directora del BCE es la de depósito (así lo recoge el BIS y la serie FRED ECBDFR): primero la
+  // facilidad de depósito; la de refinanciación (15 pb más) solo si falta.
+  EUR: ['Deposit Facility Rate', 'ECB Deposit Facility Rate', 'ECB Interest Rate Decision', 'Main Refinancing Rate'],
   GBP: ['BoE Interest Rate Decision', 'Official Bank Rate'],
   JPY: ['BoJ Interest Rate Decision', 'BOJ Policy Rate'],
   CHF: ['SNB Interest Rate Decision', 'SNB Policy Rate'],
