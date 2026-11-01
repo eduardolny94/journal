@@ -48,3 +48,27 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 - Cambiar los pesos globales de los pilares por otros fijos, o quitar el carry en CHF/JPY: nada supera el ruido.
 - Tratar la fuerza 4–5 como "más probable": a 5 días acierta menos que la 2–3, y en el método la fuerza 4 no aporta.
 - Exigir una vela de ayer "con fuerza" para entrar en el retroceso: reduce el acierto del 56,6 % al 45 %.
+
+## 2026-11-01 · Pilares candidatos «de mesa» medidos 15 años (`server/scripts/radar-pilares-candidatos.mjs`)
+
+Sobre `radar_hist_pilares.json` (point-in-time 2011→2026) se añadieron seis candidatos y se midió el acierto del signo del
+sesgo a 5/10/20 días, |diff| ≥ 2, en los tres bloques (2011-15 / 2016-20 / 2021-26) y por año, frente a los pesos vigentes
+(tasas 20, inflación 10, crecimiento 15, COT 10, riesgo 20 → 55,3 % a 20 d, fuerte 56,6 %).
+
+| candidato | qué es | resultado |
+|---|---|---|
+| **commo 20** (cobre 28 d → AUD, NZD ½; petróleo 28 d → CAD, JPY −½) | términos de intercambio | **56,1 %** (fuerte 57,2 %) · mejora en los 3 bloques, en 5/10/20 d y en 13 de 16 años · en los pares de TV 57,5 % (fuerte 60,4 % vs 58,7 %) |
+| mom6 10 + commo 10 | momentum de tipos 6 m + materias | 55,9 % · 3 bloques, pero 10 de 16 años y fuerte peor |
+| mom6 (Δ bono 2 años 182 d) | momentum de tipos | 55,6 %, no mejora 2016-20 |
+| real (política − IPC), real2y | tipos reales | 55,4 % / 54,7 %; solos 49,7 % / 48,4 % (peor que azar) |
+| inflmom (ΔIPC 3 m) | momentum de inflación | 55,2 %, no mejora |
+| flujo (Δ ratio COT 4 sem) | flujo especulativo | 55,1 %; sustituir COT nivel por flujo empeora |
+| pesos por régimen (riesgo 40/60 con VIX > 25) | régimen | 55,3–55,4 %, sin mejora |
+
+Decisión: **commo** es el único candidato que mejora en todos los cortes, horizontes y en 13/16 años, pero la mejora es
+de +0,8 a +1,2 puntos, por debajo del listón de 2 puntos de la regla de adopción → entra a **peso 0 visible** (candidato
+vigilado), no al sesgo. Los tipos reales, el momentum de tipos y el flujo COT no aportan nada sobre lo que ya hay.
+
+Regímenes (vigente, 20 d): VIX > 25 **61,6 %** (n = 3 298) frente a 54,6 % con VIX ≤ 25; |diff| 4-6 56,9 %, ≥ 6 56,0 %
+(no hay más acierto por encima de 4). La dispersión de tipos entre bancos centrales **no** explica el bloque flojo
+2016-20 (dispersión baja 56,3 %, alta 55,3 %): la hipótesis «el sesgo solo funciona con tipos dispersos» queda descartada.
