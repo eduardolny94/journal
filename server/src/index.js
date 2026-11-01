@@ -217,6 +217,11 @@ app.use('/descargas', (req, res, next) => {
 // No se indexa (robots.txt + meta noindex) y no se cachea para que cada actualización llegue al momento.
 app.get(['/ingles', '/ingles/'], (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
+  // Es un HTML de una sola pieza (script y estilos dentro, fuentes de Google): CSP propia en vez de la del journal.
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+  );
   res.sendFile(path.join(clientDist, 'ingles', 'index.html'), (err) => {
     if (err && !res.headersSent) res.status(404).json({ error: 'Recurso no encontrado.' });
   });
