@@ -77,11 +77,13 @@ export function parseSep(html) {
   const rows = [...String(html).matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map((m) => { const th = /<th[^>]*>([\s\S]*?)<\/th>/i.exec(m[1]); const tds = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((x) => text(x[1])); return { label: th ? text(th[1]) : '', tds }; });
   // columnas de años (2026, 2027, 2028, [2029], largo plazo): las lee de la cabecera; celdas vacías o "n.a." → null
   const h = /<thead[\s\S]*?<\/thead>/i.exec(String(html)); const years = h ? [...h[0].matchAll(/<th[^>]*>\s*(20\d\d|Longer run)\s*<\/th>/gi)].map((m) => (m[1] === 'Longer run' ? 'largo plazo' : m[1])) : [];
-  if (years.length < 3) return null; const n = years.length;
+  // la cabecera repite los años para mediana, tendencia central y rango: nos quedamos con el primer bloque (hasta 'largo plazo')
+  const lr = years.indexOf('largo plazo'); const cols = lr >= 0 ? years.slice(0, lr + 1) : years.slice(0, 4);
+  if (cols.length < 3) return null; const n = cols.length;
   const val = (t) => { const v = Number(String(t).replace(/[^0-9.\-]/g, '')); return t && Number.isFinite(v) ? v : null; };
   const pick = (re) => { const i = rows.findIndex((r) => re.test(r.label)); if (i < 0) return null; const cur = rows[i].tds.slice(0, n).map(val), next = rows[i + 1]; const prev = next && /projection/i.test(next.label) ? next.tds.slice(0, n).map(val) : null; if (!cur.some((v) => v !== null)) return null; const m = prev ? /^(\w+)/.exec(next.label) : null; return { cur, prev, prevLabel: m ? `proyección de ${MESES_SEP[m[1].toLowerCase()] || m[1].toLowerCase()}` : null }; };
   const tipos = pick(/^Federal funds rate/i), pce = pick(/^PCE inflation/i), core = pick(/^Core PCE inflation/i);
-  return tipos || pce ? { years, tipos, pce, core } : null;
+  return tipos || pce ? { years: cols, tipos, pce, core } : null;
 }
 async function fedProjections(decisionIso) {
   const day = decisionIso.slice(0, 10);
