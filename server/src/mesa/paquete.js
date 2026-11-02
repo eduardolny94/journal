@@ -26,6 +26,8 @@ export const DOCS_ESTRELLA = [
   'docs/LECTURA-IPC.md',
   'docs/aprendizaje-videos/protrader5-sesion2.md',
   'docs/aprendizaje-videos/protrader5-sesion3.md',
+  'docs/aprendizaje-videos/protrader5-sesion4.md',
+  'docs/aprendizaje-videos/protrader5-sesion5.md',
   'docs/BONOS-DIRECCION.md',
   'docs/CPI-LONDRES.md',
 ];

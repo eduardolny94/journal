@@ -65,6 +65,35 @@ async function statementFor(ccy, decisionIso) {
   return { title: hit.title, link: hit.link, text: paragraphs(html).slice(0, MAX_TEXT) };
 }
 
+// ---------- Proyecciones del FOMC (SEP): "los tipos dan igual, las proyecciones mandan" (Protrader 5, sesión 5) ----------
+// En marzo, junio, septiembre y diciembre la Fed publica la tabla de medianas (tipos y PCE por año) con la fila de la
+// proyección anterior. Lo que mueve al dólar es el cambio de esa mediana, no la decisión (descontada). La página no existe
+// en las demás reuniones (404 → null).
+const SEP_URL = (ymd) => `https://www.federalreserve.gov/monetarypolicy/fomcprojtabl${ymd.replace(/-/g, '')}.htm`;
+const MESES_SEP = { march: 'marzo', june: 'junio', september: 'septiembre', december: 'diciembre' };
+/** Lee la tabla 1 del SEP: medianas actuales y anteriores de tipos y PCE. */
+export function parseSep(html) {
+  const text = (t) => String(t).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  const rows = [...String(html).matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map((m) => { const th = /<th[^>]*>([\s\S]*?)<\/th>/i.exec(m[1]); const tds = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((x) => text(x[1])); return { label: th ? text(th[1]) : '', tds }; });
+  // columnas de años (2026, 2027, 2028, [2029], largo plazo): las lee de la cabecera; celdas vacías o "n.a." → null
+  const h = /<thead[\s\S]*?<\/thead>/i.exec(String(html)); const years = h ? [...h[0].matchAll(/<th[^>]*>\s*(20\d\d|Longer run)\s*<\/th>/gi)].map((m) => (m[1] === 'Longer run' ? 'largo plazo' : m[1])) : [];
+  if (years.length < 3) return null; const n = years.length;
+  const val = (t) => { const v = Number(String(t).replace(/[^0-9.\-]/g, '')); return t && Number.isFinite(v) ? v : null; };
+  const pick = (re) => { const i = rows.findIndex((r) => re.test(r.label)); if (i < 0) return null; const cur = rows[i].tds.slice(0, n).map(val), next = rows[i + 1]; const prev = next && /projection/i.test(next.label) ? next.tds.slice(0, n).map(val) : null; if (!cur.some((v) => v !== null)) return null; const m = prev ? /^(\w+)/.exec(next.label) : null; return { cur, prev, prevLabel: m ? `proyección de ${MESES_SEP[m[1].toLowerCase()] || m[1].toLowerCase()}` : null }; };
+  const tipos = pick(/^Federal funds rate/i), pce = pick(/^PCE inflation/i), core = pick(/^Core PCE inflation/i);
+  return tipos || pce ? { years, tipos, pce, core } : null;
+}
+async function fedProjections(decisionIso) {
+  const day = decisionIso.slice(0, 10);
+  try { const html = await fetchText(SEP_URL(day), { label: 'SEP Fed', headers: UA, timeoutMs: 30_000 }); return parseSep(html); } catch { return null; }
+}
+/** Texto del SEP para el modelo: medianas actuales y, entre paréntesis, las anteriores. */
+export function sepText(sep) {
+  if (!sep) return null;
+  const line = (name, p) => (p ? `${name}: ` + p.cur.map((v, i) => (v === null ? null : `${sep.years[i]} ${v.toFixed(1)}${p.prev && p.prev[i] !== null ? ` (antes ${p.prev[i].toFixed(1)})` : ''}`)).filter(Boolean).join(', ') : null);
+  return [`Proyecciones del FOMC (SEP, medianas; entre paréntesis la ${sep.tipos && sep.tipos.prevLabel ? sep.tipos.prevLabel : 'proyección anterior'}):`, line('tipos (fed funds, fin de año)', sep.tipos), line('inflación PCE', sep.pce), line('PCE subyacente', sep.core)].filter(Boolean).join('\n');
+}
+
 function bondReaction(db, ccy, decisionIso) {
   try {
     const rows = yieldSeries(db, ccy, new Date(Date.parse(decisionIso) + 3 * 86400000).toISOString().slice(0, 10)).rows || [];
@@ -89,12 +118,13 @@ export function toneByRule(decision, bp) {
 
 const SCHEMA = { type: 'object', additionalProperties: false, required: ['tono', 'resumen', 'base'], properties: { tono: { type: 'integer', description: 'entero entre -2 y 2' }, resumen: { type: 'string', description: 'una frase en español, máximo 240 caracteres' }, base: { type: 'string', enum: ['comunicado', 'decision', 'mercado', 'noticias'] } } };
 
-export async function toneByModel(llamar, { ccy, decision, statement, bp, news, model = TONO_MODEL }) {
+export async function toneByModel(llamar, { ccy, decision, statement, bp, news, sep = null, model = TONO_MODEL }) {
   const bank = CENTRAL_BANKS[ccy] ? CENTRAL_BANKS[ccy].long || ccy : ccy;
-  const sys = `Eres analista de bancos centrales para un radar de divisas. Devuelves el tono de la última decisión del banco central en una escala entera: -2 muy paloma (recorta o anuncia recortes), -1 paloma (sesgo a recortar, quita subidas), 0 neutro (mantiene sin señal), +1 halcón (sesgo a subir, no descarta subidas, inflación "elevada"), +2 muy halcón (sube o anuncia subidas). Juzga el tono RELATIVO a lo que el mercado esperaba: una subida ya descontada es +1, no +2; un mantener con disidentes a favor de subir es +1. Responde en español, con un resumen de una frase (máximo 240 caracteres) que cite el hecho decisivo. Si no hay comunicado, usa la decisión, el bono y los titulares y dilo en "base".`;
+  const sys = `Eres analista de bancos centrales para un radar de divisas. Devuelves el tono de la última decisión del banco central en una escala entera: -2 muy paloma (recorta o anuncia recortes), -1 paloma (sesgo a recortar, quita subidas), 0 neutro (mantiene sin señal), +1 halcón (sesgo a subir, no descarta subidas, inflación "elevada"), +2 muy halcón (sube o anuncia subidas). Juzga el tono RELATIVO a lo que el mercado esperaba: una subida ya descontada es +1, no +2; un mantener con disidentes a favor de subir es +1. Si hay proyecciones (SEP), pesan más que la decisión: una mediana de tipos más alta que la anterior es halcón (+1 o +2 según el tamaño) aunque mantengan; más baja, paloma. Responde en español, con un resumen de una frase (máximo 240 caracteres) que cite el hecho decisivo. Si no hay comunicado, usa la decisión, el bono y los titulares y dilo en "base".`;
   const user = [`Banco: ${bank} (${ccy}). Decisión del ${decision.at_utc.slice(0, 10)}: real ${decision.actual}, consenso ${decision.forecast ?? '—'}, anterior ${decision.previous ?? '—'}.`,
     bp === null ? 'Bono a 2 años: sin dato.' : `Bono a 2 años en los dos días siguientes: ${bp >= 0 ? '+' : ''}${bp} pb.`,
     statement && statement.text ? `Comunicado («${statement.title}»):\n${statement.text}` : statement ? `Comunicado («${statement.title}») sin texto legible (${statement.link}).` : 'Sin comunicado disponible.',
+    sepText(sep) || 'Sin proyecciones (reunión sin SEP).',
     news.length ? `Titulares:\n- ${news.join('\n- ')}` : 'Sin titulares.'].join('\n\n');
   const message = await llamar({ model, max_tokens: 600, system: sys, messages: [{ role: 'user', content: user }], output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } } });
   const text = (message.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
@@ -117,9 +147,10 @@ export async function refreshTono(db, { now = new Date(), llamar = null, log = (
       if (prev && prev.note && /^manual/i.test(prev.note) && prev.updated_at && prev.updated_at >= decision.at_utc) continue; // el dueño la puso a mano después
       let statement = null; try { statement = await statementFor(ccy, decision.at_utc); } catch (e) { log(`${ccy}: sin comunicado (${e.message})`); }
       const bp = bondReaction(db, ccy, decision.at_utc); const news = headlines(db, ccy, decision.at_utc);
+      let sep = null; if (ccy === 'USD') { sep = await fedProjections(decision.at_utc); if (sep) log(`USD: SEP leído (tipos ${sep.tipos ? sep.tipos.cur.join('/') : '—'})`); }
       let tone, resumen, base;
       if (llamar) {
-        try { const r = await toneByModel(llamar, { ccy, decision, statement, bp, news }); tone = r.tone; resumen = r.resumen; base = `${r.base}, ${r.model}`; }
+        try { const r = await toneByModel(llamar, { ccy, decision, statement, bp, news, sep }); tone = r.tone; resumen = r.resumen; base = `${r.base}, ${r.model}`; }
         catch (e) { log(`${ccy}: modelo falló (${e.message}); regla`); tone = toneByRule(decision, bp); resumen = `regla: ${decision.actual} frente a ${decision.previous ?? '—'} anterior, 2 años ${bp === null ? 's/d' : `${bp >= 0 ? '+' : ''}${bp} pb`}`; base = 'regla'; }
       } else { tone = toneByRule(decision, bp); resumen = `regla: ${decision.actual} frente a ${decision.previous ?? '—'} anterior, 2 años ${bp === null ? 's/d' : `${bp >= 0 ? '+' : ''}${bp} pb`}`; base = 'regla'; }
       const note = `${tag} (${base}): ${resumen}${statement ? ` · ${statement.link}` : ''}`.slice(0, 500);
