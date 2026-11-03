@@ -135,3 +135,31 @@ Plantilla: **Descontado** · **Texto** (recuentos: all/most/many/several/some/a 
 
 Bonos a 2 años al 29-10 (fuentes oficiales, frescos): USD 4,61 · EUR 3,01 · GBP 4,92 (gilt a 5 años) · JPY 1,90 · CHF 0,24 ·
 CAD 3,36 · AUD 4,94 · NZD 3,80 (TradingView). Próximas: RBA 03-11 (consenso 4,85 %), BoE 05-11 (consenso 4,00 %).
+
+## 03-11-2026 · RBA sube a 4,85 % (6–3), ISM 55,5, IPC suizo 1,5 %, elecciones de medio mandato
+
+**RBA (04:30 España).** Descontado: subida de 25 pb a 4,85 % (consenso 4,85). Texto (mr-26-30): sube, pero **6 votos a 3**
+(tres por mantener en 4,60), inflación «todavía alta y extendida», revisa al alza la inflación (por encima del 3 % el próximo
+año, vuelta al techo del 2–3 % a finales de 2027), paro subiendo más de lo previsto, vivienda cayendo; la guía pasa de
+«increasing further if needed» (septiembre) a «hará lo que considere necesario» y «bien situada para responder»: dependencia
+de datos, sin anunciar más subidas. Confirmación: AUD cae a mínimos de dos semanas, AUDUSD bajo 0,70, AUDJPY y AUDNZD a
+la baja; la prensa lo lee como posible pausa (TD: «RBA pause may weigh on AUD into year-end»). **Tono AUD: +1 automático con el comunicado** (subida descontada y previsión de inflación al alza; el matiz: tres disidentes por
+mantener y sin guía de más subidas, por lo que el mercado descuenta pausa y el AUD cae). Desde hoy el RSS del RBA vuelve a ser
+accesible y el BNS se lee por la URL de cada evaluación: la lectura automática ya no depende solo de la decisión y los titulares.
+
+**ISM manufacturero (ayer 16:00): 55,5 frente a 54,5.** Dato de actividad: mueve la hora, no la tendencia (medido). Apoya
+el relato de economía fuerte y Fed sin recortes; el dólar no reaccionó por las elecciones.
+
+**IPC suizo (08:30): 1,5 % frente a 1,3 %, anterior 1,0 %.** Segunda sorpresa suiza seguida (PMI 56,7 ayer). El franco es la
+divisa que más sube en dos días; el BNS a 0 % con inflación subiendo. Para USDCHF: el fundamental sigue a favor del dólar
+(tasa 4,00 frente a 0), pero el radar en el franco acierta la semana el 46 %: no es par para seguir el sesgo.
+
+**Elecciones de medio mandato (hoy; resultados en la noche europea).** Descontado: Cámara demócrata 93 %, Senado 71 %. El
+escenario con movimiento es la sorpresa republicana (dólar arriba). Histórico: S&P +1,1 % al día siguiente (79 %), 100 %
+positivo a 12 meses; dólar sin patrón por partido.
+
+**Pendiente:** JOLTS 16:00; BoE jueves (consenso 4,00 %); NFP viernes (consenso 65 mil).
+
+**Radar tras los datos (local, 09:48):** USD 2,9 · CAD 1,5 · GBP 0,9 · AUD 0,3 · EUR −0,2 · JPY −1,1 · CHF −1,9 · NZD −2,6.
+USDCHF +4,8 y USDJPY +4,0 fuertes (USDJPY nivel A, 60 % a 5 d); EURUSD −3,1 moderado; GBPUSD, USDCAD, EURGBP, EURJPY y
+AUDJPY sin sesgo. VIX 21,7, S&P −3 % en 20 días: riesgo en modo refugio, apoya USD y pesa sobre AUD y NZD.

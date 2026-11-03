@@ -20,6 +20,9 @@ const FEEDS = {
   GBP: { url: 'https://www.bankofengland.co.uk/rss/news', title: /Monetary Policy Summary|Bank Rate (maintained|increased|reduced)/i },
   JPY: { url: 'https://www.boj.or.jp/en/rss/whatsnew.xml', title: /Statement on Monetary Policy/i, pdf: true },
   CAD: { url: 'https://www.bankofcanada.ca/content_type/press-releases/feed/', title: /policy rate|Bank of Canada (raises|lowers|holds|maintains|cuts|increases)/i },
+  AUD: { url: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml', title: /Monetary Policy Decision/i }, // accesible desde el 03-11-2026; si vuelve a bloquear, cae a decisión + bono + titulares
+  // BNS: sin RSS; el comunicado de cada evaluación está en una URL con la fecha (pre_AAAAMMDD)
+  CHF: { direct: (ymd) => `https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_${ymd.replace(/-/g, '')}`, title: /Monetary policy assessment/i },
 };
 const KEYWORDS = { USD: /\b(Fed|FOMC|Powell|Warsh)\b/i, EUR: /\b(ECB|BCE|Lagarde)\b/i, GBP: /\b(BoE|Bank of England|Bailey)\b/i, JPY: /\b(BoJ|Bank of Japan|Ueda)\b/i, CHF: /\b(SNB|Swiss National Bank|Schlegel)\b/i, CAD: /\b(BoC|Bank of Canada|Macklem)\b/i, AUD: /\b(RBA|Reserve Bank of Australia|Bullock)\b/i, NZD: /\b(RBNZ|Reserve Bank of New Zealand)\b/i };
 
@@ -56,6 +59,7 @@ export function lastDecision(db, ccy, { now = new Date(), maxAgeDays = 60 } = {}
 
 async function statementFor(ccy, decisionIso) {
   const f = FEEDS[ccy]; if (!f) return null;
+  if (f.direct) { const link = f.direct(decisionIso.slice(0, 10)); const html = await fetchText(link, { label: `comunicado ${ccy}`, headers: UA, timeoutMs: 30_000 }); const text = paragraphs(html).slice(0, MAX_TEXT); return text && text.length > 200 ? { title: 'Monetary policy assessment', link, text } : null; }
   const xml = await fetchText(f.url, { label: `tono ${ccy}`, headers: UA, timeoutMs: 30_000, accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' });
   const dMs = Date.parse(decisionIso);
   const hit = feedItems(xml).find((it) => f.title.test(it.title) && (!it.date || Math.abs(Date.parse(it.date) - dMs) <= 5 * 86400000));
@@ -145,9 +149,12 @@ export async function refreshTono(db, { now = new Date(), llamar = null, log = (
     try {
       const decision = lastDecision(db, ccy, { now }); if (!decision) continue;
       const prev = manual[ccy]; const tag = `auto ${decision.at_utc.slice(0, 10)}`;
-      if (prev && prev.note && prev.note.startsWith(tag)) continue; // esta decisión ya está leída
+      // Esta decisión ya está leída, salvo que se leyera SIN comunicado (decisión/titulares/regla) y ahora sí lo haya: se vuelve a leer.
+      const prevSinComunicado = !!(prev && prev.note && prev.note.startsWith(tag) && /^auto [0-9-]+ \((decision|noticias|mercado|regla)/.test(prev.note));
+      if (prev && prev.note && prev.note.startsWith(tag) && !prevSinComunicado) continue;
       if (prev && prev.note && /^manual/i.test(prev.note) && prev.updated_at && prev.updated_at >= decision.at_utc) continue; // el dueño la puso a mano después
       let statement = null; try { statement = await statementFor(ccy, decision.at_utc); } catch (e) { log(`${ccy}: sin comunicado (${e.message})`); }
+      if (prevSinComunicado && !(statement && statement.text)) continue; // sigue sin comunicado: no se repite la lectura
       const bp = bondReaction(db, ccy, decision.at_utc); const news = headlines(db, ccy, decision.at_utc);
       let sep = null; if (ccy === 'USD') { sep = await fedProjections(decision.at_utc); if (sep) log(`USD: SEP leído (tipos ${sep.tipos ? sep.tipos.cur.join('/') : '—'})`); }
       let tone, resumen, base;
