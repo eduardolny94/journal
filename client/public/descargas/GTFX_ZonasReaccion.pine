@@ -8,12 +8,13 @@
 // En pantalla (modo mínimo): UNA franja de ENTRADA (inventario a favor del sesgo) y UNA de OBJETIVO (imán a favor con más
 // probabilidad de llegar). Modo esencial: las 4 mejores cerca del precio. Modo completo: todas las del día. Sin líneas.
 // El sesgo del radar (journal) se pone a mano y atenúa lo que va en contra. La medición en el gráfico va por detrás.
-indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 50, max_labels_count = 20)
+indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 100, max_labels_count = 100)
 
 NY = "America/New_York"
 sesgo    = input.string("Radar (lista pegada)", "Sesgo", options = ["Radar (lista pegada)", "Alcista", "Bajista", "Sin sesgo", "Técnico (EMA 50 de 1 h)"], tooltip = "Radar: lee el sesgo de este símbolo en la lista de abajo (botón «Copiar sesgos para el indicador» en la pestaña Hoy del journal). Técnico: lado de la EMA 50 de 1 h (medido: +18 p en la probabilidad de llegar al objetivo). Alcista/Bajista: a mano.")
 listaSes = input.text_area("", "Sesgos del radar (pegar del journal, vale para todos los gráficos)", tooltip = "Formato: EURUSD:bajista, XAUUSD:alcista, USDJPY:neutro, … Si el símbolo no está, trabaja sin sesgo.")
-modo     = input.string("Mínimo", "Modo", options = ["Mínimo", "Esencial", "Completo"], tooltip = "Mínimo: una sola franja de ENTRADA (la zona de inventario a favor del sesgo más probable y cercana) y una de OBJETIVO (el imán a favor con más probabilidad de llegar). Esencial: las mejores zonas cerca del precio, hasta el máximo. Completo: todas las del día.")
+modo     = input.string("Sesiones", "Modo", options = ["Sesiones", "Mínimo", "Esencial", "Completo"], tooltip = "Sesiones: al abrir Asia, Londres y Nueva York fija una ENTRADA y un OBJETIVO con su probabilidad, los deja pintados en esa sesión y marca ✓ si el precio llegó antes de acabar el día (✗ si no). Mínimo: lo mismo pero en vivo, recalculado cada vela. Esencial: las mejores zonas cerca del precio. Completo: todas.")
+diasHist = input.int(3, "Días de historia (modo Sesiones)", minval = 1, maxval = 10)
 maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
 minLlega = input.int(55, "Objetivo claro si «llega» ≥ (%)", minval = 0, maxval = 100, tooltip = "Probabilidad calibrada de llegar hoy. Por debajo se pinta atenuado como OBJETIVO FLOJO. Fuera de muestra, las previstas de 53-77 % llegaron el 65-70 %.")
 cercaAtr = input.float(1.5, "Solo zonas a menos de (× ATR diario) del precio (modo esencial)", minval = 0.25, maxval = 6, step = 0.25)
@@ -191,7 +192,7 @@ var int[] cScore = array.new<int>()
 candidata(string nombre, float lv, bool inv, int desde, int score, bool lejos) =>
     if not na(lv) and not na(atrD)
         dist = math.abs(lv - close) / atrD
-        okEs = dist <= cercaAtr and (inv or score >= minLlega or modo == "Mínimo")
+        okEs = dist <= cercaAtr and (inv or score >= minLlega or modo == "Mínimo" or modo == "Sesiones")
         okCo = dist <= 6 and (verLejos or not lejos or dist <= 2)
         if modo != "Completo" ? okEs : okCo
             array.push(cNom, nombre)
@@ -208,13 +209,7 @@ dibuja(int i, bool flojo = false) =>
     l = label.new(bar_index + 3, lv, array.get(cNom, i), style = label.style_label_left, color = fuerte ? color.new(c, 10) : color.new(c, 100), textcolor = fuerte ? color.white : c, size = fuerte ? size.normal : size.small)
     array.push(etq, l)
 pNum(k) => array.get(nT, k) >= 50 ? math.round(100.0 * array.get(nR1, k) / array.get(nT, k)) : medido(k)
-if barstate.islast
-    for b in cajas
-        box.delete(b)
-    array.clear(cajas)
-    for l in etq
-        label.delete(l)
-    array.clear(etq)
+construir() =>
     array.clear(cNom)
     array.clear(cLv)
     array.clear(cInvA)
@@ -243,39 +238,123 @@ if barstate.islast
     candidata("Semana bajo · llega " + str.tostring(pF) + " %", wLow1, false, diaBar, pF, true)
     candidata("Máx 20 d · llega " + str.tostring(pG) + " %", h20, false, diaBar, pG, true)
     candidata("Mín 20 d · llega " + str.tostring(pH) + " %", l20, false, diaBar, pH, true)
+// elige la ENTRADA (inventario a favor, más probable y cercana) y el OBJETIVO (imán al lado contrario, más probable)
+elegir() =>
+    n = array.size(cNom)
+    int iEnt = -1
+    int iObj = -1
+    for i = 0 to math.max(0, n - 1)
+        if n > 0
+            lv = array.get(cLv, i)
+            inv = array.get(cInvA, i)
+            sc = array.get(cScore, i)
+            if inv and aFavor(lv, true)
+                if iEnt < 0 or sc > array.get(cScore, iEnt) or (sc == array.get(cScore, iEnt) and math.abs(lv - close) < math.abs(array.get(cLv, iEnt) - close))
+                    iEnt := i
+    dirEnt = iEnt >= 0 ? (array.get(cLv, iEnt) <= close ? 1 : -1) : biasDir
+    for i = 0 to math.max(0, n - 1)
+        if n > 0
+            lv = array.get(cLv, i)
+            inv = array.get(cInvA, i)
+            sc = array.get(cScore, i)
+            ladoOk = dirEnt == 0 or (dirEnt > 0 ? lv > close : lv < close)
+            if not inv and aFavor(lv, false) and ladoOk
+                if iObj < 0 or sc > array.get(cScore, iObj) or (sc == array.get(cScore, iObj) and math.abs(lv - close) < math.abs(array.get(cLv, iObj) - close))
+                    iObj := i
+    [iEnt, iObj]
+
+// ── Modo Sesiones: al abrir cada sesión se fijan ENTRADA y OBJETIVO y se marca si llegó antes de acabar el día ──
+hNY = hour(time, NY)
+sesId = hNY >= 18 or hNY < 2 ? 0 : hNY < 8 ? 1 : 2
+nuevaSes = sesId != sesId[1]
+nombreSes = sesId == 0 ? "Asia" : sesId == 1 ? "Londres" : "NY"
+var box[] sCajas = array.new<box>()
+var label[] sEtq = array.new<label>()
+var int[] sDia = array.new<int>()
+var float[] sObjLv = array.new<float>()
+var int[] sObjDir = array.new<int>()
+var bool[] sObjHit = array.new<bool>()
+var int[] sObjIdx = array.new<int>()      // índice de la etiqueta del objetivo en sEtq (-1 si no hay)
+var box curEnt = na
+var box curObj = na
+var label curEntL = na
+var label curObjL = na
+if modo == "Sesiones"
+    // alargar las cajas de la sesión en curso
+    if not na(curEnt)
+        box.set_right(curEnt, bar_index)
+        label.set_x(curEntL, bar_index + 1)
+    if not na(curObj)
+        box.set_right(curObj, bar_index)
+        label.set_x(curObjL, bar_index + 1)
+    // ¿llegó a algún objetivo pendiente del día?
+    for i = 0 to math.max(0, array.size(sObjLv) - 1)
+        if array.size(sObjLv) > 0 and not array.get(sObjHit, i) and array.get(sDia, i) == diaN
+            lv = array.get(sObjLv, i)
+            d = array.get(sObjDir, i)
+            if (d > 0 ? high >= lv : low <= lv)
+                array.set(sObjHit, i, true)
+                k = array.get(sObjIdx, i)
+                if k >= 0
+                    l = array.get(sEtq, k)
+                    label.set_text(l, label.get_text(l) + "  ✓ llegó")
+    if nuevoDia
+        for i = 0 to math.max(0, array.size(sObjLv) - 1)
+            if array.size(sObjLv) > 0 and not array.get(sObjHit, i) and array.get(sDia, i) == diaN - 1
+                k = array.get(sObjIdx, i)
+                if k >= 0
+                    l = array.get(sEtq, k)
+                    label.set_text(l, label.get_text(l) + "  ✗ no llegó")
+    if nuevaSes and not na(atrD)
+        construir()
+        [iEnt, iObj] = elegir()
+        curEnt := na
+        curObj := na
+        if iEnt >= 0
+            lv = array.get(cLv, iEnt)
+            c = colorDe(lv, true)
+            curEnt := box.new(bar_index, lv + grosor * atrD, bar_index, lv - grosor * atrD, border_color = color.new(c, 0), border_width = 2, bgcolor = color.new(c, 40))
+            curEntL := label.new(bar_index + 1, lv, nombreSes + " · ENTRADA · " + array.get(cNom, iEnt), style = label.style_label_left, color = color.new(c, 10), textcolor = color.white, size = size.normal)
+            array.push(sCajas, curEnt)
+            array.push(sEtq, curEntL)
+            array.push(sDia, diaN)
+        if iObj >= 0
+            lv = array.get(cLv, iObj)
+            sc = array.get(cScore, iObj)
+            flojo = sc < minLlega
+            c0 = colorDe(lv, false)
+            c = flojo ? color.new(c0, 55) : c0
+            curObj := box.new(bar_index, lv + grosor * atrD, bar_index, lv - grosor * atrD, border_color = color.new(c, 0), border_width = 2, bgcolor = color.new(c, 50))
+            curObjL := label.new(bar_index + 1, lv, nombreSes + (flojo ? " · OBJETIVO FLOJO · " : " · OBJETIVO · ") + array.get(cNom, iObj), style = label.style_label_left, color = color.new(c, 10), textcolor = color.white, size = size.normal)
+            array.push(sCajas, curObj)
+            array.push(sEtq, curObjL)
+            array.push(sDia, diaN)
+            array.push(sObjLv, lv)
+            array.push(sObjDir, lv > close ? 1 : -1)
+            array.push(sObjHit, false)
+            array.push(sObjIdx, array.size(sEtq) - 1)
+        // borrar historia vieja
+        if array.size(sCajas) > 0
+            for i = array.size(sCajas) - 1 to 0
+                if diaN - array.get(sDia, i) > diasHist
+                    box.delete(array.get(sCajas, i))
+                    label.delete(array.get(sEtq, i))
+                    array.remove(sCajas, i)
+                    array.remove(sEtq, i)
+                    array.remove(sDia, i)
+
+if modo != "Sesiones" and barstate.islast
+    for b in cajas
+        box.delete(b)
+    array.clear(cajas)
+    for l in etq
+        label.delete(l)
+    array.clear(etq)
+    construir()
     n = array.size(cNom)
     if n > 0
-        // orden por probabilidad (de mayor a menor) y tope en modo esencial
-        idx = array.new<int>()
-        for i = 0 to n - 1
-            array.push(idx, i)
-        for i = 0 to n - 1
-            for j = 0 to n - 2 - i
-                if array.get(cScore, array.get(idx, j)) < array.get(cScore, array.get(idx, j + 1))
-                    tmp = array.get(idx, j)
-                    array.set(idx, j, array.get(idx, j + 1))
-                    array.set(idx, j + 1, tmp)
         if modo == "Mínimo"
-            // una entrada: inventario a favor del sesgo, el de mayor probabilidad y, a igualdad, el más cercano
-            int iEnt = -1
-            int iObj = -1
-            for i = 0 to n - 1
-                lv = array.get(cLv, i)
-                inv = array.get(cInvA, i)
-                sc = array.get(cScore, i)
-                if inv and aFavor(lv, true)
-                    if iEnt < 0 or sc > array.get(cScore, iEnt) or (sc == array.get(cScore, iEnt) and math.abs(lv - close) < math.abs(array.get(cLv, iEnt) - close))
-                        iEnt := i
-            // el objetivo va al lado contrario de la entrada: entrada por debajo = compra = objetivo por encima, y al revés
-            dirEnt = iEnt >= 0 ? (array.get(cLv, iEnt) <= close ? 1 : -1) : biasDir
-            for i = 0 to n - 1
-                lv = array.get(cLv, i)
-                inv = array.get(cInvA, i)
-                sc = array.get(cScore, i)
-                ladoOk = dirEnt == 0 or (dirEnt > 0 ? lv > close : lv < close)
-                if not inv and aFavor(lv, false) and ladoOk
-                    if iObj < 0 or sc > array.get(cScore, iObj) or (sc == array.get(cScore, iObj) and math.abs(lv - close) < math.abs(array.get(cLv, iObj) - close))
-                        iObj := i
+            [iEnt, iObj] = elegir()
             if iEnt >= 0
                 array.set(cNom, iEnt, "ENTRADA · " + array.get(cNom, iEnt))
                 dibuja(iEnt)
@@ -284,6 +363,15 @@ if barstate.islast
                 array.set(cNom, iObj, (flojo ? "OBJETIVO FLOJO · " : "OBJETIVO · ") + array.get(cNom, iObj))
                 dibuja(iObj, flojo)
         else
+            idx = array.new<int>()
+            for i = 0 to n - 1
+                array.push(idx, i)
+            for i = 0 to n - 1
+                for j = 0 to n - 2 - i
+                    if array.get(cScore, array.get(idx, j)) < array.get(cScore, array.get(idx, j + 1))
+                        tmp = array.get(idx, j)
+                        array.set(idx, j, array.get(idx, j + 1))
+                        array.set(idx, j + 1, tmp)
             tope = modo == "Esencial" ? math.min(maxZonas, n) : n
             for i = 0 to tope - 1
                 dibuja(array.get(idx, i))
