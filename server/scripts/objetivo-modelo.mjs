@@ -87,6 +87,7 @@ const pct = (x) => `${(100 * x).toFixed(0)} %`;
 const cuenta = (r) => ['ema200', 'ema50', 'apertura', 'fvg'].filter((f) => r[f] === 1).length;
 
 function evaluar(nombre, rows, trainY, testY, tablaConteo) {
+  // rows = todas las observaciones
   const tr = rows.filter((r) => trainY(r.y)), te = rows.filter((r) => testY(r.y));
   console.log(`\n==================== ${nombre} · entreno n ${tr.length} · prueba n ${te.length} · base prueba ${pct(te.filter((r) => r.ok).length / te.length)} ====================`);
   // modelo de conteo (el actual del indicador) como referencia
@@ -118,6 +119,30 @@ function evaluar(nombre, rows, trainY, testY, tablaConteo) {
   // regla sencilla para el Pine: probabilidad con 4 factores a favor y radar a favor, por sesión
   const top = te2.filter((r) => cuenta(r) === 4 && r.barrida !== 1); const topR = top.filter((r) => r.radar === 1), topC = top.filter((r) => r.radar === -1);
   console.log(`  4 factores a favor sin barrida: n ${top.length} · llega ${pct(top.filter((r) => r.ok).length / top.length)} · con radar a favor ${pct(topR.filter((r) => r.ok).length / Math.max(1, topR.length))} (n ${topR.length}) · radar en contra ${pct(topC.filter((r) => r.ok).length / Math.max(1, topC.length))} (n ${topC.length})`);
+  // (B3) Lo que ve el indicador a la apertura de Londres (09:00 servidor = 08:00 España): objetivos a 0,5–1,5 ATR, fuera de muestra
+  const lon9 = te2.filter((r) => r.hour === 9);
+  console.log('  Apertura de Londres por distancia al objetivo (fuera de muestra): distancia · n · llegó · prevista media · % con prevista ≥ 60 · llegó cuando ≥ 60 · ≥ 70 · llegó cuando ≥ 70');
+  for (const [a, b] of [[0.02, 0.1], [0.1, 0.25], [0.25, 0.5], [0.5, 1], [1, 1.5], [1.5, 2]]) { const g = lon9.filter((r) => r.dist >= a && r.dist < b); if (!g.length) continue; const g6 = g.filter((r) => r.p >= 0.6), g7 = g.filter((r) => r.p >= 0.7); console.log(`    ${a}–${b} ATR · n ${g.length} · llegó ${pct(g.filter((r) => r.ok).length / g.length)} · prevista ${pct(g.reduce((x, r) => x + r.p, 0) / g.length)} · ≥60: ${pct(g6.length / g.length)} → ${pct(g6.filter((r) => r.ok).length / Math.max(1, g6.length))} · ≥70: ${pct(g7.length / g.length)} → ${pct(g7.filter((r) => r.ok).length / Math.max(1, g7.length))}`); }
+  // tabla para el indicador: apertura de Londres, distancia × factores a favor (EMA 50, apertura, radar), TODA la muestra (entreno + prueba) y solo prueba
+  const k3 = (r) => (r.ema50 === 1 ? 1 : 0) + (r.apertura === 1 ? 1 : 0) + (r.radar === 1 ? 1 : 0);
+  for (const [nombre, conj] of [['entreno+prueba', rows.filter((r) => r.hour === 9)], ['solo prueba', te.filter((r) => r.hour === 9)]]) {
+    console.log(`  Tabla Londres (${nombre}): distancia \\ factores a favor (EMA 50, apertura, radar) → llegó (n)`);
+    for (const [a, b] of [[0.05, 0.1], [0.1, 0.25], [0.25, 0.5], [0.5, 1]]) { const g = conj.filter((r) => r.dist >= a && r.dist < b); const celdas = [0, 1, 2, 3].map((k) => { const h = g.filter((r) => k3(r) === k); return `${k}: ${pct(h.filter((r) => r.ok).length / Math.max(1, h.length))} (${h.length})`; }); console.log(`    ${a}–${b} ATR · ${celdas.join(' · ')}`); }
+  }
+  const lon = te2.filter((r) => r.hour === 9 && r.dist >= 0.5 && r.dist <= 1.5);
+  const dias = new Set(lon.map((r) => `${r.sym} ${r.y} ${r.hour}`)).size;
+  console.log(`  Apertura de Londres, objetivos a 0,5–1,5 ATR (fuera de muestra): n ${lon.length}`);
+  for (const [a, b] of [[0.7, 1.01], [0.6, 0.7], [0.5, 0.6], [0.4, 0.5], [0, 0.4]]) { const g = lon.filter((r) => r.p >= a && r.p < b); if (g.length) console.log(`    prevista ${pct(a)}–${pct(Math.min(b, 1))} · n ${g.length} · llegó ${pct(g.filter((r) => r.ok).length / g.length)} · radar a favor ${pct(g.filter((r) => r.radar === 1 && r.ok).length / Math.max(1, g.filter((r) => r.radar === 1).length))} (n ${g.filter((r) => r.radar === 1).length})`); }
+  // el mejor objetivo del día por probabilidad × recorrido, con y sin umbral
+  const porDia = {}; for (const r of lon) { const k = `${r.sym}|${r.y}|${r.z.includes('ayer') ? 'd' : 'a'}`; }
+  const byDay = new Map(); for (const r of te.filter((x) => x.hour === 9 && x.dist >= 0.5 && x.dist <= 1.5)) { const pr = prob(mejor, r); const k = `${r.sym} ${r.y}-${r.dist}-${r.z}`; }
+  const grupos = new Map(); for (const r of lon) { const k = r.sym + '|' + r.y + '|' + Math.round(r.hour) + '|' + (r.p).toFixed(0); }
+  const mejores = new Map(); for (const r of lon) { const key = `${r.sym}|${r.y}|${r.dist.toFixed(3)}|${r.z}`; }
+  // agrupar por día real: necesitamos la fecha; la reconstruimos por orden (misma y, mismo sym, mismo hour): usamos índice de aparición
+  const porFecha = new Map(); let ult = null, idx = 0; for (const r of lon) { const k = `${r.sym}|${r.y}`; }
+  const dayGroups = []; let cur = null; for (const r of lon) { if (!cur || cur.sym !== r.sym || cur.y !== r.y || r.z === 'alto ayer' && cur.rows.some((x) => x.z === 'alto ayer')) { cur = { sym: r.sym, y: r.y, rows: [] }; dayGroups.push(cur); } cur.rows.push(r); }
+  const best = dayGroups.map((g) => g.rows.reduce((m, r) => (r.p * r.dist > (m ? m.p * m.dist : -1) ? r : m), null)).filter(Boolean);
+  for (const u of [0.7, 0.65, 0.6, 0.55, 0.5]) { const g = best.filter((r) => r.p >= u); console.log(`    mejor objetivo del día (prob × recorrido) con prevista ≥ ${pct(u)}: ${g.length} de ${best.length} días (${pct(g.length / best.length)}) · llegó ${pct(g.filter((r) => r.ok).length / Math.max(1, g.length))}`); }
   return mejor;
 }
 

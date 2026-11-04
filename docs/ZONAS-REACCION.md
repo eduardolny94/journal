@@ -195,3 +195,26 @@ cualquier hora y con la distancia dentro, el número real es más bajo y por eso
 **En el indicador:** la etiqueta «llega X %» de cada objetivo usa este modelo con los pesos de arriba (oro o divisas según
 el símbolo), la sesión en hora de servidor, lo que queda de día, la distancia y el sesgo del radar (lista pegada, manual
 o técnico). Umbral por defecto para mostrar un objetivo: 55 %.
+
+## Qué ve el indicador a la apertura de Londres (05-11-2026, `objetivo-modelo.mjs` § B3)
+
+César: «la primera prueba tenía sentido, siempre llegaba; muéstrame el objetivo cuando llegue ≥ 70 %, pero con lógica
+detrás». Medido a las 08:00 España (09:00 servidor), objetivo = alto/bajo de ayer o de Asia por delante del precio,
+¿llega antes del cierre? Toda la muestra (oro 2022–26, divisas 2015–26); entre paréntesis n. Factores a favor = EMA 50
+de 1 h, lado de la apertura y radar (0 a 3).
+
+| distancia al objetivo (ATR diario) | oro 0 · 1 · 2 · 3 factores | divisas 0 · 1 · 2 · 3 factores |
+|---|---|---|
+| 0,05–0,1 (≈ 1–2 stops) | 94 · 84 · 84 · 90 % (358) | 85 · 86 · 88 · 92 % (6.610) |
+| **0,1–0,25 (≈ 2–5 stops)** | **74 · 71 · 76 · 73 %** (1.024) | **70 · 73 · 76 · 80 %** (16.636) |
+| 0,25–0,5 (≈ 5–10 stops) | 46 · 42 · 52 · 55 % (1.233) | 46 · 50 · 53 · 56 % (14.549) |
+| 0,5–1 | 21 · 25 · 30 · 33 % (985) | 19 · 23 · 28 · 31 % (10.220) |
+
+Fuera de muestra las celdas se repiten con 1–5 puntos de diferencia. Lectura: **la distancia manda**; los factores suman
+5–10 puntos. Un objetivo a 2–5 stops de distancia llega el 70–80 % de los días; a 5–10 stops, la mitad; más lejos, uno de
+cada cuatro. El modelo logístico global subestimaba los cercanos a esta hora (prevista 53 % frente a 70–75 % real), por
+eso el modo Día usa esta tabla y no la logística.
+
+**En el indicador (modo Día):** a las 08:00 fija la ENTRADA y elige el OBJETIVO por probabilidad × recorrido entre los
+que están al menos a 0,1 ATR diario (≈ 2 stops). «Objetivo claro» si la tabla da ≥ 70 % (los de 0,1–0,25 ATR); si no,
+OBJETIVO FLOJO atenuado con su número. Eso es lo que «siempre llegaba» en la primera versión: objetivos a 2–5 stops.
