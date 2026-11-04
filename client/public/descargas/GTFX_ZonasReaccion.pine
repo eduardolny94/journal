@@ -266,7 +266,14 @@ if barstate.islast
                 if inv and aFavor(lv, true)
                     if iEnt < 0 or sc > array.get(cScore, iEnt) or (sc == array.get(cScore, iEnt) and math.abs(lv - close) < math.abs(array.get(cLv, iEnt) - close))
                         iEnt := i
-                if not inv and aFavor(lv, false) and sc >= minLlega
+            // el objetivo va al lado contrario de la entrada: entrada por debajo = compra = objetivo por encima, y al revés
+            dirEnt = iEnt >= 0 ? (array.get(cLv, iEnt) <= close ? 1 : -1) : biasDir
+            for i = 0 to n - 1
+                lv = array.get(cLv, i)
+                inv = array.get(cInvA, i)
+                sc = array.get(cScore, i)
+                ladoOk = dirEnt == 0 or (dirEnt > 0 ? lv > close : lv < close)
+                if not inv and aFavor(lv, false) and ladoOk and sc >= minLlega
                     if iObj < 0 or sc > array.get(cScore, iObj) or (sc == array.get(cScore, iObj) and math.abs(lv - close) < math.abs(array.get(cLv, iObj) - close))
                         iObj := i
             if iEnt >= 0
