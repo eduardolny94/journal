@@ -86,3 +86,23 @@ H1 (+5, 9/12), cierre de ayer (+3, 9/12).
 - Divisas con volumen real (Databento/CME 6E, 6B, 6J): el VWAP de verdad, no el precio medio.
 - Convertir esto en una capa del radar: «zonas de inventario» (VWAP, ±1σ, cierre de ayer, apertura, EMA 50 H1) frente a
   «zonas de liquidez» (extremos de ayer, semana, 20 días, Asia), cada una con su porcentaje medido y su n.
+
+## Indicador de TradingView: `GTFX · Zonas de reacción` (05-11-2026)
+
+Archivo `client/public/descargas/GTFX_ZonasReaccion.pine` (descarga en `/descargas/GTFX_ZonasReaccion.pine`). Pine v6,
+para 30 m, 1 h y 4 h en XAUUSD, EURUSD, GBPUSD, USDJPY, USDCAD y USDCHF. Dos colores:
+
+- **Inventario (verde azulado)**: VWAP del día (línea gruesa), ±1σ, cierre de ayer, apertura del día, EMA 50 de 1 h. Etiqueta
+  a la derecha con el rebote medido (oro o divisas según el símbolo).
+- **Objetivos (ámbar)**: alto/bajo de ayer, de la semana pasada (círculos), máx/mín de 20 días (cruces), alto/bajo de Asia
+  (18:00–02:00 NY). Etiqueta «objetivo» con su porcentaje, que es menor que el azar.
+- **Sesgo del radar** (ajuste manual, se copia del journal): alcista → resalta el inventario por debajo del precio (donde
+  comprar) y los objetivos por encima (adónde apuntar); bajista → al revés; lo que va en contra se atenúa. Así se compagina
+  lo fundamental (dirección) con la microestructura (dónde).
+- Tabla arriba a la derecha con el acierto medido y el aviso de que en 4 h el VWAP es aproximado (se midió en M15/H1).
+- Dos alertas: «toque de zona de inventario» y «llega a un objetivo».
+- En 4 h la EMA 50 de 1 h se aproxima con una EMA de 12–13 velas de 4 h; en 30 m y 1 h se pide la de 1 h real.
+
+Lo que el indicador no hace, a propósito: no da entradas. La entrada medida (límite en la zona, stop 0,25 ATR de 1 h, 1:1)
+y el filtro que mejor funcionó (pendiente del VWAP + deriva del día + volatilidad alta) están en
+docs/INVESTIGACION-ORO-REACCION.md § 6; esperar al cierre de la vela baja el acierto al 44 %.
