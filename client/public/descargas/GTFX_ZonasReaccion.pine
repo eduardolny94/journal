@@ -227,12 +227,12 @@ construir(bool conBandas) =>
     array.clear(cInvA)
     array.clear(cDesde)
     array.clear(cScore)
-    candidata("VWAP " + pct(0), vwap, true, diaBar, pNum(0), false)
+    candidata("VWAP · frena " + pct(0), vwap, true, diaBar, pNum(0), false)
     if verBand and conBandas
-        candidata("+1σ " + pct(1), vwUp, true, diaBar, pNum(1), false)
-        candidata("−1σ " + pct(2), vwDn, true, diaBar, pNum(2), false)
-    candidata("Cierre ayer " + pct(3), dClose1, true, diaBar, pNum(3), false)
-    candidata("Apertura " + pct(4), dOpen, true, diaBar, pNum(4), false)
+        candidata("+1σ · frena " + pct(1), vwUp, true, diaBar, pNum(1), false)
+        candidata("−1σ · frena " + pct(2), vwDn, true, diaBar, pNum(2), false)
+    candidata("Cierre ayer · frena " + pct(3), dClose1, true, diaBar, pNum(3), false)
+    candidata("Apertura · frena " + pct(4), dOpen, true, diaBar, pNum(4), false)
     pA = probLlegar(dHigh1)
     pB = probLlegar(dLow1)
     candidata("Alto ayer · llega " + str.tostring(pA) + " %", dHigh1, false, diaBar, pA, false)
@@ -255,13 +255,16 @@ elegir() =>
     n = array.size(cNom)
     int iEnt = -1
     int iObj = -1
+    float mejorEnt = -1
     for i = 0 to math.max(0, n - 1)
         if n > 0
             lv = array.get(cLv, i)
             inv = array.get(cInvA, i)
             sc = array.get(cScore, i)
             if inv and aFavor(lv, true)
-                if iEnt < 0 or sc > array.get(cScore, iEnt) or (sc == array.get(cScore, iEnt) and math.abs(lv - close) < math.abs(array.get(cLv, iEnt) - close))
+                valE = sc * probLlegar(lv)
+                if valE > mejorEnt
+                    mejorEnt := valE
                     iEnt := i
     dirEnt = iEnt >= 0 ? (array.get(cLv, iEnt) <= close ? 1 : -1) : biasDir
     refEnt = iEnt >= 0 ? array.get(cLv, iEnt) : close
@@ -314,7 +317,7 @@ if modo == "Día" or modo == "Sesiones"
             lv = array.get(cLv, iEnt)
             c = colorDe(lv, true)
             curEnt := box.new(bar_index, lv + grosor * atrD, bar_index, lv - grosor * atrD, border_color = color.new(c, 0), border_width = 2, bgcolor = color.new(c, 40))
-            curEntL := label.new(bar_index + 1, lv, pref + "ENTRADA · " + array.get(cNom, iEnt), style = label.style_label_left, color = color.new(c, 10), textcolor = color.white, size = size.normal)
+            curEntL := label.new(bar_index + 1, lv, pref + "ENTRADA · " + array.get(cNom, iEnt) + " · se toca " + str.tostring(probLlegar(lv)) + " %", style = label.style_label_left, color = color.new(c, 10), textcolor = color.white, size = size.normal)
             array.push(sCajas, curEnt)
             array.push(sEtq, curEntL)
             array.push(sDia, diaN)
@@ -351,7 +354,7 @@ if modo != "Sesiones" and modo != "Día" and barstate.islast
         if modo == "Mínimo"
             [iEnt, iObj] = elegir()
             if iEnt >= 0
-                array.set(cNom, iEnt, "ENTRADA · " + array.get(cNom, iEnt))
+                array.set(cNom, iEnt, "ENTRADA · " + array.get(cNom, iEnt) + " · se toca " + str.tostring(probLlegar(array.get(cLv, iEnt))) + " %")
                 dibuja(iEnt)
             if iObj >= 0
                 flojo = array.get(cScore, iObj) < minLlega
