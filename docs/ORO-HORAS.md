@@ -54,3 +54,26 @@ Mismos datos, pero con el reloj de Londres real (horario de verano de Londres y 
   Londres = 07:00–09:00 NY, con los datos de EE. UU. a las 13:30 Londres).
 - Por media hora (M5, último año y medio): mínimo 09:00–10:00 (11 %), arranque a las 11:00 (15,5 %), 11:30 ya 19 %, máximo
   12:30–13:00 (22 %), y a partir de las 14:30 vuelve al nivel de la mañana.
+
+## ¿Mejor hora para ENTRAR? Medido por estilo y hora (`server/scripts/oro-mejor-hora.mjs`, M15 2022-08 → 2026-10)
+
+Entrada al cierre de cada vela H1, stop 0,5 ATR(H1), objetivo 1R y 2R, cierre forzoso a las 23:00 España. R medio por operación.
+
+| hora ES | continuación (a favor del cuerpo) R̄ 2R | reversión (en contra) R̄ 2R |
+|---|---|---|
+| 01–08 | −0,03 a +0,10 (06:00 +0,10, no estable: 22-23 +0,01) | −0,09 a +0,04 |
+| **09–12** | **−0,13 a −0,20** (la peor franja: entrar con el impulso de la mañana de Londres pierde) | −0,06 a −0,13 |
+| 13–16 | −0,03 a 0,00 | −0,10 a +0,01 |
+| 17–19 | −0,11 a +0,04 | +0,06 a +0,08 (n grande, pero 25-26 ≈ 0) |
+
+Barrida de Asia + cierre H1 dentro (stop en el extremo de la barrida), por hora de la barrida: 08:00 n 333, 1R 49 %, 2R 34 %,
+R̄ −0,04; 09:00 n 112, R̄ −0,27; 10:00 −0,11; 11:00 −0,01; 12:00+ −0,01; **todas: n 734, R̄ −0,07**. Por años: 22-23 0,00,
+2024 0,00, 25-26 0,00. La vuelta al medio es frecuente (64–76 %), pero como operación con stop en la mecha vale cero.
+
+Tarde: tendencia diaria 8/18 a las 13:00 (R̄ −0,09) o 14:00 (−0,03); rotura del rango 08–13 desde las 13:00 (−0,06);
+rotura + tendencia de acuerdo (−0,14). Ninguna variante positiva en los tres cortes.
+
+**Conclusión:** en el oro no hay una hora que convierta una entrada mecánica en positiva. Las horas difieren en tamaño del
+movimiento (12:00–15:00) y en lo mal que salen las entradas ingenuas (09:00–12:00, hasta −0,20R). Lo que sí está medido es
+dónde NO entrar. Cualquier ventaja en el oro tendrá que venir de un filtro de contexto (Asia estrecha, mecha larga, sesgo del
+radar) con n todavía pequeño, y hay que registrarla hacia delante antes de creerla.
