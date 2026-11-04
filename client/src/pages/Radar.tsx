@@ -130,7 +130,7 @@ export default function Radar() {
       )}
       {error && <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-xs text-loss">{error}</p>}
       <TabBar tabs={tabs} value={tab} onChange={(k) => setParams(k === defaultTab ? {} : { tab: k })} />
-      {tab === 'hoy' && owner && <HoyCard intradia={snap.intradia ?? null} swing={snap.swing ?? null} queOperar={snap.que_operar ?? null} />}
+      {tab === 'hoy' && owner && <HoyCard intradia={snap.intradia ?? null} swing={snap.swing ?? null} queOperar={snap.que_operar ?? null} pairs={allAssets} />}
 
       {tab === 'panel' && (
         <div className="space-y-6">

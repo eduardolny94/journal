@@ -7,7 +7,7 @@ import { Check, Clock, X } from 'lucide-react';
 import api from '../../lib/api';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/cn';
-import type { Intradia, IntradiaPair, QueOperar, SwingPair, SwingPlan } from '../../lib/radar';
+import type { Intradia, IntradiaPair, QueOperar, RadarPair, SwingPair, SwingPlan } from '../../lib/radar';
 
 const px = (v: number | null | undefined, digits: number) => (v === null || v === undefined ? '—' : v.toFixed(digits));
 const digitsOf = (sym: string) => (sym.includes('JPY') ? 3 : 5);
@@ -69,7 +69,7 @@ function SwingRow({ p }: { p: SwingPair }) {
   );
 }
 
-export default function HoyCard({ intradia, swing, queOperar }: { intradia: Intradia | null; swing: SwingPlan | null; queOperar: QueOperar | null }) {
+export default function HoyCard({ intradia, swing, queOperar, pairs = [] }: { intradia: Intradia | null; swing: SwingPlan | null; queOperar: QueOperar | null; pairs?: RadarPair[] }) {
   const swingRows = (swing?.pairs ?? []).filter((p) => ['entrada', 'en_curso', 'esperando_cruce'].includes(p.estado)).slice(0, 4);
   const best = queOperar?.best ?? [];
   const phaseText = intradia ? ({ asia: 'Asia en curso', barrida: 'ventana de barrida (08:00–09:59 España)', cierre: 'esperando el cierre dentro (hasta las 12:00)', cerrada: 'ventana cerrada por hoy' } as Record<string, string>)[intradia.phase] : null;
@@ -101,8 +101,34 @@ export default function HoyCard({ intradia, swing, queOperar }: { intradia: Intr
           {best.length === 0 && <li className="px-4 py-4 text-sm text-gray-500">Ningún par con nivel A o B hoy. Sin operación también es una respuesta.</li>}
         </ul>
       </Card>
+      <SesgosCard pairs={pairs} />
       <MurosCard owner />
     </div>
+  );
+}
+
+// ── Sesgos del radar para el indicador GTFX · Zonas de reacción: una línea con todos los pares, se pega una vez al día ──
+export function sesgosParaPine(pairs: RadarPair[]): string {
+  return pairs
+    .filter((p) => p.symbol && p.bias)
+    .map((p) => `${p.symbol}:${p.strength === 'sin sesgo' ? 'neutro' : p.bias}`)
+    .join(', ');
+}
+
+function SesgosCard({ pairs }: { pairs: RadarPair[] }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const linea = sesgosParaPine(pairs);
+  const copiar = async () => { try { await navigator.clipboard.writeText(linea); setMsg('Copiado: pégalo en «Sesgos del radar» de los ajustes del indicador GTFX · Zonas de reacción (vale para todos los gráficos).'); } catch { setMsg('No se pudo copiar; selecciona el texto de abajo.'); } };
+  const resumen = pairs.filter((p) => p.strength !== 'sin sesgo').map((p) => `${p.symbol} ${p.bias === 'alcista' ? '▲' : '▼'}`).join(' · ');
+  return (
+    <Card flush title="Sesgos para TradingView" subtitle="Indicador GTFX · Zonas de reacción: con esta línea pegada elige solo la zona de ENTRADA y el OBJETIVO a favor del radar en cada par">
+      <p className="px-4 py-2 text-[12px] text-gray-300">{resumen || 'Hoy ningún par tiene sesgo: el indicador trabajará sin sesgo.'}</p>
+      <p className="select-all break-all px-4 pb-2 font-mono text-[11px] text-gray-500">{linea}</p>
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2">
+        <button type="button" onClick={copiar} disabled={!linea} className="rounded-md border border-border px-3 py-1 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-50">Copiar sesgos para el indicador</button>
+        {msg && <span className="text-[11px] text-gray-400">{msg}</span>}
+      </div>
+    </Card>
   );
 }
 
