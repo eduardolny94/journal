@@ -3,8 +3,8 @@
 // Solo lo medido (docs/ZONAS-REACCION.md del journal; método Osler con control de azar; oro M15 2022–26, divisas H1 2015–26):
 //   · INVENTARIO (frenan, 60–62 % frente a 55–58 % del azar): VWAP del día y ±1σ, cierre de ayer, apertura del día.
 //   · OBJETIVOS (frenan MENOS que el azar: imán, no soporte): alto/bajo de ayer, de Asia, de la semana pasada, 20 días. Su etiqueta
-//     «llega X %» es la probabilidad medida de alcanzarlos en el día según cuántos factores van a favor (EMA 200 y EMA 50 de 1 h,
-//     lado de la apertura, FVG reciente; una barrida reciente a favor resta): 0 factores 37 % (oro) / 50 % (divisas) → 4 factores 78 / 82 %.
+//     «llega X %» es la probabilidad CALIBRADA de alcanzarlos hoy (regresión logística validada fuera de muestra): factores a favor
+//     (EMA 50 y 200 de 1 h, apertura, FVG, radar), barrida en contra, sesión, cuánto día queda y distancia en ATR.
 // En pantalla (modo mínimo): UNA franja de ENTRADA (inventario a favor del sesgo) y UNA de OBJETIVO (imán a favor con más
 // probabilidad de llegar). Modo esencial: las 4 mejores cerca del precio. Modo completo: todas las del día. Sin líneas.
 // El sesgo del radar (journal) se pone a mano y atenúa lo que va en contra. La medición en el gráfico va por detrás.
@@ -15,7 +15,7 @@ sesgo    = input.string("Radar (lista pegada)", "Sesgo", options = ["Radar (list
 listaSes = input.text_area("", "Sesgos del radar (pegar del journal, vale para todos los gráficos)", tooltip = "Formato: EURUSD:bajista, XAUUSD:alcista, USDJPY:neutro, … Si el símbolo no está, trabaja sin sesgo.")
 modo     = input.string("Mínimo", "Modo", options = ["Mínimo", "Esencial", "Completo"], tooltip = "Mínimo: una sola franja de ENTRADA (la zona de inventario a favor del sesgo más probable y cercana) y una de OBJETIVO (el imán a favor con más probabilidad de llegar). Esencial: las mejores zonas cerca del precio, hasta el máximo. Completo: todas las del día.")
 maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
-minLlega = input.int(60, "Objetivos solo si «llega» ≥ (%) (modo esencial)", minval = 0, maxval = 100)
+minLlega = input.int(55, "Objetivos solo si «llega» ≥ (%)", minval = 0, maxval = 100, tooltip = "Probabilidad calibrada de llegar hoy. Fuera de muestra, las previstas de 53-77 % llegaron el 65-70 %.")
 cercaAtr = input.float(1.5, "Solo zonas a menos de (× ATR diario) del precio (modo esencial)", minval = 0.25, maxval = 6, step = 0.25)
 verBand  = input.bool(true, "Incluir las bandas ±1σ del VWAP")
 verLejos = input.bool(false, "Modo completo: mostrar también semana pasada y 20 días aunque estén lejos")
@@ -96,14 +96,24 @@ sweepDir() =>
     r
 fvgNow = fvgDir()
 swNow = sweepDir()
-// probabilidad medida de llegar a un objetivo según cuántos factores van a favor (EMA 200, EMA 50, apertura, FVG), 0..4
-var int[] llegaOro = array.from(37, 49, 54, 63, 78)
-var int[] llegaFx = array.from(50, 52, 64, 73, 82)
+// Probabilidad calibrada de llegar hoy al objetivo (regresión logística, docs/ZONAS-REACCION.md § modelo): factores ±1
+// (EMA 200, EMA 50 de 1 h, apertura, FVG, barrida, radar), sesión (hora de servidor NY+7: Londres 10-15, NY 16-23),
+// fracción del día que queda y distancia en ATR diarios. Validada fuera de muestra: oro 2025-26, divisas 2022-26.
+hSrv = (hour(time, NY) + 7) % 24
+esLon = hSrv >= 10 and hSrv < 16 ? 1 : 0
+esNY = hSrv >= 16 or hSrv == 0 ? 1 : 0
+queda = math.max(0, (23 - (hSrv == 0 ? 24 : hSrv)) / 22.0)
 probLlegar(float lv) =>
     dir = lv > close ? 1 : -1
-    k = (math.sign(close - e200h) == dir ? 1 : 0) + (math.sign(close - e50h) == dir ? 1 : 0) + (math.sign(close - dOpen) == dir ? 1 : 0) + (fvgNow == dir ? 1 : 0)
-    p = array.get(esOro ? llegaOro : llegaFx, k)
-    swNow == dir ? p - (esOro ? 8 : 4) : p
+    x200 = math.sign(close - e200h) == dir ? 1 : -1
+    x50 = math.sign(close - e50h) == dir ? 1 : -1
+    xAp = math.sign(close - dOpen) == dir ? 1 : math.sign(close - dOpen) == 0 ? 0 : -1
+    xFvg = fvgNow == dir ? 1 : fvgNow == -dir ? -1 : 0
+    xSw = swNow == dir ? 1 : swNow == -dir ? -1 : 0
+    xRad = biasDir == dir ? 1 : biasDir == -dir ? -1 : 0
+    dist = math.abs(lv - close) / atrD
+    z = esOro ? (-0.094 + 0.005 * x200 + 0.211 * x50 + 0.202 * xAp + 0.015 * xFvg + 0.069 * xRad + 0.186 * esLon - 0.862 * esNY + 0.479 * queda - 1.089 * dist) : (0.018 - 0.036 * x200 + 0.234 * x50 + 0.071 * xAp + 0.079 * xFvg - 0.171 * xSw + 0.157 * xRad + 0.266 * esLon - 0.529 * esNY + 0.311 * queda - 1.102 * dist)
+    math.round(100 / (1 + math.exp(-z)))
 
 // ── Acierto medido ──────────────────────────────────────────────────────────────────────────────────────────────
 NZ = 12

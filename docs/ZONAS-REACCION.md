@@ -153,3 +153,45 @@ años es el FVG (+9 a +21 p); EMA y apertura +2 a +7. Es una regla de continuaci
 **Qué se añadió al indicador:** nada en el rebote (no mejora). En los objetivos, la etiqueta pasa de «imán 56 %» fijo a
 **«llega X %» calculado en vivo** con la tabla de arriba (0–4 factores, oro o divisas, con la resta por barrida). Es la
 parte del EDGE que sí está medida; su «hit rate 71 %» global y su dashboard no.
+
+## Modelo calibrado de «llega al objetivo» (05-11-2026, `server/scripts/objetivo-modelo.mjs`)
+
+Mejoras pedidas: radar como factor, pesos en vez de conteo, hora y distancia. Observación = cada hora del día, cada
+objetivo (alto/bajo de ayer, alto/bajo de Asia) a menos de 2 ATR por delante; ¿llega antes del cierre? Regresión
+logística entrenada en oro 2022–24 y divisas 2015–21, **evaluada fuera de muestra** (oro 2025–26, n 31.950; divisas
+2022–26, n 386.694). Una variable entra solo si baja el Brier fuera de muestra y su signo es igual en las dos mitades
+del entreno.
+
+| | oro | divisas (5 pares) |
+|---|---|---|
+| Brier fuera de muestra, conteo de 4 factores (lo que tenía el indicador) | 0,224 | 0,255 |
+| logística con los 5 factores | 0,197 | 0,214 |
+| + radar | 0,197 ✔ | 0,212 ✔ |
+| + sesión (Londres / NY) | 0,184 ✔ | 0,202 ✔ |
+| + fracción del día que queda | 0,184 ✔ | 0,201 ✔ |
+| **+ distancia en ATR** | **0,161 ✔** | **0,177 ✔** |
+
+Pesos finales (z = b0 + Σ; probabilidad = 1/(1+e^−z); factores ±1, sesión 0/1, queda 0–1, dist en ATR):
+
+| variable | oro | divisas | lectura |
+|---|---|---|---|
+| EMA 50 de 1 h a favor | +0,21 | +0,23 | el factor técnico que más pesa |
+| apertura a favor | +0,20 | +0,07 | |
+| FVG a favor | +0,02 | +0,08 | casi todo lo que «valía» el FVG era distancia |
+| EMA 200 a favor | +0,01 | −0,04 | irrelevante |
+| barrida a favor | (inestable, fuera) | −0,17 | la barrida gastó el objetivo |
+| **radar a favor** | +0,07 | **+0,16** | el fundamental suma, sobre todo en divisas |
+| Londres | +0,19 | +0,27 | |
+| NY | −0,86 | −0,53 | por la tarde ya no se llega |
+| día que queda | +0,48 | +0,31 | |
+| **distancia (ATR)** | **−1,09** | **−1,10** | la variable más importante |
+
+Calibración fuera de muestra (prevista → real): oro 3–15 % → 2 %, 15–25 → 15, 25–36 → 23, 36–49 → 49, **49–71 → 65**;
+divisas 3–19 → 3, 19–29 → 20, 29–40 → 35, 40–53 → 55, **53–77 → 70**. Con los 4 factores a favor y sin barrida (fuera de
+muestra, a cualquier hora): oro 58 % (radar a favor 61 %, en contra 48 %); divisas 63 % (radar a favor **66 %**, en contra
+55 %). Nota honesta: la tabla anterior (78/82 % con 4 factores) estaba medida solo al abrir el día y al cerrar Asia; a
+cualquier hora y con la distancia dentro, el número real es más bajo y por eso el indicador ahora lo dice más bajo.
+
+**En el indicador:** la etiqueta «llega X %» de cada objetivo usa este modelo con los pesos de arriba (oro o divisas según
+el símbolo), la sesión en hora de servidor, lo que queda de día, la distancia y el sesgo del radar (lista pegada, manual
+o técnico). Umbral por defecto para mostrar un objetivo: 55 %.
