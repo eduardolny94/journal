@@ -218,3 +218,37 @@ eso el modo Día usa esta tabla y no la logística.
 **En el indicador (modo Día):** a las 08:00 fija la ENTRADA y elige el OBJETIVO por probabilidad × recorrido entre los
 que están al menos a 0,1 ATR diario (≈ 2 stops). «Objetivo claro» si la tabla da ≥ 70 % (los de 0,1–0,25 ATR); si no,
 OBJETIVO FLOJO atenuado con su número. Eso es lo que «siempre llegaba» en la primera versión: objetivos a 2–5 stops.
+
+## OBJETIVO DEL DÍA: la regla que queda y cuántas veces se cumple (04-11-2026, `server/scripts/objetivo-diario.mjs`)
+
+César: «es confuso; déjame solo el objetivo diario de cada par y dime cuántas veces llega». Regla única, sin entrada ni
+zonas: **a las 08:00 España**, de los cuatro niveles por delante del precio (alto y bajo de ayer, alto y bajo de Asia) se
+toman los que están a **0,10–0,25 ATR diarios** y se elige el de más factores a favor (EMA 50 de 1 h, lado de la apertura,
+radar); a igualdad, el más lejano. «Llega» = el precio lo toca antes del cierre del día.
+
+| par | días | días con objetivo | **llega** | 0 · 1 · 2 · 3 factores | distancia mediana | por año |
+|---|---|---|---|---|---|---|
+| XAUUSD (2022–26) | 1.075 | 68 % | **75 %** | 82 · 72 · 77 · 72 | 5,3 $ (hoy 8–20 $) | 75 · 77 · 76 · 74 · 73 |
+| EURUSD (2015–26) | 2.898 | 75 % | **76 %** | 70 · 71 · 78 · 83 | 13 pips | 68–81, los 12 años |
+| GBPUSD | 2.898 | 76 % | **77 %** | 68 · 75 · 78 · 82 | 18 pips | 70–81 |
+| USDJPY | 2.898 | 71 % | **69 %** | 68 · 63 · 70 · 73 | 16 pips | 63–75 |
+| USDCHF | 2.898 | 73 % | **75 %** | 71 · 73 · 75 · 79 | 11 pips | 69–81 |
+| USDCAD | 2.898 | 74 % | **77 %** | 73 · 74 · 77 · 86 | 15 pips | 75–82 |
+
+Divisas juntas: 75 % (n 10.729); con 2–3 factores 77 %, con 0–1 71 %. Con distancia 0,10–0,50 ATR baja a 60–65 %.
+
+**La verdad completa, que hay que leer junto al 75 %:**
+
+- **No es una dirección del día.** Los mismos días el precio cierra a favor del objetivo solo el **50–53 %**. Tocar un nivel a
+  13–18 pips no dice hacia dónde termina el día. Coincide con docs/SESGO-DIARIO.md: nada conocido por la mañana acierta la
+  dirección (49–51 %).
+- **Antes de llegar, se va en contra.** Cuando llega, antes ha ido en contra una mediana de **1,5 veces** la distancia al
+  objetivo; cuando no llega, **3,7 veces**. Con un stop más corto que 1,5 × la distancia se pierde la mitad de las que
+  llegan. A 1:1 exacto (stop = distancia) no es un 75 %.
+- Es, por tanto, un **nivel que el precio visita 3 de cada 4 días**, útil como objetivo de una operación que ya tiene su
+  entrada y su stop, no una señal de compra o venta por sí sola.
+
+**Indicador:** modo «Objetivo del día» por defecto: una franja verde (objetivo por encima) o roja (por debajo) desde las
+08:00 hasta el cierre, con la etiqueta «OBJETIVO HOY ▲ 1,1265 · Alto de Asia · llega 78 %» (porcentaje medido del par y
+de sus factores). Si ningún nivel está a 0,10–0,25 ATR, ese día no pinta nada (≈ 1 de cada 4 días). El resto de modos
+sigue en el desplegable.

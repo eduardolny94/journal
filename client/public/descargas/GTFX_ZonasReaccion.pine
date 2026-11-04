@@ -13,7 +13,7 @@ indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_
 NY = "America/New_York"
 sesgo    = input.string("Automático", "Sesgo", options = ["Automático", "Radar (lista pegada)", "Alcista", "Bajista", "Sin sesgo", "Técnico (EMA 50 de 1 h)"], tooltip = "Automático: usa el sesgo del radar si este símbolo está en la lista de abajo y, si no, el lado de la EMA 50 de 1 h. Radar: lee el sesgo de este símbolo en la lista de abajo (botón «Copiar sesgos para el indicador» en la pestaña Hoy del journal). Técnico: lado de la EMA 50 de 1 h (medido: +18 p en la probabilidad de llegar al objetivo). Alcista/Bajista: a mano.")
 listaSes = input.text_area("", "Sesgos del radar (pegar del journal, vale para todos los gráficos)", tooltip = "Formato: EURUSD:bajista, XAUUSD:alcista, USDJPY:neutro, … Si el símbolo no está, trabaja sin sesgo.")
-modo     = input.string("Día", "Modo", options = ["Día", "Sesiones", "Mínimo", "Esencial", "Completo"], tooltip = "Día: al abrir Londres (08:00 España, con Asia ya cerrada) fija UNA entrada y UN objetivo con su probabilidad y los deja pintados hasta el cierre del día. Sesiones: lo mismo pero al abrir Asia, Londres y Nueva York. Mínimo: en vivo, recalculado cada vela. Esencial: las mejores zonas cerca del precio. Completo: todas.")
+modo     = input.string("Objetivo del día", "Modo", options = ["Objetivo del día", "Día", "Sesiones", "Mínimo", "Esencial", "Completo"], tooltip = "Objetivo del día: SOLO el objetivo de hoy, fijado a las 08:00 España, con el porcentaje medido de veces que el precio lo toca antes del cierre (75 % de media; ver docs/ZONAS-REACCION.md). Día: al abrir Londres (08:00 España, con Asia ya cerrada) fija UNA entrada y UN objetivo con su probabilidad y los deja pintados hasta el cierre del día. Sesiones: lo mismo pero al abrir Asia, Londres y Nueva York. Mínimo: en vivo, recalculado cada vela. Esencial: las mejores zonas cerca del precio. Completo: todas.")
 diasHist = input.int(0, "Días anteriores que se dejan pintados (0 = solo hoy)", minval = 0, maxval = 10)
 maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
 minLlega = input.int(70, "Objetivo claro si «llega» ≥ (%)", minval = 0, maxval = 100, tooltip = "Por debajo se pinta atenuado como OBJETIVO FLOJO. En modo Día el % sale de la tabla medida a la apertura de Londres (distancia × factores): a 0,1–0,25 ATR llega el 70–80 %, a 0,25–0,5 el 46–56 %, a 0,5–1 el 20–30 %.")
@@ -286,6 +286,55 @@ elegir() =>
                     iObj := i
     [iEnt, iObj]
 
+// ── Modo «Objetivo del día» (server/scripts/objetivo-diario.mjs): a las 08:00 España, de los cuatro niveles por delante
+// (alto/bajo de ayer, alto/bajo de Asia) se queda con los que están a 0,10–0,25 ATR diarios y elige el de más factores a
+// favor (EMA 50 de 1 h, lado de la apertura, radar); a igualdad, el más lejano. Medido: el precio lo toca antes del cierre
+// el 75 % de los días en oro, 76 % EURUSD, 77 % GBPUSD, 69 % USDJPY, 75 % USDCHF, 77 % USDCAD (estable todos los años).
+odMin = input.float(0.10, "Objetivo del día: distancia mínima (× ATR diario)", minval = 0.05, maxval = 0.5, step = 0.05)
+odMax = input.float(0.25, "Objetivo del día: distancia máxima (× ATR diario)", minval = 0.1, maxval = 1, step = 0.05)
+cSube = input.color(#26a69a, "Objetivo por encima")
+cBaja = input.color(#ef5350, "Objetivo por debajo")
+llegaMedido(int k) =>
+    t = str.upper(syminfo.ticker)
+    esOro ? 75 : str.contains(t, "EURUSD") ? (k == 0 ? 70 : k == 1 ? 71 : k == 2 ? 78 : 83) : str.contains(t, "GBPUSD") ? (k == 0 ? 68 : k == 1 ? 75 : k == 2 ? 78 : 82) : str.contains(t, "USDJPY") ? (k == 0 ? 68 : k == 1 ? 63 : k == 2 ? 70 : 73) : str.contains(t, "USDCHF") ? (k == 0 ? 71 : k == 1 ? 73 : k == 2 ? 75 : 79) : str.contains(t, "USDCAD") ? (k == 0 ? 73 : k == 1 ? 74 : k == 2 ? 77 : 86) : (k <= 1 ? 71 : 77)
+var box odBox = na
+var label odLbl = na
+if modo == "Objetivo del día"
+    if nuevoDia
+        if not na(odBox)
+            box.delete(odBox)
+            label.delete(odLbl)
+        odBox := na
+        odLbl := na
+    if not na(odBox)
+        box.set_right(odBox, bar_index + 1)
+        label.set_x(odLbl, bar_index + 2)
+    if asiaListo and not asiaListo[1] and not na(atrD)
+        px = close[1]
+        float mejorLv = na
+        int mejorK = -1
+        float mejorDist = 0
+        string mejorNom = ""
+        niv = array.from(dHigh1, dLow1, asiaH, asiaL)
+        nom = array.from("Alto de ayer", "Bajo de ayer", "Alto de Asia", "Bajo de Asia")
+        for i = 0 to 3
+            lv = array.get(niv, i)
+            if not na(lv)
+                dir = lv > px ? 1 : -1
+                dist = math.abs(lv - px) / atrD
+                if dist >= odMin and dist < odMax
+                    k = (math.sign(px - e50h) == dir ? 1 : 0) + (math.sign(px - dOpen) == dir ? 1 : 0) + (enLista and biasLista == dir ? 1 : 0)
+                    if k > mejorK or (k == mejorK and dist > mejorDist)
+                        mejorK := k
+                        mejorDist := dist
+                        mejorLv := lv
+                        mejorNom := array.get(nom, i)
+        if not na(mejorLv)
+            sube = mejorLv > px
+            c = sube ? cSube : cBaja
+            odBox := box.new(bar_index, mejorLv + 0.02 * atrD, bar_index + 1, mejorLv - 0.02 * atrD, border_color = c, border_width = 2, bgcolor = color.new(c, 45))
+            odLbl := label.new(bar_index + 2, mejorLv, "OBJETIVO HOY " + (sube ? "▲ " : "▼ ") + str.tostring(mejorLv, format.mintick) + " · " + mejorNom + " · llega " + str.tostring(llegaMedido(mejorK)) + " %", style = label.style_label_left, color = color.new(c, 5), textcolor = color.white, size = size.normal)
+
 // ── Modos Día y Sesiones: al abrir el día (o la sesión) se fijan ENTRADA y OBJETIVO y se dejan pintados hasta el final ──
 hNY = hour(time, NY)
 sesId = hNY >= 18 or hNY < 2 ? 0 : hNY < 8 ? 1 : 2
@@ -344,7 +393,7 @@ if modo == "Día" or modo == "Sesiones"
                     array.remove(sEtq, i)
                     array.remove(sDia, i)
 
-if modo != "Sesiones" and modo != "Día" and barstate.islast
+if modo != "Sesiones" and modo != "Día" and modo != "Objetivo del día" and barstate.islast
     for b in cajas
         box.delete(b)
     array.clear(cajas)
