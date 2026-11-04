@@ -89,20 +89,24 @@ H1 (+5, 9/12), cierre de ayer (+3, 9/12).
 
 ## Indicador de TradingView: `GTFX · Zonas de reacción` (05-11-2026)
 
-Archivo `client/public/descargas/GTFX_ZonasReaccion.pine` (descarga en `/descargas/GTFX_ZonasReaccion.pine`). Pine v6,
-para 30 m, 1 h y 4 h en XAUUSD, EURUSD, GBPUSD, USDJPY, USDCAD y USDCHF. Dos colores:
+Archivo `client/public/descargas/GTFX_ZonasReaccion.pine` (descarga en `/descargas/GTFX_ZonasReaccion.pine`); instalado en
+la cuenta de César (compila sin errores, Pine v6). Hecho a petición suya lo más simple posible a la vista: **sin líneas, sin
+tabla, sin EMAs**; solo las zonas del día cerca del precio como franjas finas con su porcentaje, en dos colores.
 
-- **Inventario (verde azulado)**: VWAP del día (línea gruesa), ±1σ, cierre de ayer, apertura del día, EMA 50 de 1 h. Etiqueta
-  a la derecha con el rebote medido (oro o divisas según el símbolo).
-- **Objetivos (ámbar)**: alto/bajo de ayer, de la semana pasada (círculos), máx/mín de 20 días (cruces), alto/bajo de Asia
-  (18:00–02:00 NY). Etiqueta «objetivo» con su porcentaje, que es menor que el azar.
-- **Sesgo del radar** (ajuste manual, se copia del journal): alcista → resalta el inventario por debajo del precio (donde
-  comprar) y los objetivos por encima (adónde apuntar); bajista → al revés; lo que va en contra se atenúa. Así se compagina
-  lo fundamental (dirección) con la microestructura (dónde).
-- Tabla arriba a la derecha con el acierto medido y el aviso de que en 4 h el VWAP es aproximado (se midió en M15/H1).
-- Dos alertas: «toque de zona de inventario» y «llega a un objetivo».
-- En 4 h la EMA 50 de 1 h se aproxima con una EMA de 12–13 velas de 4 h; en 30 m y 1 h se pide la de 1 h real.
+- **Franjas verde azulado = inventario (frena)**: VWAP del día, ±1σ, cierre de ayer, apertura del día. Etiqueta «VWAP 62 %».
+- **Franjas ámbar = objetivos (imán)**: alto/bajo de ayer, de Asia (18:00–02:00 NY), de la semana pasada y de 20 días (estos
+  dos solo si están a menos de 2 ATR, o con la opción «zonas lejanas»). Etiqueta «Alto ayer · imán 56 %».
+- Solo se dibujan las del día en curso (se redibujan en la última vela): nada de historia en pantalla.
+- **Sesgo del radar** (ajuste manual): alcista atenúa el inventario por encima y los objetivos por debajo; bajista al revés.
+- **Medición por detrás, siempre activa**: en las velas cargadas cuenta el primer toque del día de cada zona y si una vela
+  después el precio sigue del lado bueno, frente a la misma zona desplazada 0,6 ATR diarios (control). Cuando una zona
+  lleva 50 toques o más en ese gráfico, **el porcentaje de la franja pasa a ser el medido ahí** (si no, el del estudio:
+  oro o divisas). Una opción muestra la lista compacta de toques, rebote y azar para comprobarlo.
+- Dos alertas: toque de zona de inventario y llegada a un objetivo.
+- La EMA 50 de 1 h se midió como zona (60–61 %) pero se quitó de pantalla por limpieza; sigue en el estudio.
 
-Lo que el indicador no hace, a propósito: no da entradas. La entrada medida (límite en la zona, stop 0,25 ATR de 1 h, 1:1)
-y el filtro que mejor funcionó (pendiente del VWAP + deriva del día + volatilidad alta) están en
-docs/INVESTIGACION-ORO-REACCION.md § 6; esperar al cierre de la vela baja el acierto al 44 %.
+Sobre el «backtest en TradingView»: el Probador de estrategias de TradingView sirve para estrategias con órdenes; para zonas
+lo que vale es contar toques y rebotes, y eso es lo que hace el indicador por detrás sobre los datos del gráfico (OANDA, en el
+marco que se tenga abierto). En 1 h el rebote «a una vela» es a una hora y los porcentajes difieren de los del estudio en
+M15; la comparación limpia es en 15 m o 30 m. Lo robusto (16.000 toques, control aleatorio, cortes por año) está en
+`server/scripts/zonas-reaccion.mjs` y `vwap-oro.mjs`, no en Pine.

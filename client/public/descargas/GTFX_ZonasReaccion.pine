@@ -1,42 +1,33 @@
 //@version=6
 // GTFX · Zonas de reacción (Global Traders FX) · 05-11-2026
-// Dibuja solo las zonas que, medidas con control de azar (método Osler, Fed de NY 2000), frenan al precio más que un nivel
-// cualquiera, y las que lo frenan MENOS (son objetivos, no soportes). Medido en XAUUSD M15 2022–2026 y en EURUSD, GBPUSD,
-// USDCHF, USDJPY H1 2015–2026 (docs/ZONAS-REACCION.md del journal).
-//   · ZONAS DE INVENTARIO (frenan, 60–62 % a 15 min / 1 h frente a 55–58 % del azar): VWAP del día y ±1σ, cierre de ayer,
-//     apertura del día, EMA 50 de 1 h.
-//   · OBJETIVOS (frenan menos que el azar, 50–57 %): alto/bajo de ayer, de la semana pasada, máx/mín de 20 días, alto/bajo de Asia.
-// El sesgo del radar (journal.cesarzorrilla.com) se pone a mano: con sesgo alcista se resaltan las zonas de inventario por
-// DEBAJO del precio (donde comprar) y los objetivos por ENCIMA (adónde apuntar); con bajista, al revés. Sin sesgo, todo igual.
-// Pensado para 30 m, 1 h y 4 h en XAUUSD, EURUSD, GBPUSD, USDJPY, USDCAD y USDCHF. Dos colores, nada más.
-indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_labels_count = 50)
+// Solo lo medido (docs/ZONAS-REACCION.md del journal; método Osler con control de azar; oro M15 2022–26, divisas H1 2015–26):
+//   · INVENTARIO (frenan, 60–62 % frente a 55–58 % del azar): VWAP del día y ±1σ, cierre de ayer, apertura del día.
+//   · OBJETIVOS (frenan MENOS que el azar, 50–58 %: imán, no soporte): alto/bajo de ayer, de Asia, de la semana pasada, 20 días.
+// En pantalla: solo las zonas del día cerca del precio, como franjas finas con su porcentaje. Sin líneas. Dos colores.
+// El sesgo del radar (journal) se pone a mano y atenúa lo que va en contra. La medición en el gráfico va por detrás.
+indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 50, max_labels_count = 20)
 
 NY = "America/New_York"
-
-sesgo      = input.string("Sin sesgo", "Sesgo del radar para este par", options = ["Alcista", "Bajista", "Sin sesgo"], tooltip = "Cópialo del radar del journal. Alcista: resalta inventario por debajo (compras) y objetivos por encima. Bajista: al revés.")
-verInv     = input.bool(true, "Zonas de inventario (VWAP, ±1σ, cierre de ayer, apertura, EMA 50 1 h)")
-verObj     = input.bool(true, "Objetivos (alto/bajo de ayer, semana pasada, 20 días, Asia)")
-verTabla   = input.bool(true, "Tabla con el acierto medido")
-cInv       = input.color(#2aa198, "Color de las zonas de inventario")
-cObj       = input.color(#b58900, "Color de los objetivos")
-opacDim    = input.int(80, "Transparencia de las zonas en contra del sesgo", minval = 0, maxval = 95)
+sesgo    = input.string("Sin sesgo", "Sesgo del radar para este par", options = ["Alcista", "Bajista", "Sin sesgo"], tooltip = "Cópialo del radar del journal. Alcista: resalta inventario por debajo y objetivos por encima. Bajista: al revés.")
+verBand  = input.bool(true, "Mostrar las bandas ±1σ del VWAP")
+verLejos = input.bool(false, "Mostrar zonas lejanas (semana pasada y 20 días aunque estén a más de 2 ATR)")
+cInv     = input.color(#2aa198, "Inventario (frena)")
+cObj     = input.color(#d4a017, "Objetivo (imán)")
+grosor   = input.float(0.06, "Grosor de la franja (× ATR diario a cada lado)", minval = 0.02, maxval = 0.2, step = 0.01)
+verMed   = input.bool(false, "Mostrar la medición de este gráfico (toques y rebotes frente al azar)", tooltip = "La medición corre siempre por detrás: con 50 toques o más, el porcentaje de la franja pasa a ser el de este gráfico.")
 
 esOro = str.contains(syminfo.ticker, "XAU") or str.contains(syminfo.ticker, "GOLD")
 biasDir = sesgo == "Alcista" ? 1 : sesgo == "Bajista" ? -1 : 0
 
-// ── Zonas de inventario ──────────────────────────────────────────────────────────────────────────────────────────
+// ── Niveles ─────────────────────────────────────────────────────────────────────────────────────────────────────
 nuevoDia = timeframe.change("1D")
 [vwap, vwUp, vwDn] = ta.vwap(hlc3, nuevoDia, 1)
-[dOpen, dClose1] = request.security(syminfo.tickerid, "D", [open, close[1]], lookahead = barmerge.lookahead_on)
-segs = timeframe.in_seconds()
-ema50h1 = segs <= 3600 ? request.security(syminfo.tickerid, "60", ta.ema(close, 50)) : ta.ema(close, math.max(2, math.round(50 * 3600 / segs)))
-
-// ── Objetivos ────────────────────────────────────────────────────────────────────────────────────────────────────
-[dHigh1, dLow1, h20, l20] = request.security(syminfo.tickerid, "D", [high[1], low[1], ta.highest(high, 20)[1], ta.lowest(low, 20)[1]], lookahead = barmerge.lookahead_on)
+[dOpen, dClose1, dHigh1, dLow1, h20, l20, atrD] = request.security(syminfo.tickerid, "D", [open, close[1], high[1], low[1], ta.highest(high, 20)[1], ta.lowest(low, 20)[1], ta.atr(14)[1]], lookahead = barmerge.lookahead_on)
 [wHigh1, wLow1] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
 inAsia = not na(time(timeframe.period, "1800-0200", NY))
 var float asiaH = na
 var float asiaL = na
+var int asiaBar = na
 if inAsia
     if not inAsia[1]
         asiaH := high
@@ -45,72 +36,121 @@ if inAsia
         asiaH := math.max(asiaH, high)
         asiaL := math.min(asiaL, low)
 asiaListo = not inAsia and not na(asiaH)
+if asiaListo and not asiaListo[1]
+    asiaBar := bar_index
+var int diaBar = 0
+if nuevoDia
+    diaBar := bar_index
 
-// ── Colores según el sesgo: inventario a favor = del lado donde se entra; objetivo a favor = del lado adonde se va ──
-dim(c) => color.new(c, opacDim)
-colInv(lv) => biasDir == 0 ? cInv : (biasDir > 0 ? lv <= close : lv >= close) ? cInv : dim(cInv)
-colObj(lv) => biasDir == 0 ? cObj : (biasDir > 0 ? lv >= close : lv <= close) ? cObj : dim(cObj)
+// ── Acierto medido ──────────────────────────────────────────────────────────────────────────────────────────────
+NZ = 12
+var string[] nombres = array.from("VWAP", "+1σ", "−1σ", "Cierre ayer", "Apertura", "Alto ayer", "Bajo ayer", "Asia alto", "Asia bajo", "Semana alto", "Semana bajo", "20 d alto/bajo")
+var int[] lado = array.from(0, -1, 1, 0, 0, -1, 1, -1, 1, -1, 1, 0)
+var int[] pOro = array.from(62, 60, 61, 61, 61, 56, 56, 58, 58, 53, 53, 50)
+var int[] pFx = array.from(60, 58, 62, 60, 60, 57, 57, 56, 56, 57, 57, 55)
+medido(k) => array.get(esOro ? pOro : pFx, k)
 
-plot(verInv ? vwap : na, "VWAP del día", colInv(vwap), 2)
-plot(verInv ? vwUp : na, "VWAP +1σ", colInv(vwUp), 1, plot.style_line)
-plot(verInv ? vwDn : na, "VWAP −1σ", colInv(vwDn), 1, plot.style_line)
-plot(verInv ? dClose1 : na, "Cierre de ayer", colInv(dClose1), 1, plot.style_linebr)
-plot(verInv ? dOpen : na, "Apertura del día", colInv(dOpen), 1, plot.style_linebr)
-plot(verInv ? ema50h1 : na, "EMA 50 de 1 h", colInv(ema50h1), 1, plot.style_line)
-plot(verObj ? dHigh1 : na, "Alto de ayer", colObj(dHigh1), 1, plot.style_linebr)
-plot(verObj ? dLow1 : na, "Bajo de ayer", colObj(dLow1), 1, plot.style_linebr)
-plot(verObj ? wHigh1 : na, "Alto semana pasada", colObj(wHigh1), 1, plot.style_circles)
-plot(verObj ? wLow1 : na, "Bajo semana pasada", colObj(wLow1), 1, plot.style_circles)
-plot(verObj ? h20 : na, "Máximo 20 días", colObj(h20), 1, plot.style_cross)
-plot(verObj ? l20 : na, "Mínimo 20 días", colObj(l20), 1, plot.style_cross)
-plot(verObj and asiaListo ? asiaH : na, "Alto de Asia", colObj(asiaH), 1, plot.style_linebr)
-plot(verObj and asiaListo ? asiaL : na, "Bajo de Asia", colObj(asiaL), 1, plot.style_linebr)
+// ── Colores según el sesgo ──────────────────────────────────────────────────────────────────────────────────────
+aFavor(lv, inv) => biasDir == 0 or (inv ? (biasDir > 0 ? lv <= close : lv >= close) : (biasDir > 0 ? lv >= close : lv <= close))
+colorDe(lv, inv) => aFavor(lv, inv) ? (inv ? cInv : cObj) : color.new(inv ? cInv : cObj, 85)
 
-// ── Etiquetas a la derecha con el acierto medido (oro / divisas) ─────────────────────────────────────────────────
-pInv(nombre) =>
-    esOro ? (nombre == "VWAP" ? "62 %" : nombre == "+1σ" ? "60 %" : nombre == "−1σ" ? "61 %" : nombre == "cierre" ? "61 %" : nombre == "apertura" ? "61 %" : "60 %") : (nombre == "VWAP" ? "60 %" : nombre == "+1σ" ? "58 %" : nombre == "−1σ" ? "62 %" : nombre == "cierre" ? "60 %" : nombre == "apertura" ? "60 %" : "61 %")
-pObj(nombre) =>
-    esOro ? (nombre == "ayer" ? "56 %" : nombre == "semana" ? "53 %" : nombre == "20d" ? "50 %" : "58 %") : (nombre == "ayer" ? "57 %" : nombre == "semana" ? "57 %" : nombre == "20d" ? "55 %" : "56 %")
 
-var label[] etiquetas = array.new<label>()
-poner(float lv, string txt, color c) =>
-    if not na(lv)
-        array.push(etiquetas, label.new(bar_index + 2, lv, txt, style = label.style_label_left, color = color.new(c, 100), textcolor = c, size = size.small))
+// ── Medición por detrás: primer toque del día, rebote a 1 vela, control desplazado 0,6 ATR ─────────────────────
+var int diaN = 0
+if nuevoDia
+    diaN += 1
+shift = (diaN % 2 == 0 ? 1 : -1) * 0.6 * atrD
+var int[] nT = array.new<int>(NZ, 0)
+var int[] nR1 = array.new<int>(NZ, 0)
+var int[] cT = array.new<int>(NZ, 0)
+var int[] cR1 = array.new<int>(NZ, 0)
+var bool[] hecho = array.new<bool>(NZ, false)
+var bool[] cHecho = array.new<bool>(NZ, false)
+var int[] pBar = array.new<int>(NZ, -1)
+var int[] pDir = array.new<int>(NZ, 0)
+var float[] pLv = array.new<float>(NZ, na)
+var int[] cPBar = array.new<int>(NZ, -1)
+var int[] cPDir = array.new<int>(NZ, 0)
+var float[] cPLv = array.new<float>(NZ, na)
+if nuevoDia
+    array.fill(hecho, false)
+    array.fill(cHecho, false)
+niveles = array.from(vwap[1], vwUp[1], vwDn[1], dClose1, dOpen, dHigh1, dLow1, asiaListo ? asiaH : na, asiaListo ? asiaL : na, wHigh1, wLow1, h20)
+if not na(atrD) and bar_index > 1
+    for k = 0 to NZ - 1
+        for c = 0 to 1
+            ctrl = c == 1
+            lv0 = array.get(niveles, k)
+            lv = ctrl ? lv0 + shift : lv0
+            aBar = ctrl ? cPBar : pBar
+            aDir = ctrl ? cPDir : pDir
+            aLv = ctrl ? cPLv : pLv
+            aT = ctrl ? cT : nT
+            aR1 = ctrl ? cR1 : nR1
+            aH = ctrl ? cHecho : hecho
+            pb = array.get(aBar, k)
+            if pb >= 0 and bar_index == pb + 1
+                d = array.get(aDir, k)
+                plv = array.get(aLv, k)
+                if d > 0 ? close > plv : close < plv
+                    array.set(aR1, k, array.get(aR1, k) + 1)
+                array.set(aBar, k, -1)
+            if not array.get(aH, k) and not na(lv)
+                dl = 0.0002 * lv
+                dir = close[1] > lv + dl and low <= lv + dl ? 1 : close[1] < lv - dl and high >= lv - dl ? -1 : 0
+                side = array.get(lado, k)
+                if dir != 0 and (side == 0 or side == dir)
+                    array.set(aH, k, true)
+                    array.set(aT, k, array.get(aT, k) + 1)
+                    array.set(aBar, k, bar_index)
+                    array.set(aDir, k, dir)
+                    array.set(aLv, k, lv)
+pct(k) => str.tostring(array.get(nT, k) >= 50 ? math.round(100.0 * array.get(nR1, k) / array.get(nT, k)) : medido(k)) + " %"
 
+// ── Franjas del día (solo las de hoy, solo cerca del precio), redibujadas en la última vela ─────────────────────
+var box[] cajas = array.new<box>()
+var label[] etq = array.new<label>()
+franja(string nombre, float lv, bool inv, int desde, bool lejos) =>
+    if not na(lv) and not na(atrD) and (verLejos or not lejos or math.abs(lv - close) <= 2 * atrD) and math.abs(lv - close) <= 6 * atrD
+        c = colorDe(lv, inv)
+        b = box.new(desde, lv + grosor * atrD, bar_index + 2, lv - grosor * atrD, border_color = color.new(c, 100), bgcolor = color.new(c, inv ? 80 : 86))
+        array.push(cajas, b)
+        l = label.new(bar_index + 3, lv, nombre, style = label.style_label_left, color = color.new(c, 100), textcolor = c, size = size.small)
+        array.push(etq, l)
 if barstate.islast
-    for l in etiquetas
+    for b in cajas
+        box.delete(b)
+    array.clear(cajas)
+    for l in etq
         label.delete(l)
-    array.clear(etiquetas)
-    if verInv
-        poner(vwap, "VWAP · frena " + pInv("VWAP"), colInv(vwap))
-        poner(vwUp, "+1σ · " + pInv("+1σ"), colInv(vwUp))
-        poner(vwDn, "−1σ · " + pInv("−1σ"), colInv(vwDn))
-        poner(dClose1, "Cierre de ayer · " + pInv("cierre"), colInv(dClose1))
-        poner(dOpen, "Apertura · " + pInv("apertura"), colInv(dOpen))
-        poner(ema50h1, "EMA 50 1 h · " + pInv("ema"), colInv(ema50h1))
-    if verObj
-        poner(dHigh1, "Alto de ayer · objetivo " + pObj("ayer"), colObj(dHigh1))
-        poner(dLow1, "Bajo de ayer · objetivo " + pObj("ayer"), colObj(dLow1))
-        poner(wHigh1, "Alto semana · objetivo " + pObj("semana"), colObj(wHigh1))
-        poner(wLow1, "Bajo semana · objetivo " + pObj("semana"), colObj(wLow1))
-        poner(h20, "Máx 20 d · objetivo " + pObj("20d"), colObj(h20))
-        poner(l20, "Mín 20 d · objetivo " + pObj("20d"), colObj(l20))
-        if asiaListo
-            poner(asiaH, "Alto Asia · objetivo " + pObj("asia"), colObj(asiaH))
-            poner(asiaL, "Bajo Asia · objetivo " + pObj("asia"), colObj(asiaL))
+    array.clear(etq)
+    franja("VWAP " + pct(0), vwap, true, diaBar, false)
+    if verBand
+        franja("+1σ " + pct(1), vwUp, true, diaBar, false)
+        franja("−1σ " + pct(2), vwDn, true, diaBar, false)
+    franja("Cierre ayer " + pct(3), dClose1, true, diaBar, false)
+    franja("Apertura " + pct(4), dOpen, true, diaBar, false)
+    franja("Alto ayer · imán " + pct(5), dHigh1, false, diaBar, false)
+    franja("Bajo ayer · imán " + pct(6), dLow1, false, diaBar, false)
+    if asiaListo
+        franja("Asia alto · imán " + pct(7), asiaH, false, asiaBar, false)
+        franja("Asia bajo · imán " + pct(8), asiaL, false, asiaBar, false)
+    franja("Semana alto · imán " + pct(9), wHigh1, false, diaBar, true)
+    franja("Semana bajo · imán " + pct(10), wLow1, false, diaBar, true)
+    franja("Máx 20 d · imán " + pct(11), h20, false, diaBar, true)
+    franja("Mín 20 d · imán " + pct(11), l20, false, diaBar, true)
 
-// ── Tabla ───────────────────────────────────────────────────────────────────────────────────────────────────────
-var table t = table.new(position.top_right, 1, 5, bgcolor = color.new(color.black, 20), border_width = 0)
-if verTabla and barstate.islast
-    azar = esOro ? "55–58 %" : "57–59 %"
-    table.cell(t, 0, 0, "GTFX · Zonas de reacción · " + (esOro ? "oro (M15, 2022–26)" : "divisas (H1, 2015–26)"), text_color = color.white, text_size = size.small, text_halign = text.align_left)
-    table.cell(t, 0, 1, "Sesgo del radar: " + sesgo, text_color = biasDir > 0 ? cInv : biasDir < 0 ? cObj : color.gray, text_size = size.small, text_halign = text.align_left)
-    table.cell(t, 0, 2, "Inventario (frenan): VWAP y ±1σ, cierre de ayer, apertura, EMA 50 1 h · rebote 60–62 % (azar " + azar + ")", text_color = cInv, text_size = size.small, text_halign = text.align_left)
-    table.cell(t, 0, 3, "Objetivos (frenan menos que el azar): alto/bajo de ayer, semana, 20 días, Asia · 50–57 %", text_color = cObj, text_size = size.small, text_halign = text.align_left)
-    table.cell(t, 0, 4, segs > 3600 ? "En 4 h el VWAP y sus bandas son aproximados: mide en 1 h o 30 m" : "Entrada medida: límite en la zona, stop 0,25 ATR 1 h, 1:1 · esperar el cierre de la vela baja al 44 %", text_color = color.gray, text_size = size.tiny, text_halign = text.align_left)
+var table tm = table.new(position.bottom_right, 1, NZ + 1, bgcolor = color.new(#131722, 15), border_width = 0)
+if verMed and barstate.islast
+    table.cell(tm, 0, 0, "Este gráfico · rebote a 1 vela (toques) · azar", text_color = color.silver, text_size = size.tiny, text_halign = text.align_left)
+    for k = 0 to NZ - 1
+        tq = array.get(nT, k)
+        cq = array.get(cT, k)
+        r1 = tq > 0 ? math.round(100.0 * array.get(nR1, k) / tq) : 0
+        q1 = cq > 0 ? math.round(100.0 * array.get(cR1, k) / cq) : 0
+        table.cell(tm, 0, k + 1, array.get(nombres, k) + "  " + (tq >= 10 ? str.tostring(r1) + " % (" + str.tostring(tq) + ") · azar " + str.tostring(q1) + " %" : "—"), text_color = tq >= 30 and r1 - q1 >= 3 ? cInv : tq >= 30 and q1 - r1 >= 3 ? cObj : color.silver, text_size = size.tiny, text_halign = text.align_left)
 
-// ── Alertas: el precio llega a una zona de inventario ───────────────────────────────────────────────────────────
+// ── Alertas ────────────────────────────────────────────────────────────────────────────────────────────────────
 toca(lv) => not na(lv) and low <= lv and high >= lv
-tocaInv = toca(vwap) or toca(vwUp) or toca(vwDn) or toca(dClose1) or toca(dOpen) or toca(ema50h1)
-alertcondition(tocaInv, "GTFX · toque de zona de inventario", "{{ticker}}: el precio toca una zona de inventario (VWAP / ±1σ / cierre de ayer / apertura / EMA 50 1 h)")
-alertcondition(toca(dHigh1) or toca(dLow1) or toca(h20) or toca(l20), "GTFX · llega a un objetivo", "{{ticker}}: el precio llega a un objetivo (alto/bajo de ayer o extremo de 20 días)")
+alertcondition(toca(vwap) or toca(vwUp) or toca(vwDn) or toca(dClose1) or toca(dOpen), "GTFX · toque de zona de inventario", "{{ticker}}: el precio toca una zona de inventario (VWAP / ±1σ / cierre de ayer / apertura)")
+alertcondition(toca(dHigh1) or toca(dLow1) or toca(asiaH) or toca(asiaL), "GTFX · llega a un objetivo", "{{ticker}}: el precio llega a un objetivo (alto/bajo de ayer o de Asia)")
