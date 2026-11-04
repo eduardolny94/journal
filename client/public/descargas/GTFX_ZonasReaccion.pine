@@ -17,7 +17,8 @@ modo     = input.string("Día", "Modo", options = ["Día", "Sesiones", "Mínimo"
 diasHist = input.int(3, "Días de historia (modos Día y Sesiones)", minval = 1, maxval = 10)
 maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
 minLlega = input.int(55, "Objetivo claro si «llega» ≥ (%)", minval = 0, maxval = 100, tooltip = "Probabilidad calibrada de llegar hoy. Por debajo se pinta atenuado como OBJETIVO FLOJO. Fuera de muestra, las previstas de 53-77 % llegaron el 65-70 %.")
-cercaAtr = input.float(1.5, "Solo zonas a menos de (× ATR diario) del precio (modo esencial)", minval = 0.25, maxval = 6, step = 0.25)
+cercaAtr = input.float(1.5, "Solo zonas a menos de (× ATR diario) del precio", minval = 0.25, maxval = 6, step = 0.25)
+minRec   = input.float(0.5, "Recorrido mínimo del objetivo desde la entrada (× ATR diario)", minval = 0.1, maxval = 2, step = 0.1, tooltip = "El objetivo se elige por probabilidad × recorrido; uno pegado a la entrada no sirve aunque sea muy probable.")
 verBand  = input.bool(true, "Incluir las bandas ±1σ del VWAP")
 verLejos = input.bool(false, "Modo completo: mostrar también semana pasada y 20 días aunque estén lejos")
 cInv     = input.color(#2aa198, "Inventario (frena)")
@@ -252,14 +253,19 @@ elegir() =>
                 if iEnt < 0 or sc > array.get(cScore, iEnt) or (sc == array.get(cScore, iEnt) and math.abs(lv - close) < math.abs(array.get(cLv, iEnt) - close))
                     iEnt := i
     dirEnt = iEnt >= 0 ? (array.get(cLv, iEnt) <= close ? 1 : -1) : biasDir
+    refEnt = iEnt >= 0 ? array.get(cLv, iEnt) : close
+    float mejorVal = -1
     for i = 0 to math.max(0, n - 1)
         if n > 0
             lv = array.get(cLv, i)
             inv = array.get(cInvA, i)
             sc = array.get(cScore, i)
             ladoOk = dirEnt == 0 or (dirEnt > 0 ? lv > close : lv < close)
-            if not inv and aFavor(lv, false) and ladoOk
-                if iObj < 0 or sc > array.get(cScore, iObj) or (sc == array.get(cScore, iObj) and math.abs(lv - close) < math.abs(array.get(cLv, iObj) - close))
+            recorrido = math.abs(lv - refEnt) / atrD
+            if not inv and aFavor(lv, false) and ladoOk and recorrido >= minRec
+                val = sc * recorrido
+                if val > mejorVal
+                    mejorVal := val
                     iObj := i
     [iEnt, iObj]
 
