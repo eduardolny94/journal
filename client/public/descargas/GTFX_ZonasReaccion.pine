@@ -11,7 +11,7 @@
 indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 100, max_labels_count = 100)
 
 NY = "America/New_York"
-sesgo    = input.string("Radar (lista pegada)", "Sesgo", options = ["Radar (lista pegada)", "Alcista", "Bajista", "Sin sesgo", "Técnico (EMA 50 de 1 h)"], tooltip = "Radar: lee el sesgo de este símbolo en la lista de abajo (botón «Copiar sesgos para el indicador» en la pestaña Hoy del journal). Técnico: lado de la EMA 50 de 1 h (medido: +18 p en la probabilidad de llegar al objetivo). Alcista/Bajista: a mano.")
+sesgo    = input.string("Automático", "Sesgo", options = ["Automático", "Radar (lista pegada)", "Alcista", "Bajista", "Sin sesgo", "Técnico (EMA 50 de 1 h)"], tooltip = "Automático: usa el sesgo del radar si este símbolo está en la lista de abajo y, si no, el lado de la EMA 50 de 1 h. Radar: lee el sesgo de este símbolo en la lista de abajo (botón «Copiar sesgos para el indicador» en la pestaña Hoy del journal). Técnico: lado de la EMA 50 de 1 h (medido: +18 p en la probabilidad de llegar al objetivo). Alcista/Bajista: a mano.")
 listaSes = input.text_area("", "Sesgos del radar (pegar del journal, vale para todos los gráficos)", tooltip = "Formato: EURUSD:bajista, XAUUSD:alcista, USDJPY:neutro, … Si el símbolo no está, trabaja sin sesgo.")
 modo     = input.string("Día", "Modo", options = ["Día", "Sesiones", "Mínimo", "Esencial", "Completo"], tooltip = "Día: al abrir Londres (08:00 España, con Asia ya cerrada) fija UNA entrada y UN objetivo con su probabilidad y los deja pintados hasta el cierre del día. Sesiones: lo mismo pero al abrir Asia, Londres y Nueva York. Mínimo: en vivo, recalculado cada vela. Esencial: las mejores zonas cerca del precio. Completo: todas.")
 diasHist = input.int(0, "Días anteriores que se dejan pintados (0 = solo hoy)", minval = 0, maxval = 10)
@@ -30,6 +30,7 @@ verMed   = input.bool(false, "Mostrar la medición de este gráfico (toques y re
 esOro = str.contains(syminfo.ticker, "XAU") or str.contains(syminfo.ticker, "GOLD")
 sesgoLista() =>
     r = 0
+    ok = false
     tick = str.upper(syminfo.ticker)
     partes = str.split(listaSes, ",")
     for p in partes
@@ -39,9 +40,10 @@ sesgoLista() =>
             v = str.lower(str.trim(array.get(kv, 1)))
             if str.length(sym) >= 3 and (sym == tick or str.contains(tick, sym))
                 r := v == "alcista" ? 1 : v == "bajista" ? -1 : 0
+                ok := true
                 break
-    r
-biasLista = sesgoLista()
+    [r, ok]
+[biasLista, enLista] = sesgoLista()
 
 // ── Niveles ─────────────────────────────────────────────────────────────────────────────────────────────────────
 nuevoDia = timeframe.change("1D")
@@ -71,7 +73,8 @@ segs = timeframe.in_seconds()
 [e50s, e200s] = request.security(syminfo.tickerid, "60", [ta.ema(close, 50), ta.ema(close, 200)])
 e50h = segs <= 3600 ? e50s : ta.ema(close, math.max(2, math.round(50 * 3600 / segs)))
 e200h = segs <= 3600 ? e200s : ta.ema(close, math.max(2, math.round(200 * 3600 / segs)))
-biasDir = sesgo == "Alcista" ? 1 : sesgo == "Bajista" ? -1 : sesgo == "Sin sesgo" ? 0 : sesgo == "Técnico (EMA 50 de 1 h)" ? (close > e50h ? 1 : close < e50h ? -1 : 0) : biasLista
+biasTec = close > e50h ? 1 : close < e50h ? -1 : 0
+biasDir = sesgo == "Alcista" ? 1 : sesgo == "Bajista" ? -1 : sesgo == "Sin sesgo" ? 0 : sesgo == "Técnico (EMA 50 de 1 h)" ? biasTec : sesgo == "Automático" ? (enLista ? biasLista : biasTec) : biasLista
 nFvg = math.max(3, math.round(12 * 900 / segs))     // 12 velas de 15 min
 nSw = math.max(5, math.round(20 * 900 / segs))      // 20 velas de 15 min
 fvgDir() =>
