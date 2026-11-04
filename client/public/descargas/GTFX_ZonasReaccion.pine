@@ -5,14 +5,14 @@
 //   · OBJETIVOS (frenan MENOS que el azar: imán, no soporte): alto/bajo de ayer, de Asia, de la semana pasada, 20 días. Su etiqueta
 //     «llega X %» es la probabilidad medida de alcanzarlos en el día según cuántos factores van a favor (EMA 200 y EMA 50 de 1 h,
 //     lado de la apertura, FVG reciente; una barrida reciente a favor resta): 0 factores 37 % (oro) / 50 % (divisas) → 4 factores 78 / 82 %.
-// En pantalla (modo esencial): solo las 4 zonas con más probabilidad a menos de 1,5 ATR del precio, como franjas finas con su
-// porcentaje. Sin líneas. Dos colores. Modo completo: todas las del día.
+// En pantalla (modo mínimo): UNA franja de ENTRADA (inventario a favor del sesgo) y UNA de OBJETIVO (imán a favor con más
+// probabilidad de llegar). Modo esencial: las 4 mejores cerca del precio. Modo completo: todas las del día. Sin líneas.
 // El sesgo del radar (journal) se pone a mano y atenúa lo que va en contra. La medición en el gráfico va por detrás.
 indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 50, max_labels_count = 20)
 
 NY = "America/New_York"
 sesgo    = input.string("Sin sesgo", "Sesgo del radar para este par", options = ["Alcista", "Bajista", "Sin sesgo"], tooltip = "Cópialo del radar del journal. Alcista: resalta inventario por debajo y objetivos por encima. Bajista: al revés.")
-modo     = input.string("Esencial", "Modo", options = ["Esencial", "Completo"], tooltip = "Esencial: solo las zonas con más probabilidad, cerca del precio, hasta el máximo indicado. Completo: todas las del día.")
+modo     = input.string("Mínimo", "Modo", options = ["Mínimo", "Esencial", "Completo"], tooltip = "Mínimo: una sola franja de ENTRADA (la zona de inventario a favor del sesgo más probable y cercana) y una de OBJETIVO (el imán a favor con más probabilidad de llegar). Esencial: las mejores zonas cerca del precio, hasta el máximo. Completo: todas las del día.")
 maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
 minLlega = input.int(60, "Objetivos solo si «llega» ≥ (%) (modo esencial)", minval = 0, maxval = 100)
 cercaAtr = input.float(1.5, "Solo zonas a menos de (× ATR diario) del precio (modo esencial)", minval = 0.25, maxval = 6, step = 0.25)
@@ -165,9 +165,9 @@ var int[] cScore = array.new<int>()
 candidata(string nombre, float lv, bool inv, int desde, int score, bool lejos) =>
     if not na(lv) and not na(atrD)
         dist = math.abs(lv - close) / atrD
-        okEs = dist <= cercaAtr and (inv or score >= minLlega)
+        okEs = dist <= cercaAtr and (inv or score >= minLlega or modo == "Mínimo")
         okCo = dist <= 6 and (verLejos or not lejos or dist <= 2)
-        if modo == "Esencial" ? okEs : okCo
+        if modo != "Completo" ? okEs : okCo
             array.push(cNom, nombre)
             array.push(cLv, lv)
             array.push(cInvA, inv)
@@ -229,9 +229,30 @@ if barstate.islast
                     tmp = array.get(idx, j)
                     array.set(idx, j, array.get(idx, j + 1))
                     array.set(idx, j + 1, tmp)
-        tope = modo == "Esencial" ? math.min(maxZonas, n) : n
-        for i = 0 to tope - 1
-            dibuja(array.get(idx, i))
+        if modo == "Mínimo"
+            // una entrada: inventario a favor del sesgo, el de mayor probabilidad y, a igualdad, el más cercano
+            int iEnt = -1
+            int iObj = -1
+            for i = 0 to n - 1
+                lv = array.get(cLv, i)
+                inv = array.get(cInvA, i)
+                sc = array.get(cScore, i)
+                if inv and aFavor(lv, true)
+                    if iEnt < 0 or sc > array.get(cScore, iEnt) or (sc == array.get(cScore, iEnt) and math.abs(lv - close) < math.abs(array.get(cLv, iEnt) - close))
+                        iEnt := i
+                if not inv and aFavor(lv, false) and sc >= minLlega
+                    if iObj < 0 or sc > array.get(cScore, iObj) or (sc == array.get(cScore, iObj) and math.abs(lv - close) < math.abs(array.get(cLv, iObj) - close))
+                        iObj := i
+            if iEnt >= 0
+                array.set(cNom, iEnt, "ENTRADA · " + array.get(cNom, iEnt))
+                dibuja(iEnt)
+            if iObj >= 0
+                array.set(cNom, iObj, "OBJETIVO · " + array.get(cNom, iObj))
+                dibuja(iObj)
+        else
+            tope = modo == "Esencial" ? math.min(maxZonas, n) : n
+            for i = 0 to tope - 1
+                dibuja(array.get(idx, i))
 
 var table tm = table.new(position.bottom_right, 1, NZ + 1, bgcolor = color.new(#131722, 15), border_width = 0)
 if verMed and barstate.islast
