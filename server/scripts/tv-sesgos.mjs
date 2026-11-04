@@ -23,24 +23,23 @@ console.log(linea);
 closeDb?.();
 if (process.argv.includes('--solo-imprimir')) process.exit(0);
 
-const base = path.join(os.homedir(), '.local', 'mcp', 'tradingview-mcp', 'src', 'core');
+// Se escribe SOLO el ajuste de los sesgos (in_1): reescribir todos los ajustes a la vez deja la instancia vacía en TradingView 3.4.
+const conn = path.join(os.homedir(), '.local', 'mcp', 'tradingview-mcp', 'src', 'connection.js');
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
-  const chart = await import(pathToFileURL(path.join(base, 'chart.js')).href);
-  const ind = await import(pathToFileURL(path.join(base, 'indicators.js')).href);
-  const st = await chart.getState();
-  const zonas = (st.studies || []).filter((s) => /Zonas de reacci/i.test(s.name || ''));
-  if (!zonas.length) { console.log(`TradingView abierto (${st.symbol}), pero el gráfico no tiene el indicador «GTFX · Zonas de reacción». Añádelo y repite.`); process.exit(2); }
-  const data = await import(pathToFileURL(path.join(base, 'data.js')).href);
-  for (const s of zonas) {
-    // seguridad: solo se escribe si la instancia tiene sus ajustes cargados (si no, setInputs la dejaría vacía)
-    const info = await data.getIndicator({ entity_id: s.id });
-    const actual = (info.inputs || []).find((i) => i.id === 'in_1');
-    if (!actual) { console.log(`La instancia ${s.id} aún no tiene los ajustes cargados; espera unos segundos y repite.`); process.exit(3); }
-    if (actual.value === linea) { console.log(`Sesgos ya al día en la instancia ${s.id}.`); continue; }
-    const r = await ind.setInputs({ entity_id: s.id, inputs: { in_1: linea } });
-    console.log(Object.keys(r.updated_inputs || {}).length ? `✔ Sesgos puestos en la instancia ${s.id}` : `No se pudo escribir en la instancia ${s.id}`);
+  const { evaluate } = await import(pathToFileURL(conn).href);
+  const leer = () => evaluate(`(function(){ var chart = window.TradingViewApi._activeChartWidgetWV.value(); var out = []; chart.getAllStudies().forEach(function(s){ if (/Zonas de reacc/i.test(s.name || s.title || '')) { var ins = chart.getStudyById(s.id).getInputValues(); var v = null; for (var i = 0; i < ins.length; i++) if (ins[i].id === 'in_1') v = ins[i].value; out.push({ id: s.id, n: ins.length, in1: v }); } }); return { symbol: chart.symbol(), studies: out }; })()`);
+  const antes = await leer();
+  if (!antes.studies.length) { console.log(`TradingView abierto (${antes.symbol}), pero el gráfico no tiene el indicador «GTFX · Zonas de reacción». Añádelo y repite.`); process.exit(2); }
+  for (const s of antes.studies) {
+    if (s.in1 === null || s.n < 5) { console.log(`La instancia ${s.id} aún no tiene los ajustes cargados; espera unos segundos y repite.`); process.exit(3); }
+    if (s.in1 === linea) { console.log(`Sesgos ya al día en la instancia ${s.id}.`); continue; }
+    await evaluate(`(function(){ var chart = window.TradingViewApi._activeChartWidgetWV.value(); chart.getStudyById(${JSON.stringify(s.id)}).setInputValues([{ id: 'in_1', value: ${JSON.stringify(linea)} }]); return true; })()`);
   }
-  process.exit(0);
+  await espera(4000);
+  const despues = await leer();
+  for (const s of despues.studies) console.log(s.in1 === linea ? `✔ Sesgos puestos en la instancia ${s.id} (${despues.symbol})` : `✘ La instancia ${s.id} no tomó la lista (ajustes: ${s.n}); repite en unos segundos.`);
+  process.exit(despues.studies.every((s) => s.in1 === linea) ? 0 : 4);
 } catch (e) {
   console.log(`No pude escribir en TradingView: ${e.message}. Ábrelo con el comando tv-debug y repite.`);
   process.exit(1);
