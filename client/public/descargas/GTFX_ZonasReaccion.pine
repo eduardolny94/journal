@@ -13,7 +13,7 @@ indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_
 NY = "America/New_York"
 sesgo    = input.string("Radar (lista pegada)", "Sesgo", options = ["Radar (lista pegada)", "Alcista", "Bajista", "Sin sesgo", "Técnico (EMA 50 de 1 h)"], tooltip = "Radar: lee el sesgo de este símbolo en la lista de abajo (botón «Copiar sesgos para el indicador» en la pestaña Hoy del journal). Técnico: lado de la EMA 50 de 1 h (medido: +18 p en la probabilidad de llegar al objetivo). Alcista/Bajista: a mano.")
 listaSes = input.text_area("", "Sesgos del radar (pegar del journal, vale para todos los gráficos)", tooltip = "Formato: EURUSD:bajista, XAUUSD:alcista, USDJPY:neutro, … Si el símbolo no está, trabaja sin sesgo.")
-modo     = input.string("Día", "Modo", options = ["Día", "Sesiones", "Mínimo", "Esencial", "Completo"], tooltip = "Día: al abrir el día fija UNA entrada y UN objetivo con su probabilidad y los deja pintados hasta el cierre. Sesiones: lo mismo pero al abrir Asia, Londres y Nueva York. Mínimo: en vivo, recalculado cada vela. Esencial: las mejores zonas cerca del precio. Completo: todas.")
+modo     = input.string("Día", "Modo", options = ["Día", "Sesiones", "Mínimo", "Esencial", "Completo"], tooltip = "Día: al abrir Londres (08:00 España, con Asia ya cerrada) fija UNA entrada y UN objetivo con su probabilidad y los deja pintados hasta el cierre del día. Sesiones: lo mismo pero al abrir Asia, Londres y Nueva York. Mínimo: en vivo, recalculado cada vela. Esencial: las mejores zonas cerca del precio. Completo: todas.")
 diasHist = input.int(3, "Días de historia (modos Día y Sesiones)", minval = 1, maxval = 10)
 maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
 minLlega = input.int(55, "Objetivo claro si «llega» ≥ (%)", minval = 0, maxval = 100, tooltip = "Probabilidad calibrada de llegar hoy. Por debajo se pinta atenuado como OBJETIVO FLOJO. Fuera de muestra, las previstas de 53-77 % llegaron el 65-70 %.")
@@ -268,7 +268,8 @@ hNY = hour(time, NY)
 sesId = hNY >= 18 or hNY < 2 ? 0 : hNY < 8 ? 1 : 2
 nuevaSes = sesId != sesId[1]
 nombreSes = sesId == 0 ? "Asia" : sesId == 1 ? "Londres" : "NY"
-fijar = modo == "Día" ? nuevoDia : nuevaSes
+asiaFinBar = asiaListo and not asiaListo[1]
+fijar = modo == "Día" ? asiaFinBar : nuevaSes
 var box[] sCajas = array.new<box>()
 var label[] sEtq = array.new<label>()
 var int[] sDia = array.new<int>()
@@ -277,6 +278,9 @@ var box curObj = na
 var label curEntL = na
 var label curObjL = na
 if modo == "Día" or modo == "Sesiones"
+    if nuevoDia
+        curEnt := na
+        curObj := na
     if not na(curEnt)
         box.set_right(curEnt, bar_index)
         label.set_x(curEntL, bar_index + 1)
@@ -284,7 +288,7 @@ if modo == "Día" or modo == "Sesiones"
         box.set_right(curObj, bar_index)
         label.set_x(curObjL, bar_index + 1)
     if fijar and not na(atrD)
-        construir(modo == "Sesiones" or not nuevoDia)
+        construir(true)
         [iEnt, iObj] = elegir()
         curEnt := na
         curObj := na
