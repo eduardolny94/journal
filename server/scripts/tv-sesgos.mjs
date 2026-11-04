@@ -30,7 +30,16 @@ try {
   const st = await chart.getState();
   const zonas = (st.studies || []).filter((s) => /Zonas de reacci/i.test(s.name || ''));
   if (!zonas.length) { console.log(`TradingView abierto (${st.symbol}), pero el gráfico no tiene el indicador «GTFX · Zonas de reacción». Añádelo y repite.`); process.exit(2); }
-  for (const s of zonas) { const r = await ind.setInputs({ entity_id: s.id, inputs: { in_1: linea } }); console.log(`✔ Sesgos puestos en la instancia ${s.id} (${Object.keys(r.updated_inputs || {}).length ? 'actualizado' : 'sin cambios'})`); }
+  const data = await import(pathToFileURL(path.join(base, 'data.js')).href);
+  for (const s of zonas) {
+    // seguridad: solo se escribe si la instancia tiene sus ajustes cargados (si no, setInputs la dejaría vacía)
+    const info = await data.getIndicator({ entity_id: s.id });
+    const actual = (info.inputs || []).find((i) => i.id === 'in_1');
+    if (!actual) { console.log(`La instancia ${s.id} aún no tiene los ajustes cargados; espera unos segundos y repite.`); process.exit(3); }
+    if (actual.value === linea) { console.log(`Sesgos ya al día en la instancia ${s.id}.`); continue; }
+    const r = await ind.setInputs({ entity_id: s.id, inputs: { in_1: linea } });
+    console.log(Object.keys(r.updated_inputs || {}).length ? `✔ Sesgos puestos en la instancia ${s.id}` : `No se pudo escribir en la instancia ${s.id}`);
+  }
   process.exit(0);
 } catch (e) {
   console.log(`No pude escribir en TradingView: ${e.message}. Ábrelo con el comando tv-debug y repite.`);
