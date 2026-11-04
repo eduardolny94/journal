@@ -129,3 +129,42 @@ futuro GC de 2014, con datos de milisegundos; en M5/M15 spot no queda nada.
    neto).
 4. **Pendiente que no se pudo probar**: Baur & Kuck (oro tras caídas bruscas del S&P en 5 min) necesita S&P intradía; con
    datos de un índice en M5 se mide en una tarde.
+
+## 6. El VWAP a fondo: todos los toques, filtros y techo del acierto (05-11-2026)
+
+Script: `server/scripts/vwap-oro.mjs`. Ahora **todos** los toques del día (no solo el primero), con una hora de
+enfriamiento entre toques del mismo nivel: 16.115 toques en 4,2 años (≈ 12 por día). Entrada en el toque, stop 0,25 ATR H1
+(riesgo mediano 1,5 $; en 2026, 3–4 $), objetivo 1:1, coste 0,4 $. Gráficos: `docs/img/vwap-oro-2026-10-27.svg` (día
+normal, 7 de 14) y `docs/img/vwap-oro-2026-10-22.svg` (día de tendencia, 8 de 9).
+
+| subconjunto | n | acierto 1R | control | R̄ 1R neto | R̄ bruto | coste en R (0,4 $ / 0,2 $) | acierto por año 22→26 | R̄ neto 25 / 26 |
+|---|---|---|---|---|---|---|---|---|
+| todos los toques | 16.115 | 57 % | 53 % | −0,14 | +0,15 | −0,29 / −0,15 | 54 · 55 · 56 · 59 · 60 | −0,01 / +0,12 |
+| solo el VWAP | 6.711 | 58 % | 52 % | −0,12 | +0,17 | −0,29 / −0,15 | 54 · 57 · 59 · 60 · 60 | +0,02 / +0,11 |
+| 1.er toque del día | 1.080 | 60 % | 43 % | −0,04 | +0,21 | −0,25 / −0,13 | 60 · 60 · 60 · 62 · 61 | +0,07 / +0,13 |
+| sesión NY (16–23 servidor) | 2.710 | 59 % | 57 % | −0,02 | +0,21 | −0,23 / −0,12 | 57 · 59 · 58 · 59 · 62 | +0,03 / +0,16 |
+| pendiente del VWAP a favor | 8.939 | 59 % | 53 % | −0,13 | +0,18 | −0,30 / −0,15 | 56 · 57 · 58 · 60 · 62 | +0,02 / — |
+| volatilidad alta (ATR H1 ≥ mediana 20 d) | 6.280 | 59 % | 57 % | −0,03 | +0,18 | −0,21 / −0,11 | 57 · 58 · 56 · 61 · 61 | +0,07 / +0,14 |
+| **pendiente + deriva del día + vol. alta** | 2.289 | **61 %** | 59 % | 0,00 | +0,21 | −0,22 / −0,11 | 59 · 58 · 58 · 62 · **65** | **+0,08 / +0,24** |
+| sesión Londres | 5.371 | 54 % | 47 % | −0,24 | +0,08 | −0,31 / −0,16 | 51 · 49 · 52 · 58 · 58 | −0,02 / — |
+| «confirmada» (entrar al cierre si cerró del lado bueno) | 10.669 | 44 % | 43 % | −0,40 | — | — | 43–45 todos | — |
+
+Qué sale:
+
+- **El acierto a 1:1 sube cada año: 54 → 55 → 56 → 59 → 60 %.** No es el filtro, es el oro: con más volatilidad el
+  rebote de pocos dólares cubre el stop y el coste. En 2026 todos los subconjuntos son positivos netos (+0,11 a +0,24R).
+- **El coste es el enemigo, no el acierto.** Bruto, el toque vale +0,15 a +0,21R en todos los cortes; el spread se lleva
+  0,2–0,3R por operación con riesgo de 1,5 $. Con spread de 0,2 $ (prop con buen bróker) el neto queda en ≈ 0 en 2022–24
+  y +0,15/+0,30 en 2025–26.
+- **Techo del acierto: 60–65 % a 1:1.** El mejor filtro fijado de antemano (VWAP con pendiente a favor, día derivando en
+  esa dirección, volatilidad alta) da 61 % global y 65 % en 2026, con control 59 %. A 0,5R el acierto llega al **70–71 %**,
+  pero pierde dinero (−0,13R): el breakeven a 1:0,5 es 67 % y el coste pesa el doble.
+- **Entrar «confirmado» (esperar el cierre de la vela) destruye la ventaja: 44 %.** El rebote es de 15–30 min; cuando la
+  vela ha cerrado del lado bueno ya se ha consumido. La entrada tiene que ser la orden límite en el nivel.
+- Esperar al 2.º o 3.er toque no mejora (59 % y 57 %): el primero es el mejor (60 % frente a 43 % del control).
+- El radar del USD no cambia nada (57 / 58 / 56 %): el toque del VWAP es microestructura, no dirección.
+
+Cómo aplicarlo, si se aplica: orden límite en el VWAP (o en ±1σ como resistencia/soporte) **a favor de la pendiente del
+VWAP y de la deriva del día**, solo con el ATR H1 por encima de su mediana (días con movimiento), stop 0,25 ATR H1, objetivo
+1:1, nunca con dato americano en la hora siguiente. En papel 2–3 meses apuntando el spread real: si el acierto de verdad
+está en 60–65 % y el coste en ≤ 0,15R, es positivo; si el bróker cobra 0,4 $ en una prueba de fondeo, es cero.
