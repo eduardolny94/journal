@@ -110,3 +110,46 @@ lo que vale es contar toques y rebotes, y eso es lo que hace el indicador por de
 marco que se tenga abierto). En 1 h el rebote «a una vela» es a una hora y los porcentajes difieren de los del estudio en
 M15; la comparación limpia es en 15 m o 30 m. Lo robusto (16.000 toques, control aleatorio, cortes por año) está en
 `server/scripts/zonas-reaccion.mjs` y `vwap-oro.mjs`, no en Pine.
+
+## Los factores del EDGE (DataQuant), medidos (05-11-2026)
+
+Pedido: «mira lo que usa el EDGE de bias intraday, pruébalo y agrégalo si mejora la probabilidad». Script
+`server/scripts/edge-factores.mjs`. Factores reconstruidos de sus ajustes: tendencia HTF (lado de la EMA 200 de 1 h),
+sesgo de apertura (precio frente a la apertura del día), evento de liquidez (barrida de un extremo de 20 velas con vuelta
+dentro en las últimas 20), desequilibrio (FVG en las últimas 12 velas), rango inicial (IB) con extensiones ±0,5/±1 IB.
+Oro M15 2022–26 por año; EURUSD, GBPUSD, USDJPY, USDCHF, USDCAD H1 2015–26 por tramos de 4 años.
+
+**(A) ¿Mejoran el rebote en las zonas de inventario?** No. En el oro, ±0–6 puntos y sin consistencia por año (VWAP: EMA 200
+−2, EMA 50 −4, apertura −1); en divisas ±0–5 y sin consistencia. El rebote es microestructura: no depende de la tendencia.
+
+**(B) ¿Cambian la probabilidad de LLEGAR a un objetivo (alto/bajo de ayer a < 1 ATR, alto/bajo de Asia)?** Sí, mucho y en
+todos los cortes:
+
+| factor a favor de la dirección del objetivo | oro (dif. a favor − en contra, por año) | divisas (5 pares, por tramo) |
+|---|---|---|
+| FVG reciente en esa dirección | +16 (19 · 13 · 15 · 15 · 20) | +21 a +28, los tres tramos |
+| EMA 50 de 1 h del lado del objetivo | +18 (8 · 19 · 13 · 22 · 20) | +18 a +23 |
+| apertura del día del lado del objetivo | +20 (25 · 12 · 17 · 23 · 26) | +8 a +15 |
+| EMA 200 de 1 h del lado del objetivo | +11 (4 · 12 · 8 · 16 · 8) | +8 a +11 |
+| **barrida reciente en esa dirección** | **−21** (−14 · −19 · −17 · −26 · −28) | **−13 a −16** |
+
+Probabilidad de llegar según cuántos factores van a favor (EMA 200, EMA 50, apertura, FVG), monótona y estable:
+
+| factores a favor | oro (n · llega · por año 22→26) | divisas (n · llega · por tramo) |
+|---|---|---|
+| 0 | 667 · **37 %** · 38 46 41 31 30 | 9.672 · **50 %** · 51 51 50 |
+| 1 | 915 · 49 % · 51 50 54 47 43 | 11.812 · 52 % · 54 52 50 |
+| 2 | 1.072 · 54 % · 59 54 55 52 53 | 14.359 · 64 % · 65 63 63 |
+| 3 | 1.008 · 63 % · 65 71 59 65 58 | 12.035 · 73 % · 73 73 74 |
+| 4 | 620 · **78 %** · 71 78 81 78 76 | 6.454 · **82 %** · 84 82 81 |
+
+Con barrida reciente a favor, cada fila baja 5–13 puntos en el oro y 2–5 en divisas (la barrida ya «gastó» el objetivo).
+
+**(C) La regla IB del EDGE** (primera hora de Londres o NY, extensión ±0,5/±1 IB): en el oro, tras romper el IB por un lado
+el precio llega a 0,5 IB más el 82 % en Londres (1 IB: 66 %) pero solo el 52 % en NY (1 IB: 27 %); el IB estrecho
+(< 0,15 ATR) extiende mucho más que el ancho (76 % frente a 43 %). El único factor que predice la extensión en todos los
+años es el FVG (+9 a +21 p); EMA y apertura +2 a +7. Es una regla de continuación en Londres, no en NY.
+
+**Qué se añadió al indicador:** nada en el rebote (no mejora). En los objetivos, la etiqueta pasa de «imán 56 %» fijo a
+**«llega X %» calculado en vivo** con la tabla de arriba (0–4 factores, oro o divisas, con la resta por barrida). Es la
+parte del EDGE que sí está medida; su «hit rate 71 %» global y su dashboard no.

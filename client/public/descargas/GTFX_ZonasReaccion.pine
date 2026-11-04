@@ -2,7 +2,9 @@
 // GTFX · Zonas de reacción (Global Traders FX) · 05-11-2026
 // Solo lo medido (docs/ZONAS-REACCION.md del journal; método Osler con control de azar; oro M15 2022–26, divisas H1 2015–26):
 //   · INVENTARIO (frenan, 60–62 % frente a 55–58 % del azar): VWAP del día y ±1σ, cierre de ayer, apertura del día.
-//   · OBJETIVOS (frenan MENOS que el azar, 50–58 %: imán, no soporte): alto/bajo de ayer, de Asia, de la semana pasada, 20 días.
+//   · OBJETIVOS (frenan MENOS que el azar: imán, no soporte): alto/bajo de ayer, de Asia, de la semana pasada, 20 días. Su etiqueta
+//     «llega X %» es la probabilidad medida de alcanzarlos en el día según cuántos factores van a favor (EMA 200 y EMA 50 de 1 h,
+//     lado de la apertura, FVG reciente; una barrida reciente a favor resta): 0 factores 37 % (oro) / 50 % (divisas) → 4 factores 78 / 82 %.
 // En pantalla: solo las zonas del día cerca del precio, como franjas finas con su porcentaje. Sin líneas. Dos colores.
 // El sesgo del radar (journal) se pone a mano y atenúa lo que va en contra. La medición en el gráfico va por detrás.
 indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 50, max_labels_count = 20)
@@ -41,6 +43,46 @@ if asiaListo and not asiaListo[1]
 var int diaBar = 0
 if nuevoDia
     diaBar := bar_index
+
+// ── Factores de confluencia (medidos: suben la probabilidad de LLEGAR a un objetivo, no la de rebotar) ─────────
+segs = timeframe.in_seconds()
+[e50s, e200s] = request.security(syminfo.tickerid, "60", [ta.ema(close, 50), ta.ema(close, 200)])
+e50h = segs <= 3600 ? e50s : ta.ema(close, math.max(2, math.round(50 * 3600 / segs)))
+e200h = segs <= 3600 ? e200s : ta.ema(close, math.max(2, math.round(200 * 3600 / segs)))
+nFvg = math.max(3, math.round(12 * 900 / segs))     // 12 velas de 15 min
+nSw = math.max(5, math.round(20 * 900 / segs))      // 20 velas de 15 min
+fvgDir() =>
+    r = 0
+    for j = 1 to nFvg
+        if low[j] > high[j + 2]
+            r := 1
+            break
+        if high[j] < low[j + 2]
+            r := -1
+            break
+    r
+sweepDir() =>
+    r = 0
+    for j = 1 to nSw
+        hh = ta.highest(high, nSw)[j + 1]
+        ll = ta.lowest(low, nSw)[j + 1]
+        if high[j] > hh and close[j] < hh
+            r := -1
+            break
+        if low[j] < ll and close[j] > ll
+            r := 1
+            break
+    r
+fvgNow = fvgDir()
+swNow = sweepDir()
+// probabilidad medida de llegar a un objetivo según cuántos factores van a favor (EMA 200, EMA 50, apertura, FVG), 0..4
+var int[] llegaOro = array.from(37, 49, 54, 63, 78)
+var int[] llegaFx = array.from(50, 52, 64, 73, 82)
+probLlegar(float lv) =>
+    dir = lv > close ? 1 : -1
+    k = (math.sign(close - e200h) == dir ? 1 : 0) + (math.sign(close - e50h) == dir ? 1 : 0) + (math.sign(close - dOpen) == dir ? 1 : 0) + (fvgNow == dir ? 1 : 0)
+    p = array.get(esOro ? llegaOro : llegaFx, k)
+    swNow == dir ? p - (esOro ? 8 : 4) : p
 
 // ── Acierto medido ──────────────────────────────────────────────────────────────────────────────────────────────
 NZ = 12
@@ -130,15 +172,15 @@ if barstate.islast
         franja("−1σ " + pct(2), vwDn, true, diaBar, false)
     franja("Cierre ayer " + pct(3), dClose1, true, diaBar, false)
     franja("Apertura " + pct(4), dOpen, true, diaBar, false)
-    franja("Alto ayer · imán " + pct(5), dHigh1, false, diaBar, false)
-    franja("Bajo ayer · imán " + pct(6), dLow1, false, diaBar, false)
+    franja("Alto ayer · llega " + str.tostring(probLlegar(dHigh1)) + " %", dHigh1, false, diaBar, false)
+    franja("Bajo ayer · llega " + str.tostring(probLlegar(dLow1)) + " %", dLow1, false, diaBar, false)
     if asiaListo
-        franja("Asia alto · imán " + pct(7), asiaH, false, asiaBar, false)
-        franja("Asia bajo · imán " + pct(8), asiaL, false, asiaBar, false)
-    franja("Semana alto · imán " + pct(9), wHigh1, false, diaBar, true)
-    franja("Semana bajo · imán " + pct(10), wLow1, false, diaBar, true)
-    franja("Máx 20 d · imán " + pct(11), h20, false, diaBar, true)
-    franja("Mín 20 d · imán " + pct(11), l20, false, diaBar, true)
+        franja("Asia alto · llega " + str.tostring(probLlegar(asiaH)) + " %", asiaH, false, asiaBar, false)
+        franja("Asia bajo · llega " + str.tostring(probLlegar(asiaL)) + " %", asiaL, false, asiaBar, false)
+    franja("Semana alto · llega " + str.tostring(probLlegar(wHigh1)) + " %", wHigh1, false, diaBar, true)
+    franja("Semana bajo · llega " + str.tostring(probLlegar(wLow1)) + " %", wLow1, false, diaBar, true)
+    franja("Máx 20 d · llega " + str.tostring(probLlegar(h20)) + " %", h20, false, diaBar, true)
+    franja("Mín 20 d · llega " + str.tostring(probLlegar(l20)) + " %", l20, false, diaBar, true)
 
 var table tm = table.new(position.bottom_right, 1, NZ + 1, bgcolor = color.new(#131722, 15), border_width = 0)
 if verMed and barstate.islast
