@@ -5,14 +5,19 @@
 //   · OBJETIVOS (frenan MENOS que el azar: imán, no soporte): alto/bajo de ayer, de Asia, de la semana pasada, 20 días. Su etiqueta
 //     «llega X %» es la probabilidad medida de alcanzarlos en el día según cuántos factores van a favor (EMA 200 y EMA 50 de 1 h,
 //     lado de la apertura, FVG reciente; una barrida reciente a favor resta): 0 factores 37 % (oro) / 50 % (divisas) → 4 factores 78 / 82 %.
-// En pantalla: solo las zonas del día cerca del precio, como franjas finas con su porcentaje. Sin líneas. Dos colores.
+// En pantalla (modo esencial): solo las 4 zonas con más probabilidad a menos de 1,5 ATR del precio, como franjas finas con su
+// porcentaje. Sin líneas. Dos colores. Modo completo: todas las del día.
 // El sesgo del radar (journal) se pone a mano y atenúa lo que va en contra. La medición en el gráfico va por detrás.
 indicator("GTFX · Zonas de reacción", "GTFX zonas", overlay = true, max_boxes_count = 50, max_labels_count = 20)
 
 NY = "America/New_York"
 sesgo    = input.string("Sin sesgo", "Sesgo del radar para este par", options = ["Alcista", "Bajista", "Sin sesgo"], tooltip = "Cópialo del radar del journal. Alcista: resalta inventario por debajo y objetivos por encima. Bajista: al revés.")
-verBand  = input.bool(true, "Mostrar las bandas ±1σ del VWAP")
-verLejos = input.bool(false, "Mostrar zonas lejanas (semana pasada y 20 días aunque estén a más de 2 ATR)")
+modo     = input.string("Esencial", "Modo", options = ["Esencial", "Completo"], tooltip = "Esencial: solo las zonas con más probabilidad, cerca del precio, hasta el máximo indicado. Completo: todas las del día.")
+maxZonas = input.int(4, "Máximo de zonas en pantalla (modo esencial)", minval = 1, maxval = 12)
+minLlega = input.int(60, "Objetivos solo si «llega» ≥ (%) (modo esencial)", minval = 0, maxval = 100)
+cercaAtr = input.float(1.5, "Solo zonas a menos de (× ATR diario) del precio (modo esencial)", minval = 0.25, maxval = 6, step = 0.25)
+verBand  = input.bool(true, "Incluir las bandas ±1σ del VWAP")
+verLejos = input.bool(false, "Modo completo: mostrar también semana pasada y 20 días aunque estén lejos")
 cInv     = input.color(#2aa198, "Inventario (frena)")
 cObj     = input.color(#d4a017, "Objetivo (imán)")
 grosor   = input.float(0.06, "Grosor de la franja (× ATR diario a cada lado)", minval = 0.02, maxval = 0.2, step = 0.01)
@@ -149,16 +154,34 @@ if not na(atrD) and bar_index > 1
                     array.set(aLv, k, lv)
 pct(k) => str.tostring(array.get(nT, k) >= 50 ? math.round(100.0 * array.get(nR1, k) / array.get(nT, k)) : medido(k)) + " %"
 
-// ── Franjas del día (solo las de hoy, solo cerca del precio), redibujadas en la última vela ─────────────────────
+// ── Franjas del día: se eligen las candidatas, se ordenan por probabilidad y se dibujan solo las mejores ─────────
 var box[] cajas = array.new<box>()
 var label[] etq = array.new<label>()
-franja(string nombre, float lv, bool inv, int desde, bool lejos) =>
-    if not na(lv) and not na(atrD) and (verLejos or not lejos or math.abs(lv - close) <= 2 * atrD) and math.abs(lv - close) <= 6 * atrD
-        c = colorDe(lv, inv)
-        b = box.new(desde, lv + grosor * atrD, bar_index + 2, lv - grosor * atrD, border_color = color.new(c, 100), bgcolor = color.new(c, inv ? 80 : 86))
-        array.push(cajas, b)
-        l = label.new(bar_index + 3, lv, nombre, style = label.style_label_left, color = color.new(c, 100), textcolor = c, size = size.small)
-        array.push(etq, l)
+var string[] cNom = array.new<string>()
+var float[] cLv = array.new<float>()
+var bool[] cInvA = array.new<bool>()
+var int[] cDesde = array.new<int>()
+var int[] cScore = array.new<int>()
+candidata(string nombre, float lv, bool inv, int desde, int score, bool lejos) =>
+    if not na(lv) and not na(atrD)
+        dist = math.abs(lv - close) / atrD
+        okEs = dist <= cercaAtr and (inv or score >= minLlega)
+        okCo = dist <= 6 and (verLejos or not lejos or dist <= 2)
+        if modo == "Esencial" ? okEs : okCo
+            array.push(cNom, nombre)
+            array.push(cLv, lv)
+            array.push(cInvA, inv)
+            array.push(cDesde, desde)
+            array.push(cScore, score)
+dibuja(int i) =>
+    lv = array.get(cLv, i)
+    inv = array.get(cInvA, i)
+    c = colorDe(lv, inv)
+    b = box.new(array.get(cDesde, i), lv + grosor * atrD, bar_index + 2, lv - grosor * atrD, border_color = color.new(c, 100), bgcolor = color.new(c, inv ? 80 : 86))
+    array.push(cajas, b)
+    l = label.new(bar_index + 3, lv, array.get(cNom, i), style = label.style_label_left, color = color.new(c, 100), textcolor = c, size = size.small)
+    array.push(etq, l)
+pNum(k) => array.get(nT, k) >= 50 ? math.round(100.0 * array.get(nR1, k) / array.get(nT, k)) : medido(k)
 if barstate.islast
     for b in cajas
         box.delete(b)
@@ -166,21 +189,49 @@ if barstate.islast
     for l in etq
         label.delete(l)
     array.clear(etq)
-    franja("VWAP " + pct(0), vwap, true, diaBar, false)
+    array.clear(cNom)
+    array.clear(cLv)
+    array.clear(cInvA)
+    array.clear(cDesde)
+    array.clear(cScore)
+    candidata("VWAP " + pct(0), vwap, true, diaBar, pNum(0), false)
     if verBand
-        franja("+1σ " + pct(1), vwUp, true, diaBar, false)
-        franja("−1σ " + pct(2), vwDn, true, diaBar, false)
-    franja("Cierre ayer " + pct(3), dClose1, true, diaBar, false)
-    franja("Apertura " + pct(4), dOpen, true, diaBar, false)
-    franja("Alto ayer · llega " + str.tostring(probLlegar(dHigh1)) + " %", dHigh1, false, diaBar, false)
-    franja("Bajo ayer · llega " + str.tostring(probLlegar(dLow1)) + " %", dLow1, false, diaBar, false)
+        candidata("+1σ " + pct(1), vwUp, true, diaBar, pNum(1), false)
+        candidata("−1σ " + pct(2), vwDn, true, diaBar, pNum(2), false)
+    candidata("Cierre ayer " + pct(3), dClose1, true, diaBar, pNum(3), false)
+    candidata("Apertura " + pct(4), dOpen, true, diaBar, pNum(4), false)
+    pA = probLlegar(dHigh1)
+    pB = probLlegar(dLow1)
+    candidata("Alto ayer · llega " + str.tostring(pA) + " %", dHigh1, false, diaBar, pA, false)
+    candidata("Bajo ayer · llega " + str.tostring(pB) + " %", dLow1, false, diaBar, pB, false)
     if asiaListo
-        franja("Asia alto · llega " + str.tostring(probLlegar(asiaH)) + " %", asiaH, false, asiaBar, false)
-        franja("Asia bajo · llega " + str.tostring(probLlegar(asiaL)) + " %", asiaL, false, asiaBar, false)
-    franja("Semana alto · llega " + str.tostring(probLlegar(wHigh1)) + " %", wHigh1, false, diaBar, true)
-    franja("Semana bajo · llega " + str.tostring(probLlegar(wLow1)) + " %", wLow1, false, diaBar, true)
-    franja("Máx 20 d · llega " + str.tostring(probLlegar(h20)) + " %", h20, false, diaBar, true)
-    franja("Mín 20 d · llega " + str.tostring(probLlegar(l20)) + " %", l20, false, diaBar, true)
+        pC = probLlegar(asiaH)
+        pD = probLlegar(asiaL)
+        candidata("Asia alto · llega " + str.tostring(pC) + " %", asiaH, false, asiaBar, pC, false)
+        candidata("Asia bajo · llega " + str.tostring(pD) + " %", asiaL, false, asiaBar, pD, false)
+    pE = probLlegar(wHigh1)
+    pF = probLlegar(wLow1)
+    pG = probLlegar(h20)
+    pH = probLlegar(l20)
+    candidata("Semana alto · llega " + str.tostring(pE) + " %", wHigh1, false, diaBar, pE, true)
+    candidata("Semana bajo · llega " + str.tostring(pF) + " %", wLow1, false, diaBar, pF, true)
+    candidata("Máx 20 d · llega " + str.tostring(pG) + " %", h20, false, diaBar, pG, true)
+    candidata("Mín 20 d · llega " + str.tostring(pH) + " %", l20, false, diaBar, pH, true)
+    n = array.size(cNom)
+    if n > 0
+        // orden por probabilidad (de mayor a menor) y tope en modo esencial
+        idx = array.new<int>()
+        for i = 0 to n - 1
+            array.push(idx, i)
+        for i = 0 to n - 1
+            for j = 0 to n - 2 - i
+                if array.get(cScore, array.get(idx, j)) < array.get(cScore, array.get(idx, j + 1))
+                    tmp = array.get(idx, j)
+                    array.set(idx, j, array.get(idx, j + 1))
+                    array.set(idx, j + 1, tmp)
+        tope = modo == "Esencial" ? math.min(maxZonas, n) : n
+        for i = 0 to tope - 1
+            dibuja(array.get(idx, i))
 
 var table tm = table.new(position.bottom_right, 1, NZ + 1, bgcolor = color.new(#131722, 15), border_width = 0)
 if verMed and barstate.islast
