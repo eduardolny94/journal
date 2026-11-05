@@ -75,7 +75,7 @@ export const MAX_FAVORITES = 3;
 /** Pares "principales" del usuario (arriba en la UI). */
 export const MAIN_PAIRS: readonly string[] = ['USDJPY', 'AUDJPY', 'EURJPY', 'USDCHF', 'EURGBP', 'EURUSD', 'GBPUSD', 'USDCAD'];
 
-export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas' | 'taylor' | 'descontado' | 'real' | 'tot' | 'ciclo';
+export type PillarKey = 'tasas' | 'expectativas' | 'inflacion' | 'crecimiento' | 'posicionamiento' | 'riesgo' | 'momentum' | 'tono' | 'valor' | 'tendencia' | 'sorpresas' | 'taylor' | 'descontado' | 'real' | 'tot' | 'bonos' | 'ciclo';
 
 export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: number; hint: string }> = [
   { key: 'tasas', label: 'Tasas', weight: 20, hint: 'Tasa de política y nivel del bono a 2 años (carry y lo ya descontado)' },
@@ -94,6 +94,7 @@ export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: num
   { key: 'descontado', label: 'Descontado vs debido', weight: 0, hint: 'Lo que piden los datos (Taylor) menos lo que el mercado ya descuenta (bono a 2 años): la oportunidad está donde aún no está en precio' },
   { key: 'real', label: 'Tipo real', weight: 0, hint: 'Tasa de política menos inflación interanual' },
   { key: 'tot', label: 'Materias primas', weight: 20, hint: 'Petróleo (CAD +, JPY −) y cobre (AUD, NZD) a 20 días: términos de intercambio. Medido 15 años: único pilar nuevo que mejora el acierto en todos los cortes (+0,8 pt a 20 días)' },
+  { key: 'bonos', label: 'Bonos EE. UU.', weight: 20, hint: 'Cambio del bono de EE. UU. a 10 años en 20 sesiones, solo en el dólar: si sube, apoya al USD. Medido 15 años sobre los pesos vigentes: mejora en los 3 bloques a 10 y 20 días (fuerte 60,0 % frente a 57,2 %). El de 2 años mueve más el mismo día, pero para los días siguientes gana el de 10' },
   { key: 'ciclo', label: 'Fase del ciclo', weight: 0, hint: 'Expansión, pico, recesión o recuperación según PMI y su pendiente, paro a 6 meses, inflación frente al 2 % y curva 10-2 (método de Daniel Curto). Peso 0 hasta que el backtest lo valide' },
 ];
 
@@ -145,6 +146,7 @@ export interface CurrencyPillars {
   descontado?: Pillar;
   real?: Pillar;
   tot?: Pillar;
+  bonos?: Pillar;
 }
 
 export interface PolicyRate {

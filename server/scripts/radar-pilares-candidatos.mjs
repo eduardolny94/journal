@@ -34,6 +34,7 @@ const yields = { USD: new Serie(y2.USD), EUR: new Serie(y2.EUR), GBP: new Serie(
 const infl = { USD: yoyFromIndex(fred('CPIAUCSL', 45)), EUR: yoyFromIndex(fred('CP0000EZ19M086NEST', 45)), GBP: fred('CPALTT01GBM659N', 45), JPY: fred('CPALTT01JPM659N', 45), CHF: fred('CPALTT01CHM659N', 45), CAD: fred('CPALTT01CAM659N', 45), AUD: fred('CPALTT01AUQ659N', 120), NZD: fred('CPALTT01NZQ659N', 120) };
 const cotRows = {}; for (const l of readFileSync(path.join(H, 'cot', 'cot.csv'), 'utf8').trim().split('\n').slice(1)) { const [d, c, oi, ll, ls] = l.split(','); (cotRows[c] ||= []).push({ avail: addDays(d, 3), ratio: Number(oi) ? (Number(ll) - Number(ls)) / Number(oi) : 0 }); }
 const copper = yahoo('HGF'), oil = yahoo('CLF'), vix = yahoo('VIX');
+const dgs2 = fred('DGS2'), dgs10 = fred('DGS10'), dfii10 = fred('DFII10');
 const ret = (s, date, days) => { const v = s.at(date), ch = s.changeOver(date, days); return v === null || ch === null || v === ch ? null : (ch / (v - ch)) * 100; };
 function cotFlow(c, date) { const rows = (cotRows[c] || []).filter((r) => r.avail <= date).slice(-52); if (rows.length < 20) return null; const xs = rows.map((r) => r.ratio); const m = xs.reduce((a, b) => a + b, 0) / xs.length; const sd = Math.sqrt(xs.reduce((a, b) => a + (m - b) ** 2, 0) / (xs.length - 1)) || 0; return sd ? (xs.at(-1) - xs.at(-5)) / sd : 0; }
 
@@ -48,8 +49,12 @@ for (const [date, byC] of base) {
   const flow = CCY.map((c) => cotFlow(c, date));
   const cu = ret(copper, date, 28), cl = ret(oil, date, 28);
   const commo = { AUD: cu === null ? 0 : clamp(cu / 6, -2, 2), NZD: cu === null ? 0 : clamp(cu / 12, -2, 2), CAD: cl === null ? 0 : clamp(cl / 8, -2, 2), USD: 0, EUR: 0, GBP: 0, JPY: cl === null ? 0 : clamp(-cl / 16, -2, 2), CHF: 0 };
-  const zR = zscores(real), zR2 = zscores(real2y), zM6 = zscores(mom6), zIM = zscores(inflMom), zF = zscores(flow);
-  const o = {}; CCY.forEach((c, i) => { o[c] = { ...byC[c], real: zR[i], real2y: zR2[i], mom6: zM6[i], inflmom: zIM[i], flujo: zF[i], commo: commo[c] }; });
+  // candidatos de bonos a corto plazo (05-11-2026, docs/BONOS-DIRECCION.md): cambio en 20 sesiones (≈ 28 días)
+  const mom20 = CCY.map((c) => { const y = yields[c]; const ch = y ? y.changeOver(date, 28) : null; return ch === null ? null : ch * 100; });
+  const us2 = dgs2.changeOver(date, 28), us10 = dgs10.changeOver(date, 28), usR = dfii10.changeOver(date, 28);
+  const soloUsd = (ch) => (ch === null ? 0 : clamp((ch * 100) / 15, -2, 2));
+  const zR = zscores(real), zR2 = zscores(real2y), zM6 = zscores(mom6), zIM = zscores(inflMom), zF = zscores(flow), zM20 = zscores(mom20);
+  const o = {}; CCY.forEach((c, i) => { o[c] = { ...byC[c], real: zR[i], real2y: zR2[i], mom6: zM6[i], inflmom: zIM[i], flujo: zF[i], commo: commo[c], mom20: zM20[i], us2_20: c === 'USD' ? soloUsd(us2) : 0, us10_20: c === 'USD' ? soloUsd(us10) : 0, usreal_20: c === 'USD' ? soloUsd(usR) : 0 }; });
   rows.push([date, o, vix.at(date)]);
 }
 writeFileSync(path.join(H, 'radar_hist_pilares_cand.json'), JSON.stringify(rows));
@@ -73,7 +78,7 @@ const pct = (x) => `${(100 * x).toFixed(1)} %`;
 const H_ = Number(arg('--h', '20'));
 const VIGENTE = { tasas: 20, inflacion: 10, crecimiento: 15, posicionamiento: 10, riesgo: 20 };
 const cands = { vigente: VIGENTE };
-for (const k of ['real', 'real2y', 'mom6', 'inflmom', 'flujo', 'commo']) { cands[`solo ${k}`] = { [k]: 1 }; for (const w of [10, 20]) cands[`vigente + ${k} ${w}`] = { ...VIGENTE, [k]: w }; }
+for (const k of ['real', 'real2y', 'mom6', 'inflmom', 'flujo', 'commo', 'mom20', 'us2_20', 'us10_20', 'usreal_20']) { cands[`solo ${k}`] = { [k]: 1 }; for (const w of [10, 20]) cands[`vigente + ${k} ${w}`] = { ...VIGENTE, [k]: w }; }
 cands['tipos reales en vez de tasas+inflación'] = { real: 30, crecimiento: 15, posicionamiento: 10, riesgo: 20 };
 cands['real2y en vez de tasas+inflación'] = { real2y: 30, crecimiento: 15, posicionamiento: 10, riesgo: 20 };
 cands['vigente + mom6 10 + commo 10'] = { ...VIGENTE, mom6: 10, commo: 10 };
@@ -81,6 +86,11 @@ cands['vigente + real 10 + mom6 10'] = { ...VIGENTE, real: 10, mom6: 10 };
 cands['vigente + flujo 10 + commo 10'] = { ...VIGENTE, flujo: 10, commo: 10 };
 cands['vigente, COT 0 + flujo 10'] = { ...VIGENTE, posicionamiento: 0, flujo: 10 };
 cands['mesa: tasas 20 real 10 mom6 10 crec 10 COT 10 riesgo 20 commo 10'] = { tasas: 20, real: 10, mom6: 10, crecimiento: 10, posicionamiento: 10, riesgo: 20, commo: 10 };
+// Sobre los pesos de producción (vigente + commo 20 = pilar «tot»): ¿suma el bono a 10 años en 20 sesiones?
+const PROD = { ...VIGENTE, commo: 20 };
+{ const p0 = evaluar(PROD, { h: H_ }); console.log(`\nSOBRE PRODUCCIÓN (vigente + commo 20), horizonte ${H_} d: n ${p0.n} · ${(100 * p0.hr).toFixed(1)} % · fuerte ${(100 * p0.hrF).toFixed(1)} % · bloques ${p0.bloques.map((b) => (100 * b).toFixed(1)).join(' / ')}`);
+  for (const [k, w] of [['us10_20', 10], ['us10_20', 20], ['us2_20', 10], ['us2_20', 20], ['usreal_20', 10]]) { const r = evaluar({ ...PROD, [k]: w }, { h: H_ }); const ys = Object.entries(r.anos); const wins = ys.filter(([y, v]) => v.hit / v.n > p0.anos[y].hit / p0.anos[y].n).length; console.log(`  + ${k} ${w}`.padEnd(22) + `n ${r.n} · ${(100 * r.hr).toFixed(1)} % · fuerte ${(100 * r.hrF).toFixed(1)} % (${r.nF}) · bloques ${r.bloques.map((b) => (100 * b).toFixed(1)).join(' / ')} · ${r.bloques.every((b, i) => b > p0.bloques[i]) ? 'MEJORA EN LOS 3' : 'no mejora en los 3'} · mejor en ${wins} de ${ys.length} años`); }
+}
 const b0 = evaluar(VIGENTE, { h: H_ });
 const line = (name, r, mejora) => console.log(`${name.padEnd(58)} ${String(r.n).padStart(6)}  ${pct(r.hr).padStart(7)}  ${pct(r.hrF).padStart(7)} (${String(r.nF).padStart(5)})   ${r.bloques.map((b) => pct(b).padStart(7)).join('  ')}${mejora ? '  ← mejora en los 3' : ''}`);
 console.log(`Acierto del signo del sesgo a ${H_} días, pares-día con |diff| ≥ 2 (fuerte = ≥ 4). Bloques 2011-15 / 2016-20 / 2021-26. Vigente = pesos actuales del radar.\n`);

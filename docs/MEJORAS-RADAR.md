@@ -109,3 +109,5 @@ historial de consensos para 15 años).
 - **Tarjeta Volatilidad**: con VIX > 25 muestra que el sesgo acertó el 61,6 % a 20 d (n 3 298) frente al 54,6 % en calma.
 - Lo que **no** se aplicó, por no mejorar: tipos reales, momentum de tipos a 6 m, momentum de inflación, flujo COT, pesos por
   régimen VIX. Siguen a peso 0 o fuera.
+
+- **Pilar Bonos (05-11-2026):** cambio del bono de EE. UU. a 10 años en 20 sesiones, solo en el USD, peso 20. Sobre los pesos de producción mejora en los 3 bloques a 10 y 20 días (20 d: 56,5 % frente a 56,1 %; fuerte 60,0 % frente a 57,2 %; 10 de 16 años). El pilar de tipos del oro y la plata pasa al 2 años en 20 sesiones (56 % frente a 52 %, los tres cortes). Detalle en docs/BONOS-DIRECCION.md.

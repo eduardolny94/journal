@@ -78,3 +78,26 @@ real a 10 años en 3 meses al **bono a 2 años en 20 sesiones** (`server/src/rad
 pilar pasa de −0,88 a +1,2 y el oro de −0,95 a +1,13 (sigue «sin sesgo» por fuerza, pero ya del lado alcista).
 En divisas el radar ya usa el 2 años (pilar de tasas, peso 20); la ventana de 20 sesiones del 10 años y del real da
 54–57 % en EURUSD, GBPUSD, USDCHF y USDCAD: candidato a medir con `radar-pilares-candidatos.mjs` antes de tocar pesos.
+
+## Pilar «Bonos» en el radar de divisas (05-11-2026)
+
+Candidatos medidos con `server/scripts/radar-pilares-candidatos.mjs` (point-in-time 2011–2026, 28 pares, regla de la casa)
+**sobre los pesos de producción** (vigente + materias primas 20):
+
+| candidato | 5 d | 10 d | 20 d | bloques a 20 d (2011-15 / 2016-20 / 2021-26) | fuerte a 20 d |
+|---|---|---|---|---|---|
+| producción | 54,6 % | 55,3 % | 56,1 % | 63,7 / 51,7 / 56,3 | 57,2 % |
+| **+ 10 años en 20 sesiones, solo USD, peso 20** | 54,8 % | **55,8 %** ✔ | **56,5 %** ✔ | **63,8 / 52,4 / 56,6** | **60,0 %** |
+| + 2 años en 20 sesiones, solo USD, peso 20 | 54,8 % | 55,6 % | 56,4 % ✔ | 63,7 / 51,8 / 56,7 | 58,9 % |
+| + real a 10 años, peso 10 | 54,7 % | 55,4 % | 56,1 % | 63,6 / 51,7 / 56,3 | 58,4 % |
+| + cambio del 2 años de cada divisa (z entre divisas) | peor que producción | | | | |
+
+✔ = mejora en los tres bloques. El de 10 años con peso 20 mejora en los tres bloques a 10 y 20 días y en 10 de 16 años; a
+5 días mejora el total y el fuerte (56,5 % frente a 55,7 %) pero no el bloque 2016-20 (51,5 frente a 52,1).
+Curioso y coherente con lo de arriba: **el mismo día manda el de 2 años; para los días siguientes suma más el de 10**.
+
+**Aplicado:** pilar `bonos` (peso 20, valor crudo, solo USD): Δ del bono de EE. UU. a 10 años en 28 días / 15 pb, tope ±2.
+`server/src/radar/score.js`, `constants.js`, `conviction.js` (FEATURE_VERSION 10), `client/src/lib/radar.ts`.
+Efecto el 05-11: el 10 años ha caído 32 pb en 20 sesiones (5,27 → 4,95 %) → pilar en −2 → el USD pasa de +2,7 a +0,6 y
+EURUSD, GBPUSD, USDJPY y USDCAD quedan sin sesgo; USDCHF sigue alcista moderado. Era justo lo que el radar no veía cuando
+el dólar cayó tras las elecciones: llevaba un mes con los bonos bajando.

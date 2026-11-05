@@ -327,6 +327,10 @@ export function computeCurrencies(db, input) {
   const fund = {};
   for (const c of CURRENCIES) fund[c] = fundamentalsFor(db, c, { policy: rates[c].policy, inflation: infl[c] ? infl[c].value : null, now, lagDays });
   const totC = termsOfTrade(market);
+  // Bono de EE. UU. a 10 años en 20 sesiones (≈ 28 días), point-in-time: pilar solo del USD (docs/BONOS-DIRECCION.md).
+  const us10Rows = seriesAsOf(getSeries(db, 'DGS10'), lagDays ? shiftDays(ymd(now), -lagDays) : ymd(now));
+  const us10Ch = changeOverDays(us10Rows, 28);
+  const us10Bp = us10Ch ? us10Ch.value * 100 : null;
   // Fase 3 (cycle-phase.js, método Curto): fase del ciclo por economía, point-in-time.
   const cyc = {};
   for (const c of CURRENCIES) cyc[c] = cyclePhaseFor(db, c, { inflation: infl[c] ? infl[c].value : null, now, lagDays });
@@ -393,6 +397,10 @@ export function computeCurrencies(db, input) {
         text: fund[c].real === null ? 'sin datos' : `tipo real ${fund[c].real >= 0 ? '+' : ''}${fmt(fund[c].real, 2)} % (tasa menos inflación)` },
       ciclo: { value: cyc[c].value, raw: cyc[c].value, missing: cyc[c].pmi === null, phase: cyc[c].phase, pmi: cyc[c].pmi, pmi_slope: cyc[c].pmi_slope, unemp6: cyc[c].unemp6, infl_gap: cyc[c].infl_gap, curve: cyc[c].curve,
         text: cyc[c].text },
+      // Valor crudo, solo en el USD: sube el 10 años → apoya al dólar. Las demás divisas valen 0 (así se midió).
+      bonos: c === 'USD'
+        ? { value: round(us10Bp === null ? 0 : clamp(us10Bp / 15, -2, 2)), raw: us10Bp === null ? null : round(us10Bp), missing: us10Bp === null, text: us10Bp === null ? 'sin bono a 10 años' : `bono a 10 años ${us10Bp >= 0 ? '+' : ''}${fmt(us10Bp, 0)} pb en 20 sesiones (${us10Bp > 0 ? 'apoya al' : 'pesa sobre el'} dólar)` }
+        : { value: 0, raw: null, missing: false, text: 'solo aplica al dólar' },
       // Valor crudo (no z entre divisas): así se midió 15 años (radar-pilares-candidatos.mjs); las divisas sin materia prima valen 0.
       tot: { value: round(totC[c].raw === null ? 0 : totC[c].raw), raw: round(totC[c].raw), missing: totC[c].raw === null,
         text: totC[c].raw === null ? 'sin exposición a materias primas' : `materias primas ${totC[c].raw >= 0 ? 'a favor' : 'en contra'} (petróleo ${totC[c].oil === null ? '—' : (totC[c].oil >= 0 ? '+' : '') + fmt(totC[c].oil, 1) + ' %'}, cobre ${totC[c].copper === null ? '—' : (totC[c].copper >= 0 ? '+' : '') + fmt(totC[c].copper, 1) + ' %'} en 20 d)` },

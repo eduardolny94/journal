@@ -102,6 +102,10 @@ export const PILLAR_WEIGHTS = {
   // Materias primas (01-11-2026): medido 15 años point-in-time (radar-pilares-candidatos.mjs), único candidato que mejora en los
   // 3 bloques, a 5/10/20 d y en 13 de 16 años (+0,8 pt a 20 d; en los pares seguidos, fuerte 60,4 % frente a 58,7 %). Valor crudo, no z.
   tot: 20,
+  // Bonos (05-11-2026): cambio del bono de EE. UU. a 10 años en 20 sesiones, solo en el USD, valor crudo (−2…+2 = ±30 pb).
+  // Medido 15 años point-in-time sobre los pesos de producción (radar-pilares-candidatos.mjs): mejora en los 3 bloques a 10 y 20 d
+  // (20 d: 56,5 % frente a 56,1 %; fuerte 60,0 % frente a 57,2 %; mejor en 10 de 16 años). A 5 d mejora el total, no los 3 bloques.
+  bonos: 20,
   // Fase 3 (cycle-phase.js, método Curto): fase del ciclo por economía. Peso 0 hasta que el backtest lo valide.
   ciclo: 0,
 };
@@ -118,6 +122,8 @@ export const PILLAR_LABELS = {
   momentum: 'Momentum',
   tono: 'Tono',
   ciclo: 'Fase del ciclo',
+  tot: 'Materias primas',
+  bonos: 'Bonos de EE. UU. (10 años, 20 sesiones)',
 };
 
 // ---------- Precios (RADAR-v2 §A): Yahoo Finance como fuente principal ----------
