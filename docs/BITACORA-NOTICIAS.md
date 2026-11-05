@@ -163,3 +163,25 @@ positivo a 12 meses; dólar sin patrón por partido.
 **Radar tras los datos (local, 09:48):** USD 2,9 · CAD 1,5 · GBP 0,9 · AUD 0,3 · EUR −0,2 · JPY −1,1 · CHF −1,9 · NZD −2,6.
 USDCHF +4,8 y USDJPY +4,0 fuertes (USDJPY nivel A, 60 % a 5 d); EURUSD −3,1 moderado; GBPUSD, USDCAD, EURGBP, EURJPY y
 AUDJPY sin sesgo. VIX 21,7, S&P −3 % en 20 días: riesgo en modo refugio, apoya USD y pesa sobre AUD y NZD.
+
+## 2026-11-04 / 05 · Resultado de las elecciones de medio mandato: ola demócrata (Cámara y Senado)
+
+- **Descontado antes:** Cámara demócrata 93 %, Senado 71 %. El Senado era la parte no descontada del todo.
+- **Resultado:** los demócratas ganan las dos cámaras. Congreso demócrata con presidente republicano = bloqueo legislativo.
+- **Confirmación de mercado (orden de la guía: bonos → dólar → oro/Nasdaq → petróleo):**
+  - Bono a 10 años: baja ~7 pb, a ~4,87 % (4,95 % el 03-11). El 2 años apenas se mueve: **FedWatch sigue dando 82 % de
+    subida en diciembre**. Baja la parte larga, no la expectativa de la Fed.
+  - Dólar: DXY −0,5/−0,6 %, a ~101,3, mínimo de un mes. EURUSD 1,1232, libra en máximos de siete semanas.
+  - Oro: +3,4 % el miércoles (mayor subida diaria desde el 19-08) y +1,9 % el jueves, hasta 4.134 $, máximo de dos semanas.
+    Sigue −7 % en el año. Plata también arriba.
+  - Nasdaq: futuros −0,5 % de madrugada por el miedo a más regulación de la IA; cierra +0,83 %.
+  - **Petróleo: WTI −9 %** por la expectativa de fin de la guerra con Irán. Es el motor que más pesa en la parte larga
+    de la curva (menos inflación esperada).
+- **Lectura:** no es «Fed más suave» (la subida de diciembre sigue descontada), es **menos prima de inflación y de gasto
+  en los bonos largos** (petróleo −9 %, bloqueo = menos estímulo fiscal) → tipos reales abajo → dólar abajo → oro arriba.
+  El oro venía castigado todo el año por tipos altos; al aflojar los tipos largos, rebota con fuerza.
+- **Financiación del gobierno:** la prórroga vigente llega hasta el **11 de diciembre** (no de noviembre); el Congreso
+  vuelve el 9-11 para la sesión de final de legislatura. El riesgo de cierre es de diciembre.
+- **Radar:** tenía dólar fuerte y oro bajista (por el dólar). El movimiento va en contra: es un evento, y el radar es un
+  sesgo semanal de 54 %. El pilar de riesgo y el de materias primas (petróleo −9 %) lo irán recogiendo; no se toca a mano.
+- **Pendiente:** BoE hoy 13:00 (4,00 % descontado, 7–2); empleo de EE. UU. viernes 14:30 (65 mil).
