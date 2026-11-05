@@ -5,7 +5,7 @@
 // según el tamaño relativo (≥ 80 % del mayor = 5★, ≥ 60 % = 4★, ≥ 40 % = 3★, ≥ 20 % = 2★). Se guardan en radar_opciones y se
 // sirven en /api/radar/muros (JSON y texto para el indicador GTFX · Muros de opciones).
 // Configuración (.env): DATABENTO_API_KEY (obligatoria), MUROS_HORA (HH:MM, por defecto 09:00), MUROS_TZ (Europe/Madrid),
-// MUROS_AUTO=0 apaga la descarga automática.
+// MUROS_AUTO=1 enciende la descarga automática (apagada por defecto: Databento cobra por uso y los muros no dan ventaja medida).
 import { getDb } from '../db.js';
 import { getPrices } from './sources/prices.js';
 
@@ -37,7 +37,7 @@ export function configMuros() {
     api_key: process.env.DATABENTO_API_KEY || '',
     hora: /^\d{2}:\d{2}$/.test(process.env.MUROS_HORA || '') ? process.env.MUROS_HORA : '09:00',
     tz: process.env.MUROS_TZ || 'Europe/Madrid',
-    auto: process.env.MUROS_AUTO !== '0',
+    auto: process.env.MUROS_AUTO === '1', // apagada por defecto desde el 05-11-2026: los muros no dan ventaja medida y Databento cobra por uso
     pares: raicesActivas().map((r) => r.symbol),
   };
 }
@@ -213,7 +213,7 @@ export function startMuros() {
   };
   state.timer = setInterval(tick, 60_000); if (state.timer.unref) state.timer.unref();
   const cfg = configMuros();
-  console.log(`[muros] ${cfg.auto ? `programados a las ${cfg.hora} (${cfg.tz}), martes a sábado` : 'apagados (MUROS_AUTO=0)'}${cfg.api_key ? '' : ' · sin DATABENTO_API_KEY: no correrán'}`);
+  console.log(`[muros] ${cfg.auto ? `programados a las ${cfg.hora} (${cfg.tz}), martes a sábado` : 'apagados (enciéndelos con MUROS_AUTO=1)'}${cfg.api_key ? '' : ' · sin DATABENTO_API_KEY: no correrán'}`);
 }
 export function stopMuros() { if (state.timer) clearInterval(state.timer); state.timer = null; }
 export function estadoMuros() { return { ...state, timer: undefined }; }

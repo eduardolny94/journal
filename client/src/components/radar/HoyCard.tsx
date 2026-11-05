@@ -102,7 +102,6 @@ export default function HoyCard({ intradia, swing, queOperar, pairs = [] }: { in
         </ul>
       </Card>
       <SesgosCard pairs={pairs} />
-      <MurosCard owner />
     </div>
   );
 }
