@@ -101,3 +101,26 @@ Curioso y coherente con lo de arriba: **el mismo día manda el de 2 años; para 
 Efecto el 05-11: el 10 años ha caído 32 pb en 20 sesiones (5,27 → 4,95 %) → pilar en −2 → el USD pasa de +2,7 a +0,6 y
 EURUSD, GBPUSD, USDJPY y USDCAD quedan sin sesgo; USDCHF sigue alcista moderado. Era justo lo que el radar no veía cuando
 el dólar cayó tras las elecciones: llevaba un mes con los bonos bajando.
+
+## Corrección (05-11-2026, noche): el pilar «Bonos» no supera la prueba a igual cobertura → peso 0
+
+César notó que el radar daba mucha menos dirección. Causa: el pilar nuevo, con peso 20 y valor 0 en siete divisas, encoge
+todas las puntuaciones (×100/120), y además el 10 años había caído 38 pb, así que restaba al dólar justo cuando el resto
+de pilares (riesgo con VIX 28, tasas, COT, tono) lo apoyaban. Resultado: 1 de 8 pares con sesgo en vez de 5.
+
+La mejora medida ayer comparaba a umbral fijo (|diff| ≥ 2), con un 15 % menos de señales. **Prueba justa**, escalando los
+umbrales del candidato (2 → 1,667; 4 → 3,333) para igualar la cobertura:
+
+| horizonte | producción | + 10 años en 20 sesiones, peso 20 | bloques candidato frente a producción |
+|---|---|---|---|
+| 5 d | 54,6 % (n 31.037) | 54,7 % (n 30.855) | 58,6 / 51,5 / 55,2 frente a 59,3 / 52,1 / 54,7 |
+| 10 d | 55,3 % | 55,3 % | 61,8 / 51,1 / 55,6 frente a 62,2 / 51,4 / 55,4 |
+| 20 d | 56,1 % | 56,0 % | 62,8 / 51,7 / 56,3 frente a 63,7 / 51,7 / 56,3 |
+
+A igual cobertura **no mejora** (ni el de 2 años, ni con peso 10). La ganancia de ayer era selección de señales más
+grandes, no información nueva. Lo único que sí mejora es la señal fuerte (58,8 % frente a 57,2 % a 20 d, con más casos):
+queda como candidato para la capa de convicción.
+
+**Aplicado:** `bonos` pasa a peso 0 (informativo, se sigue viendo en la ficha del dólar). FEATURE_VERSION 11. El cambio del
+pilar de tipos del oro al 2 años en 20 sesiones se mantiene: ahí se midió el acierto directo, sin efecto de cobertura.
+Lección para la regla de la casa: **un candidato se compara a igual cobertura**, no a umbral fijo.

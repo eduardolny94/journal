@@ -186,17 +186,15 @@ export function updatePolicyFromCalendar(db, now = new Date()) {
     `SELECT title, at_utc, previous FROM radar_calendar WHERE country = ? AND title = ? AND previous IS NOT NULL AND previous != '' ORDER BY at_utc DESC LIMIT 1`,
   );
   for (const ccy of CURRENCIES) {
-    let done = false;
+    // La decisión más reciente con dato entre todos los títulos (dos fuentes de calendario titulan distinto: «BoE Interest Rate
+    // Decision» y «Interest Rate»). A igualdad de fecha gana el primero de la lista (p. ej. la facilidad de depósito del BCE).
+    let best = null;
     for (const title of POLICY_EVENT_TITLES[ccy] || []) {
       const row = sel.get(ccy, title, nowIso);
       const rate = row ? parseNumber(row.actual) : null;
-      if (rate !== null) {
-        up.run(ccy, rate, row.at_utc.slice(0, 10), nowIso);
-        done = true;
-        break;
-      }
+      if (rate !== null && (!best || row.at_utc.slice(0, 10) > best.date)) best = { rate, date: row.at_utc.slice(0, 10) };
     }
-    if (done) continue;
+    if (best) { up.run(ccy, best.rate, best.date, nowIso); continue; }
     for (const title of POLICY_EVENT_TITLES[ccy] || []) {
       const row = selNext.get(ccy, title);
       const rate = row ? parseNumber(row.previous) : null;

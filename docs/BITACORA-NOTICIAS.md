@@ -185,3 +185,19 @@ AUDJPY sin sesgo. VIX 21,7, S&P −3 % en 20 días: riesgo en modo refugio, apoy
 - **Radar:** tenía dólar fuerte y oro bajista (por el dólar). El movimiento va en contra: es un evento, y el radar es un
   sesgo semanal de 54 %. El pilar de riesgo y el de materias primas (petróleo −9 %) lo irán recogiendo; no se toca a mano.
 - **Pendiente:** BoE hoy 13:00 (4,00 % descontado, 7–2); empleo de EE. UU. viernes 14:30 (65 mil).
+
+## 2026-11-05 · Banco de Inglaterra (13:00 España) y jornada de tensión (VIX 28)
+
+- **Descontado antes:** subida de 25 pb a 4,00 % al 94–100 %; votación esperada 7–2; 3–4 subidas más en 2027.
+- **Texto (fuente primaria, resumen y actas del BoE):** sube a 4,00 % por **8 a 1**; la disidente (Mann) pedía +50 pb. Hay
+  «suficiente presión inflacionista en camino» por la energía; prevé inflación cerca del 5 % a mediados de 2027; la
+  política «no sigue una senda prefijada». Bailey: no es la primera de una serie inevitable, pero otra subida no es
+  improbable si no se resuelve el conflicto de Oriente Medio. Próxima reunión 17-12.
+- **Lectura:** la subida estaba descontada; la sorpresa es pequeña y halcona (casi unanimidad y una disidencia por más).
+  **Tono GBP: +1 automático con el comunicado.**
+- **Confirmación:** GBPUSD 1,3434 → 1,3448 (plano); EURGBP 0,8342 → 0,8339. Sin movimiento: lo descontado no mueve.
+- **Riesgo:** VIX 28,2 (régimen de tensión), S&P −5,3 % en 20 días; el radar marca US500 y NAS100 bajistas fuertes. El modo
+  refugio apoya USD y JPY y pesa sobre GBP, AUD y NZD: por eso GBPUSD sigue bajista moderado pese al BoE halcón.
+- **Radar (corregido hoy):** tasa GBP 4,00 % (antes se quedaba en 3,75 % por un fallo de lectura del calendario).
+  USD +3,7 · JPY +0,9 · EUR +0,4 · GBP +0,3 · CHF −0,3 · AUD −1,0 · CAD −1,9 · NZD −3,8.
+- **Pendiente:** empleo de EE. UU. viernes 14:30 (65 mil).

@@ -64,13 +64,13 @@ const HS = [5, 10, 20]; const BLOQUES = [['2011', '2015'], ['2016', '2020'], ['2
 const fut = {}; for (const p of PAIRS) { const h1 = loadBars(p); if (!h1) continue; const d1 = agg(h1, (b) => b.date); const m = new Map(); for (let i = 0; i < d1.length; i++) { const o = {}; for (const h of HS) if (i + h < d1.length) o[h] = d1[i + h].c / d1[i].c - 1; m.set(d1[i].date, o); } fut[p] = m; }
 const pairsOk = PAIRS.filter((p) => fut[p]); const year = (d) => d.slice(0, 4);
 const MIS = (process.env.PARES || '').split(',').filter(Boolean);
-function evaluar(Wlow, { Whigh = null, minAbs = 2, h = 20, vixCut = 25, pares = pairsOk } = {}) {
+function evaluar(Wlow, { Whigh = null, minAbs = 2, fuerteAbs = 4, h = 20, vixCut = 25, pares = pairsOk } = {}) {
   const porBloque = BLOQUES.map(() => ({ n: 0, hit: 0 })); const porAno = {}; let n = 0, hit = 0, nF = 0, hitF = 0;
   for (const [date, byC, v] of rows) {
     const W = Whigh && v !== null && v > vixCut ? Whigh : Wlow; const den = Object.values(W).reduce((a, b) => a + b, 0) || 1;
     const score = {}; for (const c of CCY) { let num = 0; for (const k of Object.keys(W)) num += W[k] * (byC[c][k] || 0); score[c] = (5 * num) / den; }
     const bi = BLOQUES.findIndex(([a, b]) => year(date) >= a && year(date) <= b); const y = year(date);
-    for (const p of pares) { const f = fut[p].get(date); if (!f || f[h] === undefined) continue; const diff = score[p.slice(0, 3)] - score[p.slice(3)]; if (Math.abs(diff) < minAbs) continue; const ok = Math.sign(diff) === Math.sign(f[h]); n++; if (ok) hit++; if (Math.abs(diff) >= 4) { nF++; if (ok) hitF++; } if (bi >= 0) { porBloque[bi].n++; if (ok) porBloque[bi].hit++; } (porAno[y] ||= { n: 0, hit: 0 }).n++; if (ok) porAno[y].hit++; }
+    for (const p of pares) { const f = fut[p].get(date); if (!f || f[h] === undefined) continue; const diff = score[p.slice(0, 3)] - score[p.slice(3)]; if (Math.abs(diff) < minAbs) continue; const ok = Math.sign(diff) === Math.sign(f[h]); n++; if (ok) hit++; if (Math.abs(diff) >= fuerteAbs) { nF++; if (ok) hitF++; } if (bi >= 0) { porBloque[bi].n++; if (ok) porBloque[bi].hit++; } (porAno[y] ||= { n: 0, hit: 0 }).n++; if (ok) porAno[y].hit++; }
   }
   return { n, hr: n ? hit / n : 0, nF, hrF: nF ? hitF / nF : 0, bloques: porBloque.map((b) => (b.n ? b.hit / b.n : 0)), anos: porAno };
 }
@@ -90,6 +90,12 @@ cands['mesa: tasas 20 real 10 mom6 10 crec 10 COT 10 riesgo 20 commo 10'] = { ta
 const PROD = { ...VIGENTE, commo: 20 };
 { const p0 = evaluar(PROD, { h: H_ }); console.log(`\nSOBRE PRODUCCIÓN (vigente + commo 20), horizonte ${H_} d: n ${p0.n} · ${(100 * p0.hr).toFixed(1)} % · fuerte ${(100 * p0.hrF).toFixed(1)} % · bloques ${p0.bloques.map((b) => (100 * b).toFixed(1)).join(' / ')}`);
   for (const [k, w] of [['us10_20', 10], ['us10_20', 20], ['us2_20', 10], ['us2_20', 20], ['usreal_20', 10]]) { const r = evaluar({ ...PROD, [k]: w }, { h: H_ }); const ys = Object.entries(r.anos); const wins = ys.filter(([y, v]) => v.hit / v.n > p0.anos[y].hit / p0.anos[y].n).length; console.log(`  + ${k} ${w}`.padEnd(22) + `n ${r.n} · ${(100 * r.hr).toFixed(1)} % · fuerte ${(100 * r.hrF).toFixed(1)} % (${r.nF}) · bloques ${r.bloques.map((b) => (100 * b).toFixed(1)).join(' / ')} · ${r.bloques.every((b, i) => b > p0.bloques[i]) ? 'MEJORA EN LOS 3' : 'no mejora en los 3'} · mejor en ${wins} de ${ys.length} años`); }
+}
+// PRUEBA JUSTA (05-11-2026): añadir un pilar de peso 20 que vale 0 en 7 divisas encoge todas las puntuaciones (×100/120) y deja
+// menos señales. Para comparar a igual cobertura se escalan los umbrales del candidato: 2 → 1,667 y 4 → 3,333.
+{ const p0 = evaluar(PROD, { h: H_ }); const esc = 100 / 120;
+  console.log(`\nPRUEBA JUSTA a igual cobertura, horizonte ${H_} d: producción n ${p0.n} · ${(100 * p0.hr).toFixed(1)} % · fuerte ${(100 * p0.hrF).toFixed(1)} % (${p0.nF}) · bloques ${p0.bloques.map((b) => (100 * b).toFixed(1)).join(' / ')}`);
+  for (const [k, w] of [['us10_20', 20], ['us2_20', 20], ['us10_20', 10]]) { const e = w === 20 ? esc : 100 / 110; const r = evaluar({ ...PROD, [k]: w }, { h: H_, minAbs: 2 * e, fuerteAbs: 4 * e }); const ys = Object.entries(r.anos); const wins = ys.filter(([y, v]) => p0.anos[y] && v.hit / v.n > p0.anos[y].hit / p0.anos[y].n).length; console.log(`  + ${k} ${w} (umbrales escalados)`.padEnd(40) + `n ${r.n} · ${(100 * r.hr).toFixed(1)} % · fuerte ${(100 * r.hrF).toFixed(1)} % (${r.nF}) · bloques ${r.bloques.map((b) => (100 * b).toFixed(1)).join(' / ')} · ${r.bloques.every((b, i) => b > p0.bloques[i]) ? 'MEJORA EN LOS 3' : 'no mejora en los 3'} · mejor en ${wins} de ${ys.length} años`); }
 }
 const b0 = evaluar(VIGENTE, { h: H_ });
 const line = (name, r, mejora) => console.log(`${name.padEnd(58)} ${String(r.n).padStart(6)}  ${pct(r.hr).padStart(7)}  ${pct(r.hrF).padStart(7)} (${String(r.nF).padStart(5)})   ${r.bloques.map((b) => pct(b).padStart(7)).join('  ')}${mejora ? '  ← mejora en los 3' : ''}`);

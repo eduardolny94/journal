@@ -15,7 +15,7 @@ export const FEATURE_NAMES = [
   'sorpresa_confirmada',
 ];
 /** Cambia cuando cambian las condiciones: el motor recalcula el modelo si el guardado es de otra versión. */
-export const FEATURE_VERSION = 10; // 10: pilar de bonos (10 años en 20 sesiones, USD) · 9: sorpresas por persistencia + descuento de lo corrido; tot crudo
+export const FEATURE_VERSION = 11; // 11: pilar de bonos a peso 0 (no supera la prueba a igual cobertura) y tasa oficial por la decisión más reciente · 10: pilar de bonos peso 20 · 9: sorpresas por persistencia + descuento de lo corrido; tot crudo
 /**
  * Condiciones base (las 16 validadas en la fase 1). Las demás son candidatas: se miden en cada backtest y el ciclo de
  * mejora (cycle.js) las adopta o retira por reglas fijas; el conjunto activo vive en radar_meta 'ciclo_mejora'.

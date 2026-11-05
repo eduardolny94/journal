@@ -50,10 +50,13 @@ function feedItems(xml) {
 export function lastDecision(db, ccy, { now = new Date(), maxAgeDays = 60 } = {}) {
   const titles = POLICY_EVENT_TITLES[ccy] || [];
   const minIso = new Date(now.getTime() - maxAgeDays * 86400000).toISOString();
+  // La decisión más reciente entre todos los títulos (dos fuentes de calendario titulan distinto); a igualdad de fecha, el primero.
+  let best = null;
   for (const t of titles) {
     const row = db.prepare("SELECT title, at_utc, actual, forecast, previous FROM radar_calendar WHERE country = ? AND title = ? AND actual IS NOT NULL AND actual != '' AND at_utc >= ? AND at_utc <= ? ORDER BY at_utc DESC LIMIT 1").get(ccy, t, minIso, now.toISOString());
-    if (row) return row;
+    if (row && (!best || row.at_utc.slice(0, 10) > best.at_utc.slice(0, 10))) best = row;
   }
+  if (best) return best;
   return null;
 }
 
