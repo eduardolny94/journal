@@ -54,6 +54,9 @@ export function computeInstruments(db, input) {
   const dxy = market.dxy.closes || [];
   const dxyRet20 = dxy.length > 20 ? (dxy[dxy.length - 1] / dxy[dxy.length - 21] - 1) * 100 : null;
   const realYieldCh = bpChange(db, FRED_MARKET.real_yield_10y, 84);
+  // Oro: el bono a 2 años en 20 sesiones (≈ 28 días) anticipa mejor sus 5 días siguientes que el tipo real a 10 años en 3 meses:
+  // 56 % (61 / 53 / 55 por cortes) frente a 52 % (56 / 48 / 53); medido en server/scripts/bonos-2y-10y.mjs (2018–2026).
+  const dgs2Ch20 = bpChange(db, 'DGS2', 28);
   const dgs10Ch = bpChange(db, FRED_MARKET.dgs10, 84);
   const hyCh = bpChange(db, FRED_MARKET.hy_spread, 84);
   const breakeven = latest(db, FRED_MARKET.breakeven_10y);
@@ -82,7 +85,7 @@ export function computeInstruments(db, input) {
     const pillars = {
       momentum: { value: round(clamp(momRaw, -2, 2)), raw: round(momRaw), missing: false, text: `momentum ${momRaw >= 0 ? 'positivo' : 'negativo'} (${fmt(momRaw)} ATR a 1/5/20 días)` },
       tasas: isMetal
-        ? { value: round(realYieldCh === null ? 0 : clamp(-realYieldCh / 25, -2, 2)), raw: realYieldCh, missing: realYieldCh === null, text: realYieldCh === null ? 'sin tipos reales' : `tipos reales a 10 años ${realYieldCh >= 0 ? '+' : ''}${fmt(realYieldCh, 0)} pb en 3 meses (${realYieldCh > 0 ? 'pesan sobre' : 'apoyan a'} ${ins.label.toLowerCase()})${breakeven ? `; inflación esperada ${fmt(breakeven.value, 2)} %` : ''}` }
+        ? { value: round(dgs2Ch20 === null ? (realYieldCh === null ? 0 : clamp(-realYieldCh / 25, -2, 2)) : clamp(-dgs2Ch20 / 15, -2, 2)), raw: dgs2Ch20 ?? realYieldCh, missing: dgs2Ch20 === null && realYieldCh === null, text: dgs2Ch20 === null ? (realYieldCh === null ? 'sin bonos' : `tipos reales a 10 años ${realYieldCh >= 0 ? '+' : ''}${fmt(realYieldCh, 0)} pb en 3 meses`) : `bono a 2 años ${dgs2Ch20 >= 0 ? '+' : ''}${fmt(dgs2Ch20, 0)} pb en 20 sesiones (${dgs2Ch20 > 0 ? 'pesa sobre' : 'apoya a'} ${ins.label.toLowerCase()})${realYieldCh === null ? '' : `; real a 10 años ${realYieldCh >= 0 ? '+' : ''}${fmt(realYieldCh, 0)} pb en 3 meses`}${breakeven ? `; inflación esperada ${fmt(breakeven.value, 2)} %` : ''}` }
         : { value: round(dgs10Ch === null ? 0 : clamp(-dgs10Ch / 30, -2, 2)), raw: dgs10Ch, missing: dgs10Ch === null, text: dgs10Ch === null ? 'sin bono a 10 años' : `bono de EE. UU. a 10 años ${dgs10Ch >= 0 ? '+' : ''}${fmt(dgs10Ch, 0)} pb en 3 meses (${dgs10Ch > 0 ? 'pesa sobre' : 'apoya a'} la bolsa)` },
       dolar: isMetal
         ? { value: round(dxyRet20 === null ? 0 : clamp(-dxyRet20 / 1.5, -2, 2)), raw: dxyRet20, missing: dxyRet20 === null, text: dxyRet20 === null ? 'sin dólar' : `dólar (DXY) ${dxyRet20 >= 0 ? '+' : ''}${fmt(dxyRet20, 1)} % en 20 días (${dxyRet20 > 0 ? 'pesa' : 'apoya'})` }
