@@ -202,14 +202,14 @@ li+li{margin-top:4px}
   <!-- ===== PRUEBA ===== -->
   <section id="view-prueba">
     <div class="page" id="setup">
-      <p class="eyebrow">Prueba 2 · 1 de noviembre · Rubio páginas 2 y 3 + números del 1 al 20 + repaso</p>
+      <p class="eyebrow">Prueba 3 · 8 de noviembre · Rubio páginas 4 y 5: números hasta el 100, meses y fechas + repaso</p>
       <h2>Prueba del domingo</h2>
-      <p class="lead">Papá elige las partes. El 80 % de las preguntas sale de lo de hoy y el 20 % del repaso de la semana pasada. Cada pregunta vale 1 punto y Chris tiene 3 ayudas para toda la prueba.</p>
+      <p class="lead">Papá elige las partes. El 70 % de las preguntas sale de lo de hoy y el 30 % del repaso de las semanas anteriores. Cada pregunta vale 1 punto y Chris tiene 3 ayudas para toda la prueba.</p>
       <div class="grid" id="secs"></div>
       <div class="row">
         <button class="btn primary" id="start">Empezar la prueba</button>
         <label class="row" style="gap:6px"><input type="number" id="nq" value="20" min="5" max="60" class="num"> preguntas</label>
-        <label class="row" style="gap:6px"><input type="number" id="phoy" value="80" min="0" max="100" step="10" class="num"> % de lo de hoy</label>
+        <label class="row" style="gap:6px"><input type="number" id="phoy" value="70" min="0" max="100" step="10" class="num"> % de lo de hoy</label>
         <label class="row" style="gap:6px">aprobar con <input type="number" id="pass" value="15" min="1" max="60" class="num"></label>
         <label class="row" style="gap:6px">⏱ <input type="number" id="mins" value="25" min="5" max="90" class="num"> min</label>
       </div>
@@ -268,7 +268,7 @@ li+li{margin-top:4px}
     <div class="page">
       <p class="eyebrow">Rubio · English 8 beginners · unidad «About me»</p>
       <h2>Qué hay que estudiar para la próxima semana</h2>
-      <p class="lead">Esta semana Chris hizo las páginas del diálogo (nombre, edad, país, ciudad, cumpleaños y «going to»). La semana que viene toca dominar esas seis preguntas de memoria, escribir bien las fechas y hablar de otra persona (he / she).</p>
+      <p class="lead">Esta semana Chris hizo las páginas 4 y 5: los números hasta el 100 y los meses del año. La semana que viene toca afianzar las fechas completas («on the 14th of February»), hablar de otra persona (he / she) y seguir con «going to».</p>
       <div class="two">
         <div class="box">
           <h3>1 · Las seis preguntas (de memoria)</h3>
@@ -308,16 +308,16 @@ li+li{margin-top:4px}
         </div>
       </div>
       <div class="box">
-        <h3>Plan de la semana <span class="pill">2 → 8 nov</span></h3>
+        <h3>Plan de la semana <span class="pill">9 → 15 nov</span></h3>
         <div class="plan">
-          <div class="day"><b>Día 1</b><span>Repaso de las páginas 2 y 3: el diálogo de Lucy y las preguntas de David de memoria, más los números del 1 al 20 de oído. Escribir el párrafo «About me» sin errores.</span></div>
-          <div class="day"><b>Día 2</b><span>Ordinales del 1st al 31st y los 12 meses. Escribir los cumpleaños de toda la familia: «Mum's birthday is on the …».</span></div>
+          <div class="day"><b>Día 1</b><span>Números hasta el 100 de oído (papá dicta diez números, Chris los escribe en cifras y luego en letras). Los doce meses en orden y de memoria.</span></div>
+          <div class="day"><b>Día 2</b><span>Ordinales del 1st al 31st y fechas completas. Escribir los cumpleaños de toda la familia: «Mum's birthday is on the 3rd of May».</span></div>
           <div class="day"><b>Día 3</b><span>He / she: describir a David y a Lucy del libro, luego a un amigo real. Ejercicio «Rubio» del modo práctica.</span></div>
           <div class="day"><b>Día 4</b><span>Repaso de las 25 palabras con las tarjetas y 5 oraciones nuevas con «because», «but» y «going to».</span></div>
-          <div class="day"><b>Domingo</b><span>Prueba con la casilla «Rubio: lo de la próxima semana» marcada.</span></div>
+          <div class="day"><b>Domingo</b><span>Prueba con la casilla «Rubio: he / she» marcada.</span></div>
         </div>
         <div class="row">
-          <button class="btn primary" data-prac="rubioq">Practicar ahora la parte del Rubio</button>
+          <button class="btn primary" data-prac="fechas">Practicar fechas y cumpleaños</button><button class="btn" data-prac="meses">Practicar los meses</button><button class="btn" data-prac="rubioq">Practicar he / she</button>
           <button class="btn" data-prac="about">Practicar «About yourself»</button>
         </div>
       </div>
@@ -523,15 +523,43 @@ function toast(t){ const d=document.createElement('div'); d.className='toast'; d
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 /* ---------- Secciones de la prueba ---------- */
+const BDAYS=[{q:'When is your birthday?',es:'¿Cuándo es tu cumpleaños?',re:"^(my birthday is |my birthday's |it is |it's )?(on )?(the )?(14th|fourteenth) (of )?february$|^(my birthday is |it is |it's )?(in )?february$",model:'My birthday is on the 14th of February.',frame:'My birthday is on the ___ of ___.',fes:'Mi cumpleaños es el 14 de febrero.'},
+ {q:"When is Lucy's birthday?",es:'¿Cuándo es el cumpleaños de Lucy?',card:'Lucy · 24th April',re:"^(her birthday is |lucy's birthday is |it is |it's )?(on )?(the )?(24th|twenty-fourth|twenty fourth) (of )?april$",model:"Her birthday is on the 24th of April.",frame:'Her birthday is on the ___ of ___.',fes:'Su cumpleaños es el 24 de abril.'},
+ {q:"When is David's birthday?",es:'¿Cuándo es el cumpleaños de David?',card:'David · 27th June',re:"^(his birthday is |david's birthday is |it is |it's )?(on )?(the )?(27th|twenty-seventh|twenty seventh) (of )?june$",model:"His birthday is on the 27th of June.",frame:'His birthday is on the ___ of ___.',fes:'Su cumpleaños es el 27 de junio.'},
+ {q:'What month is it now?',es:'¿En qué mes estamos?',re:'^(it is |it\'s |we are in |now it is )?november$',model:'It is November.',frame:'It is ___.',fes:'Es noviembre (con mayúscula).'},
+ {q:'How many months are there in a year?',es:'¿Cuántos meses tiene un año?',re:'^(there are )?(twelve|12)( months)?( in a year)?$',model:'There are twelve months.',frame:'There are ___ months.',fes:'Hay doce meses.'},
+ {q:'What is the first month of the year?',es:'¿Cuál es el primer mes del año?',re:'^(the first month is |it is |it\'s )?january$',model:'The first month is January.',frame:'The first month is ___.',fes:'El primer mes es enero.'},
+ {q:'What is the last month of the year?',es:'¿Cuál es el último mes del año?',re:'^(the last month is |it is |it\'s )?december$',model:'The last month is December.',frame:'The last month is ___.',fes:'El último mes es diciembre.'},
+ {q:'Which month comes after June?',es:'¿Qué mes viene después de junio?',re:'^(it is |it\'s |after june comes |after june is )?july( comes after june)?$',model:'July.',frame:'___ (un mes).',fes:'Julio.'},
+ {q:'In which month is Christmas?',es:'¿En qué mes es Navidad?',re:'^(christmas is |it is |it\'s )?(in )?december$',model:'Christmas is in December.',frame:'Christmas is in ___.',fes:'Navidad es en diciembre.'},
+];
 const SECTIONS = {
- numeros:{name:'Números del 1 al 20', desc:'En letras, en cifras y de oído (escucha y escribe).', def:true, group:'hoy',
+ numeros100:{name:'Rubio p. 4: números hasta el 100', desc:'Del 1 al 100: en letras, en cifras y de oído (decenas y compuestos con guion: twenty-one).', def:true, group:'hoy',
+   build:()=>{const ns=[...NUMS.map(n=>n[0]),30,40,50,60,70,80,90,100,...pick([...Array(79).keys()].map(i=>i+21).filter(n=>n%10),14)];
+     return shuffle(ns).map((n,i)=>{const w=numWord(n), es=numEs(n), kind=i%3;
+     if(kind===0) return {type:'type',sec:'numeros100',prompt:String(n),ask:'Escribe el número en letras:',ok:[w,w.replace('-',' '),w.replace('a hundred','one hundred')],answer:w,es:'',nes:es};
+     if(kind===1) return {type:'mcq',sec:'numeros100',prompt:w,ask:'¿Qué número es?',say:w,answer:String(n),opts:shuffle([String(n),...pick([n+1,n-1,n+10,n-10,n+2,n-2].filter(x=>x>0&&x<=100&&x!==n),3).map(String)])};
+     return {type:'type',sec:'numeros100',prompt:'🔊 Escucha',ask:'Escucha y escribe el número en cifras:',say:w,ok:[String(n),w],answer:n+' ('+w+')',nes:es,listen:true};})}},
+ meses:{name:'Rubio p. 5: los meses del año', desc:'Escribirlos con mayúscula, en orden y de oído.', def:true, group:'hoy',
+   build:()=>{const items=[];
+     MONTHS.forEach((m,i)=>{items.push({type:'type',sec:'meses',prompt:m[0],ask:'Escribe el mes en inglés (con mayúscula):',ok:[m[1].toLowerCase()],answer:m[1],exactCase:true,nes:m[0]});
+       items.push({type:'mcq',sec:'meses',prompt:m[1],ask:'¿Qué mes viene después?',say:m[1],answer:MONTHS[(i+1)%12][1],opts:shuffle([MONTHS[(i+1)%12][1],...pick(MONTHS.filter((x,j)=>j!==i&&j!==(i+1)%12),3).map(x=>x[1])])});
+       if(i%2===0) items.push({type:'type',sec:'meses',prompt:'🔊 Escucha',ask:'Escucha y escribe el mes (con mayúscula):',say:m[1],ok:[m[1].toLowerCase()],answer:m[1],exactCase:true,nes:m[0],listen:true});
+       else items.push({type:'type',sec:'meses',prompt:'Month number '+(i+1),ask:'¿Qué mes es? Escríbelo en inglés:',ok:[m[1].toLowerCase()],answer:m[1],exactCase:true,nes:'el mes número '+(i+1)+' es '+m[0]});});
+     return shuffle(items);}},
+ fechas:{name:'Rubio p. 5: cumpleaños y fechas', desc:'Ordinales (1st, 2nd, 3rd, 4th…) y responder «When is your birthday?».', def:true, group:'hoy',
+   build:()=>shuffle([
+     ...ORDINALS.map(o=>({type:'type',sec:'fechas',prompt:String(o[0]),ask:'Escribe el ordinal (ej. 5 → 5th):',ok:[o[1],o[2]],answer:o[1]+' ('+o[2]+')',nes:'ordinal'})),
+     ...BDAYS.map(a=>({type:'answer',sec:'fechas',prompt:a.q,es:a.es,ask:'Contesta con una oración completa:',say:a.q,model:a.model,re:a.re,frame:a.frame,fes:a.fes,card:a.card})),
+   ])},
+ numeros:{name:'Números del 1 al 20', desc:'En letras, en cifras y de oído (escucha y escribe).', def:true, group:'repaso',
    build:()=>shuffle(NUMS).map((n,i)=>{const kind=i%3;
      if(kind===0) return {type:'type',sec:'numeros',prompt:String(n[0]),ask:'Escribe el número en letras:',ok:[n[1]],answer:n[1],es:'',nes:n[2]};
      if(kind===1) return {type:'mcq',sec:'numeros',prompt:n[1],ask:'¿Qué número es?',say:n[1],answer:String(n[0]),opts:shuffle([String(n[0]),...pick(NUMS.filter(x=>x!==n),3).map(x=>String(x[0]))])};
      return {type:'type',sec:'numeros',prompt:'🔊 Escucha',ask:'Escucha y escribe el número en cifras:',say:n[1],ok:[String(n[0]),n[1]],answer:n[0]+' ('+n[1]+')',nes:n[2],listen:true};})},
- lucy:{name:'Rubio p. 2: el diálogo de Lucy', desc:'Chris es Lucy: contesta con los datos de la tarjeta.', def:true, group:'hoy',
+ lucy:{name:'Rubio p. 2: el diálogo de Lucy', desc:'Chris es Lucy: contesta con los datos de la tarjeta.', def:true, group:'repaso',
    build:()=>shuffle(LUCY).map(a=>({type:'answer',sec:'lucy',prompt:a.q,es:a.es,ask:'Contesta como Lucy, con una oración completa:',say:a.q,model:a.model,re:a.re,frame:a.frame,fes:a.fes,card:LUCY_CARD}))},
- david:{name:'Rubio p. 3: las preguntas de David', desc:'David responde; Chris escribe la pregunta.', def:true, group:'hoy',
+ david:{name:'Rubio p. 3: las preguntas de David', desc:'David responde; Chris escribe la pregunta.', def:true, group:'repaso',
    build:()=>shuffle(QUESTIONS).map(q=>({type:'type',sec:'david',prompt:q.ans,ask:'Escribe la pregunta para esta respuesta:',ok:q.q,answer:q.q[0],sentence:true,say:q.ans,es:'La pregunta en español: '+q.es}))},
  es2en:{name:'Vocabulario: español → inglés', desc:'Escribe la palabra en inglés.', def:true,
    build:()=>shuffle(VOCAB).map(v=>({type:'type',sec:'es2en',prompt:v.es,ask:'Escribe en inglés:',ok:v.ok,answer:v.en,exes:v.exes}))},
@@ -545,16 +573,14 @@ const SECTIONS = {
    build:()=>shuffle(WRITE_WORDS).map(w=>{const v=VOCAB.find(x=>x.en===w);return {type:'write',sec:'write',prompt:w,ask:'Escribe una oración en inglés con:',model:v.ex,trans:v.exes}})},
  fix:{name:'Corrige el error', desc:'Toca la palabra equivocada y escribe la corrección.', def:true,
    build:()=>shuffle(FIX).map(f=>({type:'fix',sec:'fix',ask:'Hay un error. Toca la palabra equivocada:',words:f.s.split(' '),wrong:f.wrong,fix:f.fix,exact:!!f.exact,why:f.why,es:f.es,full:f.s.replace(new RegExp('\\b'+f.wrong+'\\b'),f.fix[0])}))},
- about:{name:'Rubio p. 3: About yourself', desc:'Responde las preguntas del libro sobre ti con oraciones completas.', def:true, group:'hoy',
+ about:{name:'Rubio p. 3: About yourself', desc:'Responde las preguntas del libro sobre ti con oraciones completas.', def:true, group:'repaso',
    build:()=>shuffle(ABOUT).map(a=>({type:'answer',sec:'about',prompt:a.q,es:a.es,ask:'Contesta con una oración completa:',say:a.q,model:a.model,re:a.re,frame:a.frame,fes:a.fes}))},
- rubioq:{name:'Rubio: lo de la próxima semana', desc:'Ordinales, meses y he / she. Marcar cuando toque.', def:false, group:'hoy',
+ rubioq:{name:'Rubio: he / she (la semana que viene)', desc:'Cambiar las frases de «I» a he / she. Marcar cuando toque.', def:false, group:'hoy',
    build:()=>[
-     ...pick(ORDINALS,4).map(o=>({type:'type',sec:'rubioq',prompt:String(o[0]),ask:'Escribe el ordinal (ej. 5 → 5th):',ok:[o[1],o[2]],answer:o[1]+' ('+o[2]+')'})),
-     ...pick(MONTHS,3).map(m=>({type:'type',sec:'rubioq',prompt:m[0],ask:'Escribe el mes en inglés:',ok:[m[1].toLowerCase()],answer:m[1],exactCase:true})),
-     ...pick(THIRD,4).map(t=>({type:'type',sec:'rubioq',prompt:t.from,ask:'Cámbialo a he / she:',ok:t.to,answer:t.to[0],sentence:true,es:t.es})),
+     ...shuffle(THIRD).map(t=>({type:'type',sec:'rubioq',prompt:t.from,ask:'Cámbialo a he / she:',ok:t.to,answer:t.to[0],sentence:true,es:t.es})),
    ]},
 };
-const GROUPS={hoy:'Lo de hoy',repaso:'Repaso de la semana pasada'};
+const GROUPS={hoy:'Lo de hoy',repaso:'Repaso de las semanas anteriores'};
 
 /* ---------- Estado ---------- */
 let state = {view:'prueba', test:null, fi:0, flip:false};
@@ -575,7 +601,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show
 /* ---------- Setup ---------- */
 function renderSetup(){
   const grp=g=>Object.entries(SECTIONS).filter(([k,s])=>!s.hidden&&(s.group||'repaso')===g).map(([k,s])=>`<label class="opt"><input type="checkbox" id="sec-${k}" value="${k}" ${s.def?'checked':''}><span><b>${s.name}</b><small>${s.desc}</small></span></label>`).join('');
-  $('#secs').innerHTML=`<p class="eyebrow" style="grid-column:1/-1;margin-top:4px">${GROUPS.hoy} · <span id="pct-hoy">80</span> % de las preguntas</p>${grp('hoy')}<p class="eyebrow" style="grid-column:1/-1;margin-top:10px;color:var(--ink-2)">${GROUPS.repaso} · <span id="pct-rep">20</span> %</p>${grp('repaso')}`;
+  $('#secs').innerHTML=`<p class="eyebrow" style="grid-column:1/-1;margin-top:4px">${GROUPS.hoy} · <span id="pct-hoy">70</span> % de las preguntas</p>${grp('hoy')}<p class="eyebrow" style="grid-column:1/-1;margin-top:10px;color:var(--ink-2)">${GROUPS.repaso} · <span id="pct-rep">30</span> %</p>${grp('repaso')}`;
   $('#secs').addEventListener('change',updCount); updCount();
 }
 function selected(){return [...document.querySelectorAll('#secs input:checked')].map(i=>i.value)}
@@ -587,13 +613,13 @@ function roundRobin(keys,n){
 }
 function distribute(keys,n){
   const hoy=keys.filter(k=>SECTIONS[k].group==='hoy'), rep=keys.filter(k=>SECTIONS[k].group!=='hoy');
-  const p=Math.min(100,Math.max(0,parseInt($('#phoy').value,10)||80))/100;
+  const p=Math.min(100,Math.max(0,parseInt($('#phoy').value,10)||70))/100;
   let nh=!rep.length?n:!hoy.length?0:Math.round(n*p);
-  const a=hoy.length?roundRobin(hoy,nh):[]; const b=rep.length?roundRobin(rep,n-a.length):[];
+  const a=hoy.length?roundRobin(hoy,nh):[]; const b=rep.length?roundRobin(shuffle(rep),n-a.length):[];
   const extra=a.length+b.length<n&&hoy.length?roundRobin(hoy,n-b.length).slice(a.length):[];
   return [...a,...extra,...b];
 }
-function updCount(){const keys=selected();const n=keys.length?distribute(keys,parseInt($('#nq').value,10)||20).length:0;const m=parseInt($('#mins').value,10)||25;const pass=parseInt($('#pass').value,10)||15;const p=Math.min(100,Math.max(0,parseInt($('#phoy').value,10)||80));
+function updCount(){const keys=selected();const n=keys.length?distribute(keys,parseInt($('#nq').value,10)||20).length:0;const m=parseInt($('#mins').value,10)||25;const pass=parseInt($('#pass').value,10)||15;const p=Math.min(100,Math.max(0,parseInt($('#phoy').value,10)||70));
   const ph=$('#pct-hoy'), pr=$('#pct-rep'); if(ph){ph.textContent=p;pr.textContent=100-p;}
   const nh=keys.length?distribute(keys,parseInt($('#nq').value,10)||20).filter(i=>SECTIONS[i.sec].group==='hoy').length:0;
   $('#count').textContent=n?`${n} preguntas: ${nh} de lo de hoy y ${n-nh} de repaso · aprueba con ${Math.min(pass,n)} puntos · ${m} min (${Math.round(m*60/n)} s por pregunta) · 3 ayudas`:'Elige al menos una parte';$('#start').disabled=!n}
@@ -708,7 +734,7 @@ function renderHelp(){
 function giveHint(it){
   const box=$('#qbox');
   if(it.type==='type'){ const a=it.ok[0], w=a.split(' ');
-    if(it.sec==='numeros'){ if(it.listen){ speak(it.say); return `Lo repito despacio. En español es <b>${esc(it.nes)}</b>.`; } return `En español: <b>${esc(it.nes)}</b>. Empieza por <b>${esc(a[0])}</b> y tiene ${a.length} letras.`; }
+    if(it.sec==='numeros'||it.sec==='numeros100'||it.sec==='meses'){ if(it.listen){ speak(it.say); return `Lo repito despacio. En español es <b>${esc(it.nes)}</b>.`; } return `En español: <b>${esc(it.nes)}</b>. Empieza por <b>${esc(a[0])}</b> y tiene ${a.length} letras.`; }
     if(it.a1){ if(it.listen){ speak(it.say); return `Lo repito despacio.${it.nes?' En español: <b>'+esc(it.nes)+'</b>.':''}`; } if(it.ordinal) return `Número + <b>-th</b>, salvo 1 (<b>st</b>), 2 (<b>nd</b>) y 3 (<b>rd</b>) y sus compuestos: 5 → 5th, 21 → 21st.`; if(it.sentence) return `Empieza así: <b>${esc(w.slice(0,2).join(' '))}…</b> (${w.length} palabras). ${esc(it.es||'')}`; return `Empieza por <b>${esc(a[0])}</b> y tiene ${a.replace(/[ -]/g,'').length} letras${w.length>1?' en '+w.length+' palabras':''}.${it.nes?' En español: <b>'+esc(it.nes)+'</b>.':''}`; }
     if(it.sentence) return `Empieza así: <b>${esc(w.slice(0,2).join(' '))}…</b> (${w.length} palabras). ${esc(it.es||'')}`;
     if(it.sec==='es2en') return `Tiene <b>${a.replace(/ /g,'').length} letras</b>${w.length>1?' en '+w.length+' palabras':''}. Frase en español: «${esc(it.exes||'')}».`;
@@ -726,7 +752,7 @@ function finish(pts,user,html){
   $('#qbox').querySelectorAll('input,textarea').forEach(i=>i.disabled=true);
   $('#qbox').insertAdjacentHTML('beforeend',`<div class="fb ${pts===1?'ok':pts?'mid':'ko'}">${html}</div>`);
   const it=state.test.items[state.test.idx];
-  const say=it.type==='bank'||it.type==='fix'?it.full:it.type==='order'?it.answer:it.type==='answer'?it.model.replace(/ \/ .*/,''):(it.type==='type'&&(it.sentence||it.sec==='es2en'||it.sec==='rubioq'||it.sec==='numeros'||it.a1))?(it.full||it.answer).replace(/\s*\(.*\)$/,''):null;
+  const say=it.type==='bank'||it.type==='fix'?it.full:it.type==='order'?it.answer:it.type==='answer'?it.model.replace(/ \/ .*/,''):(it.type==='type'&&(it.sentence||it.sec==='es2en'||it.sec==='rubioq'||it.sec==='numeros'||it.sec==='numeros100'||it.sec==='meses'||it.sec==='fechas'||it.a1))?(it.full||it.answer).replace(/\s*\(.*\)$/,''):null;
   if(say) setTimeout(()=>speak(say),150);
   finishNow(pts,user);
 }
