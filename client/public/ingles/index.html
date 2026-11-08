@@ -202,7 +202,7 @@ li+li{margin-top:4px}
   <!-- ===== PRUEBA ===== -->
   <section id="view-prueba">
     <div class="page" id="setup">
-      <p class="eyebrow">Prueba 3 · 8 de noviembre · Rubio páginas 4 y 5: números hasta el 100, meses y fechas + repaso</p>
+      <p class="eyebrow">Prueba 3 · 8 de noviembre · Rubio páginas 4 y 5: números del 1 al 31, meses y fechas + repaso</p>
       <h2>Prueba del domingo</h2>
       <p class="lead">Papá elige las partes. El 70 % de las preguntas sale de lo de hoy y el 30 % del repaso de las semanas anteriores. Cada pregunta vale 1 punto y Chris tiene 3 ayudas para toda la prueba.</p>
       <div class="grid" id="secs"></div>
@@ -268,7 +268,7 @@ li+li{margin-top:4px}
     <div class="page">
       <p class="eyebrow">Rubio · English 8 beginners · unidad «About me»</p>
       <h2>Qué hay que estudiar para la próxima semana</h2>
-      <p class="lead">Esta semana Chris hizo las páginas 4 y 5: los números hasta el 100 y los meses del año. La semana que viene toca afianzar las fechas completas («on the 14th of February»), hablar de otra persona (he / she) y seguir con «going to».</p>
+      <p class="lead">Esta semana Chris hizo las páginas 4 y 5: los números del 1 al 31 (los días del mes) y los meses del año. La semana que viene toca afianzar las fechas completas («on the 14th of February»), hablar de otra persona (he / she) y seguir con «going to».</p>
       <div class="two">
         <div class="box">
           <h3>1 · Las seis preguntas (de memoria)</h3>
@@ -310,7 +310,7 @@ li+li{margin-top:4px}
       <div class="box">
         <h3>Plan de la semana <span class="pill">9 → 15 nov</span></h3>
         <div class="plan">
-          <div class="day"><b>Día 1</b><span>Números hasta el 100 de oído (papá dicta diez números, Chris los escribe en cifras y luego en letras). Los doce meses en orden y de memoria.</span></div>
+          <div class="day"><b>Día 1</b><span>Números del 1 al 31 de oído (papá dicta diez números, Chris los escribe en cifras y luego en letras). Los doce meses en orden y de memoria.</span></div>
           <div class="day"><b>Día 2</b><span>Ordinales del 1st al 31st y fechas completas. Escribir los cumpleaños de toda la familia: «Mum's birthday is on the 3rd of May».</span></div>
           <div class="day"><b>Día 3</b><span>He / she: describir a David y a Lucy del libro, luego a un amigo real. Ejercicio «Rubio» del modo práctica.</span></div>
           <div class="day"><b>Día 4</b><span>Repaso de las 25 palabras con las tarjetas y 5 oraciones nuevas con «because», «but» y «going to».</span></div>
@@ -534,11 +534,11 @@ const BDAYS=[{q:'When is your birthday?',es:'¿Cuándo es tu cumpleaños?',re:"^
  {q:'In which month is Christmas?',es:'¿En qué mes es Navidad?',re:'^(christmas is |it is |it\'s )?(in )?december$',model:'Christmas is in December.',frame:'Christmas is in ___.',fes:'Navidad es en diciembre.'},
 ];
 const SECTIONS = {
- numeros100:{name:'Rubio p. 4: números hasta el 100', desc:'Del 1 al 100: en letras, en cifras y de oído (decenas y compuestos con guion: twenty-one).', def:true, group:'hoy',
-   build:()=>{const ns=[...NUMS.map(n=>n[0]),30,40,50,60,70,80,90,100,...pick([...Array(79).keys()].map(i=>i+21).filter(n=>n%10),14)];
+ numeros100:{name:'Rubio p. 4: números del 1 al 31', desc:'Los números de los días del mes: en letras, en cifras y de oído (del 21 al 29 con guion: twenty-one).', def:true, group:'hoy',
+   build:()=>{const ns=[...Array(31).keys()].map(i=>i+1);
      return shuffle(ns).map((n,i)=>{const w=numWord(n), es=numEs(n), kind=i%3;
-     if(kind===0) return {type:'type',sec:'numeros100',prompt:String(n),ask:'Escribe el número en letras:',ok:[w,w.replace('-',' '),w.replace('a hundred','one hundred')],answer:w,es:'',nes:es};
-     if(kind===1) return {type:'mcq',sec:'numeros100',prompt:w,ask:'¿Qué número es?',say:w,answer:String(n),opts:shuffle([String(n),...pick([n+1,n-1,n+10,n-10,n+2,n-2].filter(x=>x>0&&x<=100&&x!==n),3).map(String)])};
+     if(kind===0) return {type:'type',sec:'numeros100',prompt:String(n),ask:'Escribe el número en letras:',ok:[w,w.replace('-',' ')],answer:w,es:'',nes:es};
+     if(kind===1) return {type:'mcq',sec:'numeros100',prompt:w,ask:'¿Qué número es?',say:w,answer:String(n),opts:shuffle([String(n),...pick([n+1,n-1,n+10,n-10,n+2,n-2].filter(x=>x>0&&x<=31&&x!==n),3).map(String)])};
      return {type:'type',sec:'numeros100',prompt:'🔊 Escucha',ask:'Escucha y escribe el número en cifras:',say:w,ok:[String(n),w],answer:n+' ('+w+')',nes:es,listen:true};})}},
  meses:{name:'Rubio p. 5: los meses del año', desc:'Escribirlos con mayúscula, en orden y de oído.', def:true, group:'hoy',
    build:()=>{const items=[];
