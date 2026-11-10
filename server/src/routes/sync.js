@@ -99,7 +99,15 @@ const estadoDe = (status, account) => ({
   account_name: String(account.name || '').replace(/["\\]/g, ''),
   limit_daily: posOrNull(account.daily_max_loss), limit_weekly: posOrNull(account.weekly_max_loss), limit_trades: posOrNull(account.max_trades_per_day),
 });
-const SIN_CUENTA = { ok: true, locked: false, hard_lock: false, action: 'ninguna', lock_reason: null, lock_until: null, limit_daily: null, limit_weekly: null, limit_trades: null, pending: 'No sé a qué cuenta del journal corresponde este MetaTrader: usa el token de la cuenta (Cuentas → Conectar → Token solo para esta cuenta).' };
+/** Respuesta cuando no se sabe qué cuenta del journal es: dice a qué login está enlazada cada cuenta, para verlo en MetaTrader. */
+function sinCuenta(req) {
+  const src = req.method === 'GET' ? req.query : (req.body || {});
+  const login = String(src.login ?? '').trim().replace(/\D/g, '').slice(0, 20);
+  const otras = getDb().prepare("SELECT name, sync_login FROM accounts WHERE user_id = ? AND is_archived = 0 AND platform = 'mt5' AND sync_login IS NOT NULL ORDER BY id").all(req.syncUser.id);
+  const enlazadas = otras.slice(0, 3).map((a) => `«${String(a.name).replace(/["\\]/g, '')}» es la ${a.sync_login}`).join(', ');
+  const pending = `La cuenta de MT5 ${login} no está enlazada con ninguna cuenta del journal${enlazadas ? ` (${enlazadas})` : ''}. En el journal: Cuentas → Conectar → «Token solo para esta cuenta», y pega ese token aquí.`;
+  return { ok: true, locked: false, hard_lock: false, action: 'ninguna', lock_reason: null, lock_until: null, limit_daily: null, limit_weekly: null, limit_trades: null, pending };
+}
 
 // GET /api/sync/mt5/estado[?login=…&server=…] → el guardián (GTFX_JournalGuard) pregunta si debe cerrar todo y no dejar
 // operar. Con el token de usuario necesita el login (y servidor) de la cuenta de MT5 en la URL.
@@ -107,7 +115,7 @@ router.get('/mt5/estado', tokenAuth, requireSubscription(getDb), (req, res, next
   try {
     const account = guardAccount(req, res);
     if (account === undefined) return;
-    if (!account) return res.json(SIN_CUENTA);
+    if (!account) return res.json(sinCuenta(req));
     res.json(estadoDe(evaluateAccountRisk(getDb(), account.id), account));
   } catch (err) {
     next(err);
@@ -121,7 +129,7 @@ router.post('/mt5/bloquear', tokenAuth, requireSubscription(getDb), (req, res, n
   try {
     const account = guardAccount(req, res);
     if (account === undefined) return;
-    if (!account) return res.json(SIN_CUENTA);
+    if (!account) return res.json(sinCuenta(req));
     const b = req.body || {};
     const status = applyGuardLock(getDb(), account.id, { kind: String(b.kind || 'daily_loss'), loss: Number(b.loss), limit: Number(b.limit), trades: Number(b.trades) });
     res.json(estadoDe(status, account));
