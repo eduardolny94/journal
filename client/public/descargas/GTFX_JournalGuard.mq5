@@ -35,7 +35,7 @@
 //| si lo cierras o apagas el equipo, deja de vigilar.                 |
 //+------------------------------------------------------------------+
 #property copyright "Global Traders FX"
-#property version   "2.1"
+#property version   "2.2"
 #property strict
 #property description "Aplica en MetaTrader los limites de la ficha de tu cuenta en el journal (perdida diaria, semanal y maximo de operaciones). Al tocar uno no deja abrir mas operaciones; no toca las que ya estaban abiertas."
 
@@ -71,7 +71,7 @@ string Gv(const string nombre) { return "GTFX_Guard_" + nombre + "_" + (string)A
 double GvLeer(const string nombre) { return GlobalVariableCheck(Gv(nombre)) ? GlobalVariableGet(Gv(nombre)) : 0; }
 long   DiaDe(const datetime t) { MqlDateTime s; TimeToStruct(t, s); return (long)s.year * 10000 + (long)s.mon * 100 + (long)s.day; }
 long   DiaBroker() { return DiaDe(TimeTradeServer()); }
-string Dinero(const double v) { return DoubleToString(v, 2) + " " + AccountInfoString(ACCOUNT_CURRENCY); }
+string Dinero(const double v) { return DoubleToString(MathAbs(v) < 0.005 ? 0.0 : v, 2) + " " + AccountInfoString(ACCOUNT_CURRENCY); }
 
 void Avisar(const string texto)
 {
@@ -423,7 +423,7 @@ int OnInit()
    EventSetTimer(MathMax(2, Segundos));
    Consultar();
    Revisar();
-   Print("GTFX_JournalGuard 2.1 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
+   Print("GTFX_JournalGuard 2.2 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
    return INIT_SUCCEEDED;
 }
 
