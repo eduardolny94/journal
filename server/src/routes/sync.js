@@ -11,7 +11,7 @@ import { getDb } from '../db.js';
 import { SyncError, accountForToken, applySync, resolveAccountForUser, touchUserSync, userForToken } from '../services/mt5Sync.js';
 import { applyTradingviewSync } from '../services/tradingviewSync.js';
 import { requireSubscription } from '../services/subscriptions.js';
-import { evaluateAccountRisk } from '../services/risk.js';
+import { applyEquityLock, evaluateAccountRisk } from '../services/risk.js';
 
 const router = Router();
 const isTest = process.env.NODE_ENV === 'test';
@@ -63,21 +63,45 @@ router.post('/mt5', tokenAuth, requireSubscription(getDb), (req, res, next) => {
   }
 });
 
+/** Cuenta del guardián: la del token de cuenta, o la del login/servidor de MT5 con el token único. null si aún no sincronizó. */
+function guardAccount(req, res) {
+  if (req.syncAccount) return req.syncAccount;
+  const src = req.method === 'GET' ? req.query : (req.body || {});
+  const login = String(src.login ?? '').trim();
+  if (!/^\d{1,20}$/.test(login)) {
+    res.status(400).json({ error: 'Con el token único hay que indicar la cuenta de MT5: login=<número> y server=<servidor>. Actualiza GTFX_JournalGuard.', code: 'bad_login' });
+    return undefined;
+  }
+  const server = String(src.server ?? '').trim().slice(0, 64);
+  return getDb().prepare("SELECT * FROM accounts WHERE user_id = ? AND is_archived = 0 AND sync_login = ? ORDER BY CASE WHEN COALESCE(sync_server, '') = ? THEN 0 ELSE 1 END, id").get(req.syncUser.id, login, server) || null;
+}
+const estadoDe = (status) => ({ ok: true, locked: !!status.locked, hard_lock: !!status.hard_lock, action: status.locked && status.hard_lock ? 'cerrar_todo' : 'ninguna', lock_reason: status.lock_reason || null, lock_until: status.lock_until || null, trading_day: status.trading_day, next_reset: status.next_reset });
+const SIN_CUENTA = { ok: true, locked: false, hard_lock: false, action: 'ninguna', lock_reason: null, lock_until: null, pending: 'La cuenta de MT5 aún no ha sincronizado: el guardián vigilará en cuanto el servicio envíe algo.' };
+
 // GET /api/sync/mt5/estado[?login=…&server=…] → el guardián (GTFX_JournalGuard) pregunta si debe cerrar todo y no dejar
 // operar. Con el token de usuario necesita el login (y servidor) de la cuenta de MT5 en la URL.
 router.get('/mt5/estado', tokenAuth, requireSubscription(getDb), (req, res, next) => {
   try {
-    let account = req.syncAccount;
-    if (!account) {
-      const login = String(req.query.login ?? '').trim();
-      if (!/^\d{1,20}$/.test(login)) return res.status(400).json({ error: 'Con el token único hay que indicar la cuenta de MT5: ?login=<número>&server=<servidor>. Actualiza GTFX_JournalGuard.', code: 'bad_login' });
-      const db = getDb();
-      const server = String(req.query.server ?? '').trim().slice(0, 64);
-      account = db.prepare("SELECT * FROM accounts WHERE user_id = ? AND is_archived = 0 AND sync_login = ? ORDER BY CASE WHEN COALESCE(sync_server, '') = ? THEN 0 ELSE 1 END, id").get(req.syncUser.id, login, server);
-      if (!account) return res.json({ ok: true, locked: false, hard_lock: false, action: 'ninguna', lock_reason: null, lock_until: null, pending: 'La cuenta de MT5 aún no ha sincronizado: el guardián vigilará en cuanto el servicio envíe algo.' });
-    }
-    const status = evaluateAccountRisk(getDb(), account.id);
-    res.json({ ok: true, locked: !!status.locked, hard_lock: !!status.hard_lock, action: status.locked && status.hard_lock ? 'cerrar_todo' : 'ninguna', lock_reason: status.lock_reason || null, lock_until: status.lock_until || null, trading_day: status.trading_day, next_reset: status.next_reset });
+    const account = guardAccount(req, res);
+    if (account === undefined) return;
+    if (!account) return res.json(SIN_CUENTA);
+    res.json(estadoDe(evaluateAccountRisk(getDb(), account.id)));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/sync/mt5/bloquear { login, server, equity, base, limit, floating } → el guardián avisa de que su suelo local de
+// capital (balance/equidad de inicio del día menos el límite) se ha tocado. El journal bloquea la cuenta hasta el siguiente
+// reinicio del día (motivo pérdida diaria) y, con bloqueo estricto, responde cerrar_todo para que el guardián siga cerrando.
+router.post('/mt5/bloquear', tokenAuth, requireSubscription(getDb), (req, res, next) => {
+  try {
+    const account = guardAccount(req, res);
+    if (account === undefined) return;
+    if (!account) return res.json(SIN_CUENTA);
+    const b = req.body || {};
+    const status = applyEquityLock(getDb(), account.id, { equity: Number(b.equity), base: Number(b.base), limit: Number(b.limit), floating: Number(b.floating) });
+    res.json(estadoDe(status));
   } catch (err) {
     next(err);
   }

@@ -128,6 +128,27 @@ function applyRule(db, account, { kind, violated, lockUntil, dayFrom, dayTo, pnl
 }
 
 /**
+ * Bloqueo que pide el guardián de MetaTrader cuando su suelo local de capital (equity) toca el límite diario, contando el
+ * flotante que el journal no ve hasta que la posición se cierra. Bloquea hasta el siguiente reinicio del día, registra el
+ * evento y devuelve el estado. Si la cuenta ya está bloqueada más lejos, no acorta nada.
+ */
+export function applyEquityLock(db, accountId, { equity, base, limit, floating } = {}) {
+  const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(accountId);
+  if (!account) return null;
+  const now = new Date();
+  const tradingDay = currentTradingDay(account);
+  const lockUntil = nextResetIso(account, now);
+  const perdida = Number.isFinite(Number(base)) && Number.isFinite(Number(equity)) ? round2(Number(base) - Number(equity)) : null;
+  const cur = account.currency || 'USD';
+  const message = `Suelo de capital del guardián: capital ${Number(equity).toFixed(2)} ${cur}` +
+    (perdida !== null ? `, ${perdida.toFixed(2)} ${cur} por debajo del inicio del día` : '') +
+    (Number.isFinite(Number(limit)) ? ` (límite ${Number(limit).toFixed(2)})` : '') +
+    (Number.isFinite(Number(floating)) && Number(floating) !== 0 ? `, flotante ${Number(floating).toFixed(2)}` : '') + '.';
+  applyRule(db, account, { kind: 'daily_loss', violated: true, lockUntil, dayFrom: tradingDay, dayTo: tradingDay, pnl: perdida === null ? 0 : -perdida, message, now });
+  return evaluateAccountRisk(db, accountId);
+}
+
+/**
  * Calcula el estado de riesgo de la cuenta y aplica bloqueos automáticos.
  * @param {import('node:sqlite').DatabaseSync} db
  * @param {number} accountId

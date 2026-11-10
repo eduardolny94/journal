@@ -351,8 +351,9 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
                 <li>Descarga el código <a href="/descargas/GTFX_JournalGuard.mq5" download className="text-accent hover:underline">GTFX_JournalGuard.mq5</a> y ábrelo en MetaEditor (Archivo → Abrir) o pégalo en un Asesor Experto nuevo con ese nombre. Compila (F7).</li>
                 <li>En MetaTrader arrastra el EA «GTFX_JournalGuard» a cualquier gráfico de la cuenta, pega el token en sus parámetros y deja activado «Permitir trading automatizado» (botón AutoTrading en verde).</li>
                 <li>Mantén la URL del journal en «Permitir WebRequest» (paso 1 de arriba).</li>
+                <li>En los parámetros del EA, «PerdidaDiariaUSD» es el suelo del día por equidad (por defecto 1.000): al empezar cada día del bróker guarda el mayor entre saldo y equidad y, si la equidad cae esa cantidad (contando el flotante), cierra todo y bloquea hasta el día siguiente aunque el journal o internet fallen. Pon 0 para desactivarlo.</li>
               </ol>
-              <p className="mt-2 text-gray-500">Límite físico: si quitas el EA o apagas AutoTrading, deja de vigilar. Lo que operes en bloqueo llega igual al journal y queda marcado como violación.</p>
+              <p className="mt-2 text-gray-500">Límite físico: necesita un MetaTrader abierto con la contraseña de operador (la de inversor no puede cerrar) y AutoTrading activo; si lo quitas o apagas el equipo, deja de vigilar. No abras operaciones mientras esté bloqueado: se cierran al instante y esas operaciones de segundos son las que las firmas penalizan. Lo que operes en bloqueo llega igual al journal y queda marcado como violación.</p>
             </div>
             {origin !== 'https://journal.cesarzorrilla.com' && <p className="text-xs text-warn">Estás en {origin}: al añadir el servicio, cambia también el campo «JournalUrl» por esta dirección.</p>}
           </>
