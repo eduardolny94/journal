@@ -35,13 +35,13 @@
 //| si lo cierras o apagas el equipo, deja de vigilar.                 |
 //+------------------------------------------------------------------+
 #property copyright "Global Traders FX"
-#property version   "2.2"
+#property version   "2.3"
 #property strict
 #property description "Aplica en MetaTrader los limites de la ficha de tu cuenta en el journal (perdida diaria, semanal y maximo de operaciones). Al tocar uno no deja abrir mas operaciones; no toca las que ya estaban abiertas."
 
 #include <Trade/Trade.mqh>
 
-input string Token             = "";     // Token del journal (Cuentas -> Conectar). Con el, los limites salen de la ficha
+input string Token             = "";     // Token del journal (Cuentas -> Conectar). Vacio = el que ya use otro programa GTFX de este ordenador
 input string JournalUrl        = "https://journal.cesarzorrilla.com"; // Direccion del journal
 input double PerdidaDiariaPct  = 1.0;    // SIN token: % de la cuenta que puedes perder al dia
 input double PerdidaSemanalPct = 0;      // SIN token: % de la cuenta que puedes perder a la semana (0 = sin limite)
@@ -65,13 +65,46 @@ string   g_motivo = "", g_hasta = "", g_cuenta = "", g_pendiente = "", g_nota = 
 int      g_fallos = 0;
 long     g_diaAviso = 0;
 ulong    g_ultimoCierre = 0;
+string   g_token = "";                   // token en uso: el del parametro o el compartido
 
-bool   ConJournal() { return StringLen(Token) >= 20; }
+bool   ConJournal() { return StringLen(g_token) >= 20; }
 string Gv(const string nombre) { return "GTFX_Guard_" + nombre + "_" + (string)AccountInfoInteger(ACCOUNT_LOGIN); }
 double GvLeer(const string nombre) { return GlobalVariableCheck(Gv(nombre)) ? GlobalVariableGet(Gv(nombre)) : 0; }
 long   DiaDe(const datetime t) { MqlDateTime s; TimeToStruct(t, s); return (long)s.year * 10000 + (long)s.mon * 100 + (long)s.day; }
 long   DiaBroker() { return DiaDe(TimeTradeServer()); }
 string Dinero(const double v) { return DoubleToString(MathAbs(v) < 0.005 ? 0.0 : v, 2) + " " + AccountInfoString(ACCOUNT_CURRENCY); }
+
+//--- token compartido entre los programas GTFX de este ordenador -----
+// El token unico (gtfxu_...) que el journal acepta se guarda en la carpeta comun de MetaTrader. Si este programa no tiene
+// token o el suyo es rechazado, usa ese: basta con pegar el token bueno en UN solo sitio.
+string LeerTokenComun()
+{
+   int h = FileOpen("GTFX_token.txt", FILE_READ | FILE_TXT | FILE_ANSI | FILE_COMMON | FILE_SHARE_READ | FILE_SHARE_WRITE);
+   if(h == INVALID_HANDLE) return "";
+   string t = FileReadString(h);
+   FileClose(h);
+   StringTrimLeft(t);
+   StringTrimRight(t);
+   return StringFind(t, "gtfxu_") == 0 && StringLen(t) >= 20 ? t : "";
+}
+
+void GuardarTokenComun(const string t)
+{
+   if(StringFind(t, "gtfxu_") != 0 || LeerTokenComun() == t) return;
+   int h = FileOpen("GTFX_token.txt", FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_COMMON);
+   if(h == INVALID_HANDLE) return;
+   FileWriteString(h, t);
+   FileClose(h);
+}
+
+// Devuelve true si habia un token compartido distinto y se ha adoptado.
+bool AdoptarTokenComun()
+{
+   string c = LeerTokenComun();
+   if(c == "" || c == g_token) return false;
+   g_token = c;
+   return true;
+}
 
 void Avisar(const string texto)
 {
@@ -264,17 +297,18 @@ void NotificarJournal(const string kind)
    ArrayResize(datos, ArraySize(datos) - 1); // sin el terminador
    char resultado[];
    string cabecerasRespuesta;
-   string cabeceras = "Authorization: Bearer " + Token + "\r\nContent-Type: application/json\r\n";
+   string cabeceras = "Authorization: Bearer " + g_token + "\r\nContent-Type: application/json\r\n";
    int codigo = WebRequest("POST", JournalUrl + "/api/sync/mt5/bloquear", cabeceras, 15000, datos, resultado, cabecerasRespuesta);
    if(codigo != 200) Print("GTFX_JournalGuard: no se pudo avisar al journal (", codigo, "). El bloqueo local sigue activo.");
 }
 
 void Consultar()
 {
+   if(!ConJournal() && AdoptarTokenComun()) Print("GTFX_JournalGuard: uso el token que ya tiene otro programa GTFX de este ordenador.");
    if(!ConJournal()) return;
    string url = JournalUrl + "/api/sync/mt5/estado?login=" + (string)AccountInfoInteger(ACCOUNT_LOGIN)
               + "&server=" + UrlEncode(AccountInfoString(ACCOUNT_SERVER));
-   string cabeceras = "Authorization: Bearer " + Token + "\r\n";
+   string cabeceras = "Authorization: Bearer " + g_token + "\r\n";
    char datos[];
    char resultado[];
    string cabecerasRespuesta;
@@ -290,6 +324,13 @@ void Consultar()
    string respuesta = CharArrayToString(resultado, 0, -1, CP_UTF8);
    if(codigo != 200)
    {
+      if(codigo == 401 && AdoptarTokenComun())
+      {
+         Print("GTFX_JournalGuard: el token de los parametros ya no vale; uso el que tiene otro programa GTFX de este ordenador.");
+         g_fallos = 0;
+         g_nota = "";
+         return;
+      }
       if(g_fallos == 0)
       {
          Print("GTFX_JournalGuard: respuesta del journal ", codigo, ": ", respuesta);
@@ -299,6 +340,7 @@ void Consultar()
       return;
    }
    g_fallos = 0;
+   GuardarTokenComun(g_token);
    g_nota = Extraer(respuesta, "pending");
    if(g_nota == "")
    {
@@ -393,6 +435,7 @@ void Pintar()
    if(ConJournal())
    {
       if(g_nota != "") t += "\n  AVISO: " + g_nota;
+      else if(g_token != Token && g_fallos == 0) t += "\n  Conectado con el token compartido de este ordenador.";
       else if(g_fallos > 0) t += "\n  (journal sin respuesta: sigo con los ultimos limites recibidos)";
       else if(!g_delJournal) t += "\n  Esperando los limites del journal...";
    }
@@ -409,13 +452,17 @@ void Revisar()
 
 int OnInit()
 {
+   g_token = Token;
+   StringTrimLeft(g_token);
+   StringTrimRight(g_token);
+   if(StringLen(Token) > 0 && !ConJournal())
+      Alert("GTFX_JournalGuard: el token no parece completo.");
+   if(!ConJournal()) { g_token = ""; AdoptarTokenComun(); }
    if(!ConJournal() && PerdidaDiariaPct <= 0 && PerdidaSemanalPct <= 0 && MaxOperacionesDia <= 0)
    {
       Alert("GTFX_JournalGuard: pega el token del journal o pon algun limite en los parametros.");
       return INIT_PARAMETERS_INCORRECT;
    }
-   if(StringLen(Token) > 0 && !ConJournal())
-      Alert("GTFX_JournalGuard: el token no parece completo. Sigo con los limites de los parametros.");
    if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED) || !MQLInfoInteger(MQL_TRADE_ALLOWED))
       Alert("GTFX_JournalGuard: activa el boton \"Algo Trading\" (en verde) o no podre cerrar las operaciones nuevas.");
    g_trade.SetAsyncMode(false);
@@ -423,7 +470,7 @@ int OnInit()
    EventSetTimer(MathMax(2, Segundos));
    Consultar();
    Revisar();
-   Print("GTFX_JournalGuard 2.2 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
+   Print("GTFX_JournalGuard 2.3 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
    return INIT_SUCCEEDED;
 }
 

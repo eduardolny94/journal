@@ -25,7 +25,7 @@
 //+------------------------------------------------------------------+
 #property service
 #property strict
-#property version   "1.1"
+#property version   "1.2"
 #property description "Sincroniza las operaciones cerradas y el balance de esta cuenta con el journal de Global Traders FX."
 
 input string JournalUrl    = "https://journal.cesarzorrilla.com"; // Direccion del journal
@@ -38,6 +38,7 @@ input int    LatidoMinutos = 5;    // Envia el balance aunque no haya operacione
 
 string  g_gv          = "";
 string  g_firma       = "";
+string  g_token       = "";   // token en uso: el del parametro o el compartido
 datetime g_ultimoEnvio = 0;
 datetime g_ultimoAviso = 0;
 bool    g_bloqueada   = false;
@@ -171,11 +172,43 @@ string CuentaJson()
         + ",\"gmt_time\":" + (string)(long)TimeGMT() + "}";
 }
 
+//--- token compartido entre los programas GTFX de este ordenador -----
+// El token unico (gtfxu_...) que el journal acepta se guarda en la carpeta comun de MetaTrader. Si este programa no tiene
+// token o el suyo es rechazado, usa ese: basta con pegar el token bueno en UN solo sitio.
+string LeerTokenComun()
+{
+   int h = FileOpen("GTFX_token.txt", FILE_READ | FILE_TXT | FILE_ANSI | FILE_COMMON | FILE_SHARE_READ | FILE_SHARE_WRITE);
+   if(h == INVALID_HANDLE) return "";
+   string t = FileReadString(h);
+   FileClose(h);
+   StringTrimLeft(t);
+   StringTrimRight(t);
+   return StringFind(t, "gtfxu_") == 0 && StringLen(t) >= 20 ? t : "";
+}
+
+void GuardarTokenComun(const string t)
+{
+   if(StringFind(t, "gtfxu_") != 0 || LeerTokenComun() == t) return;
+   int h = FileOpen("GTFX_token.txt", FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_COMMON);
+   if(h == INVALID_HANDLE) return;
+   FileWriteString(h, t);
+   FileClose(h);
+}
+
+// Devuelve true si habia un token compartido distinto y se ha adoptado.
+bool AdoptarTokenComun()
+{
+   string c = LeerTokenComun();
+   if(c == "" || c == g_token) return false;
+   g_token = c;
+   return true;
+}
+
 //--- envia un lote; devuelve el codigo HTTP (o -1)
 int Enviar(string posiciones, string &respuesta)
 {
    string url = JournalUrl + "/api/sync/mt5";
-   string cabeceras = "Content-Type: application/json\r\nAuthorization: Bearer " + Token + "\r\n";
+   string cabeceras = "Content-Type: application/json\r\nAuthorization: Bearer " + g_token + "\r\n";
    string cuerpo = "{\"account\":" + CuentaJson() + ",\"positions\":[" + posiciones + "]}";
    char datos[];
    char resultado[];
@@ -204,6 +237,14 @@ void ProcesarRespuesta(int codigo, string respuesta)
       if(bloqueada && !g_bloqueada)
          Alert("Global Traders FX: el journal ha BLOQUEADO esta cuenta por tu limite de riesgo. Deja de operar hoy y revisa el journal.");
       g_bloqueada = bloqueada;
+      GuardarTokenComun(g_token);
+      return;
+   }
+   // Token rechazado, o token de otra cuenta de MT5: si otro programa GTFX de este ordenador tiene uno valido, se usa ese.
+   if((codigo == 401 || (codigo == 409 && StringFind(respuesta, "login_mismatch") >= 0)) && AdoptarTokenComun())
+   {
+      Print("GTFX_JournalSync: el token del servicio no vale para esta cuenta; uso el que tiene otro programa GTFX de este ordenador.");
+      g_firma = "";
       return;
    }
    if(codigo == 401)      Aviso("el token no es valido o fue revocado. Genera uno nuevo en el journal (Cuentas -> Sincronizar) y vuelve a anadir el servicio.");
@@ -269,16 +310,18 @@ void Ciclo()
 
 void OnStart()
 {
-   if(StringLen(Token) < 20)
-   {
-      Alert("GTFX_JournalSync: falta el token. Generalo en el journal (Cuentas -> Sincronizar) y pegalo al anadir el servicio.");
-      return;
-   }
+   g_token = Token;
+   StringTrimLeft(g_token);
+   StringTrimRight(g_token);
+   if(StringLen(g_token) < 20) { g_token = ""; AdoptarTokenComun(); }
+   if(StringLen(g_token) < 20)
+      Print("GTFX_JournalSync: sin token. Esperando a que otro programa GTFX de este ordenador (el guardian) tenga uno valido, o pegalo en las propiedades del servicio.");
    Print("GTFX_JournalSync: iniciado. Envia a ", JournalUrl, " las operaciones cerradas de la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), ".");
    while(!IsStopped())
    {
       long login = AccountInfoInteger(ACCOUNT_LOGIN);
-      if(login > 0 && TerminalInfoInteger(TERMINAL_CONNECTED))
+      if(StringLen(g_token) < 20) AdoptarTokenComun();
+      if(StringLen(g_token) >= 20 && login > 0 && TerminalInfoInteger(TERMINAL_CONNECTED))
       {
          g_gv = "GTFX_SYNC_" + (string)login;
          Ciclo();
