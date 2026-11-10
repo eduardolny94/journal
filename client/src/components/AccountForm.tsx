@@ -397,6 +397,11 @@ export default function AccountForm({ open, onClose, account, onSaved, allAccoun
           <p className="text-xs text-gray-500">
             Al alcanzar un límite la cuenta se bloquea automáticamente hasta el próximo reset (diario o semanal). Deja un campo vacío para no aplicar ese límite.
           </p>
+          {form.platform === 'mt5' && (
+            <p className="text-xs text-gray-500">
+              En MetaTrader 5 estos límites se aplican solos si tienes puesto el guardián (Cuentas → Conectar → Guardián de límites): lee lo que guardes aquí en unos segundos y, al tocar un límite, no deja abrir más operaciones. Bajar un límite vale al momento; subirlo o quitarlo, desde el día siguiente.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input
               label="Pérdida máxima diaria"
@@ -441,7 +446,7 @@ export default function AccountForm({ open, onClose, account, onSaved, allAccoun
             <span>
               <span className="font-semibold">Bloqueo estricto</span>
               <span className="block text-xs text-gray-400">
-                Al tocar un límite la cuenta se bloquea hasta el próximo reinicio del día y no hay vuelta atrás: ni «registrar igual», ni desbloqueo manual, ni subir el límite mientras dure. Desactivarlo tarda hasta el siguiente reinicio. Con el guardián de MetaTrader (Cuentas → Sincronizar) además se cierran las posiciones y no se puede abrir ninguna.
+                Al tocar un límite la cuenta se bloquea hasta el próximo reinicio del día y no hay vuelta atrás: ni «registrar igual», ni desbloqueo manual, ni subir el límite mientras dure. Desactivarlo tarda hasta el siguiente reinicio. Con el guardián de MetaTrader (Cuentas → Conectar) el bloqueo llega también a MetaTrader: no se puede abrir ninguna operación nueva (las que ya estaban abiertas se respetan).
               </span>
             </span>
           </label>

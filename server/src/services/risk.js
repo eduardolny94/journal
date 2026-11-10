@@ -128,20 +128,28 @@ function applyRule(db, account, { kind, violated, lockUntil, dayFrom, dayTo, pnl
 }
 
 /**
- * Bloqueo que pide el guardián de MetaTrader (GTFX_JournalGuard) cuando la pérdida CERRADA del día toca su límite local
- * (un % de la cuenta). El journal lo registra como pérdida diaria hasta el siguiente reinicio del día; si la cuenta ya
- * está bloqueada más lejos, no acorta nada.
+ * Bloqueo que pide el guardián de MetaTrader (GTFX_JournalGuard) cuando, dentro de MetaTrader, la pérdida CERRADA del día o
+ * de la semana toca el límite de la ficha, o se llega al máximo de operaciones. El journal lo registra hasta el siguiente
+ * reinicio (del día o de la semana); si la cuenta ya está bloqueada más lejos, no acorta nada.
  */
-export function applyGuardLock(db, accountId, { loss, limit } = {}) {
+export function applyGuardLock(db, accountId, { kind = 'daily_loss', loss, limit, trades } = {}) {
   const account = db.prepare('SELECT * FROM accounts WHERE id = ?').get(accountId);
   if (!account) return null;
   const now = new Date();
   const tradingDay = currentTradingDay(account);
+  const week = weekOf(tradingDay);
   const cur = account.currency || 'USD';
   const perdida = Number.isFinite(Number(loss)) ? round2(Math.abs(Number(loss))) : 0;
-  const message = `Guardián de MetaTrader: pérdida cerrada del día de ${perdida.toFixed(2)} ${cur}` +
-    (Number.isFinite(Number(limit)) && Number(limit) > 0 ? ` (límite ${Number(limit).toFixed(2)})` : '') + '. No se abren más operaciones hoy.';
-  applyRule(db, account, { kind: 'daily_loss', violated: true, lockUntil: nextResetIso(account, now), dayFrom: tradingDay, dayTo: tradingDay, pnl: -perdida, message, now });
+  const lim = Number.isFinite(Number(limit)) && Number(limit) > 0 ? ` (límite ${Number(limit).toFixed(2)})` : '';
+  const semanal = kind === 'weekly_loss';
+  const k = semanal ? 'weekly_loss' : kind === 'max_trades' ? 'max_trades' : 'daily_loss';
+  const message = k === 'max_trades'
+    ? `Guardián de MetaTrader: ${Number.isFinite(Number(trades)) ? Number(trades) : ''} operaciones abiertas hoy${Number.isFinite(Number(limit)) && Number(limit) > 0 ? ` (máximo ${Number(limit)})` : ''}. No se abren más hoy.`
+    : `Guardián de MetaTrader: pérdida cerrada ${semanal ? 'de la semana' : 'del día'} de ${perdida.toFixed(2)} ${cur}${lim}. No se abren más operaciones ${semanal ? 'esta semana' : 'hoy'}.`;
+  applyRule(db, account, {
+    kind: k, violated: true, lockUntil: semanal ? nextWeekResetIso(account, now) : nextResetIso(account, now),
+    dayFrom: semanal ? week.start : tradingDay, dayTo: semanal ? week.end : tradingDay, pnl: -perdida, message, now,
+  });
   return evaluateAccountRisk(db, accountId);
 }
 

@@ -63,3 +63,24 @@ rollover. Riesgo real: **abrir estando bloqueado** genera operaciones de segundo
 
 Límite físico: necesita un MetaTrader de escritorio abierto en la cuenta con la contraseña de operador y Algo Trading
 activo; desde el móvil no se puede impedir una orden, solo cerrarla en cuanto entra.
+
+## Guardián v2.1: los límites salen de la ficha de la cuenta (10-11-2026)
+
+Pedido de César: poner en el journal «100k, 1.500 al día, 4.000 a la semana» y que MetaTrader lo aplique solo.
+
+- `GET /api/sync/mt5/estado` devuelve además `limit_daily`, `limit_weekly`, `limit_trades` (de `daily_max_loss`,
+  `weekly_max_loss`, `max_trades_per_day`) y `account_name`. Con el token único, si el login no está enlazado y el usuario
+  tiene una sola cuenta de MT5 sin enlazar, se enlaza con ella; con token de cuenta y otro login responde 409.
+- El guardián guarda los límites en variables globales del terminal (sigue con ellos sin conexión) y calcula con el
+  historial local la pérdida cerrada del día y de la semana del bróker (lunes 00:00) y las operaciones abiertas hoy.
+- Bajar un límite se aplica al momento; subirlo o quitarlo queda pendiente hasta el siguiente día del bróker.
+- El corte nunca es anterior al momento en que el guardián vio el bloqueo: si se baja un límite por debajo de lo ya
+  perdido, lo que estaba abierto se respeta.
+- `POST /api/sync/mt5/bloquear` acepta `kind`: `daily_loss`, `weekly_loss` (bloquea hasta el reinicio semanal) o
+  `max_trades`.
+- Sin token usa los parámetros (`PerdidaDiariaPct`, `PerdidaSemanalPct`, `MaxOperacionesDia`, `TamanoCuenta`).
+- No hace falta «Bloqueo estricto» para que el guardián aplique los límites de la ficha; el estricto añade que el journal
+  no deje desbloquear ni subir límites durante el bloqueo, y que sus bloqueos manuales lleguen también a MetaTrader.
+
+Día y semana: el guardián usa los del bróker (medianoche del servidor = 17:00 de Nueva York en The5ers), que coinciden
+con la ficha por defecto del journal (America/New_York, reinicio a las 17).

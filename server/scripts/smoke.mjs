@@ -720,6 +720,7 @@ try {
     const as = { token: tk.data.token };
     const libre = await api('GET', '/sync/mt5/estado', undefined, as);
     assert(libre.status === 200 && libre.data.locked === false && libre.data.action === 'ninguna', `estado libre ${JSON.stringify(libre.data)}`);
+    assert(libre.data.limit_daily === 500 && libre.data.limit_weekly === null && libre.data.limit_trades === 5 && libre.data.account_name === 'Estricta', `el guardián recibe los límites de la ficha: ${JSON.stringify(libre.data)}`);
     const lock = await api('POST', `/accounts/${id}/lock`, { hours: 2, reason: 'prueba' });
     assert(lock.status === 200 && lock.data.status.locked === true, 'bloqueo manual');
     const t = await api('POST', '/trades', { account_id: id, symbol: 'MNQ', side: 'long', qty: 1, entry_price: 1, exit_price: 2, ...tradeTimes(), pnl: 10, force: true });
@@ -743,6 +744,8 @@ try {
     assert(suelo.status === 200 && suelo.data.action === 'cerrar_todo' && suelo.data.locked === true, `suelo del guardián ${JSON.stringify(suelo.data)}`);
     const stSuelo = await api('GET', `/accounts/${id}/status`);
     assert(stSuelo.status === 200 && stSuelo.data.events.some((e) => e.kind === 'daily_loss' && /Guardián de MetaTrader/.test(e.message)), `evento del suelo registrado: ${JSON.stringify(stSuelo.data.events).slice(0, 300)}`);
+    const sem = await api('POST', '/sync/mt5/bloquear', { login: '777001', server: 'Demo', kind: 'weekly_loss', loss: 1300, limit: 1200 }, as);
+    assert(sem.status === 200 && sem.data.locked === true && sem.data.lock_reason === 'weekly_loss', `bloqueo semanal del guardián ${JSON.stringify(sem.data)}`);
     // Operación que llega por sincronización abierta en pleno bloqueo (tras el bloqueo): se guarda y queda marcada como violación.
     await new Promise((r) => setTimeout(r, 3000));
     const nowSec = Math.floor(Date.now() / 1000);
