@@ -344,16 +344,16 @@ export default function Mt5SyncCard({ account, onChange }: { account: Account; o
               </ul>
             </div>
             <div className="rounded-lg border border-loss/40 bg-loss/5 p-3 text-xs text-gray-300">
-              <p className="font-semibold text-gray-100">Guardián del límite (bloqueo estricto dentro de MetaTrader)</p>
-              <p className="mt-1 text-gray-400">Un Asesor Experto que pregunta al journal cada 5 segundos. Si la cuenta está bloqueada con bloqueo estricto, cierra todas las posiciones, borra las pendientes y vuelve a cerrar al instante cualquier posición que abras, hasta el reinicio del día. Usa el mismo token que el servicio (único o de la cuenta).</p>
+              <p className="font-semibold text-gray-100">Guardián del límite diario (dentro de MetaTrader)</p>
+              <p className="mt-1 text-gray-400">Un Asesor Experto que suma lo que has perdido hoy en operaciones cerradas (el flotante no cuenta). Al llegar al % de la cuenta que tú pongas, no deja abrir más operaciones hasta el día siguiente: las que ya tenías abiertas se quedan como están, cualquier posición nueva se cierra al instante y las pendientes se borran. No abre operaciones nunca. Funciona solo, sin token; si pegas el token, respeta además los bloqueos de este journal y deja el bloqueo registrado en la cuenta.</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-400">
-                <li>Activa «Bloqueo estricto» en la ficha de la cuenta (Cuentas → editar).</li>
-                <li>Descarga el código <a href="/descargas/GTFX_JournalGuard.mq5" download className="text-accent hover:underline">GTFX_JournalGuard.mq5</a> y ábrelo en MetaEditor (Archivo → Abrir) o pégalo en un Asesor Experto nuevo con ese nombre. Compila (F7).</li>
-                <li>En MetaTrader arrastra el EA «GTFX_JournalGuard» a cualquier gráfico de la cuenta, pega el token en sus parámetros y deja activado «Permitir trading automatizado» (botón AutoTrading en verde).</li>
-                <li>Mantén la URL del journal en «Permitir WebRequest» (paso 1 de arriba).</li>
-                <li>En los parámetros del EA, «PerdidaDiariaUSD» es el suelo del día por equidad (por defecto 1.000): al empezar cada día del bróker guarda el mayor entre saldo y equidad y, si la equidad cae esa cantidad (contando el flotante), cierra todo y bloquea hasta el día siguiente aunque el journal o internet fallen. Pon 0 para desactivarlo.</li>
+                <li>Descarga <a href="/descargas/GTFX_JournalGuard.ex5" download className="text-accent hover:underline">GTFX_JournalGuard.ex5</a>. En Windows puedes bajar también el <a href="/descargas/Instalar-GTFX-JournalGuard.bat" download className="text-accent hover:underline">instalador</a> a la misma carpeta y abrirlo con doble clic (y saltar al paso 3).</li>
+                <li>En MetaTrader 5 (Windows o Mac): Archivo → Abrir carpeta de datos → MQL5 → Experts, y copia ahí el archivo.</li>
+                <li>Navegador → Asesores Expertos → clic derecho → Actualizar. Arrastra «GTFX_JournalGuard» a cualquier gráfico de la cuenta.</li>
+                <li>En sus parámetros pon «PerdidaDiariaPct» (por ejemplo 1 = 1 % de la cuenta) y, si quieres fijar el tamaño, «TamanoCuenta» (100000, 200000…). Deja el botón «Algo Trading» en verde.</li>
+                <li>Opcional: pega el token en «Token» y añade la URL del journal en «Permitir WebRequest» (paso 1 de arriba). Para recibir el aviso en el móvil, pon tu MetaQuotes ID en Herramientas → Opciones → Notificaciones.</li>
               </ol>
-              <p className="mt-2 text-gray-500">Límite físico: necesita un MetaTrader abierto con la contraseña de operador (la de inversor no puede cerrar) y AutoTrading activo; si lo quitas o apagas el equipo, deja de vigilar. No abras operaciones mientras esté bloqueado: se cierran al instante y esas operaciones de segundos son las que las firmas penalizan. Lo que operes en bloqueo llega igual al journal y queda marcado como violación.</p>
+              <p className="mt-2 text-gray-500">Si operas desde el móvil: el guardián vive en el MetaTrader de escritorio, así que ese equipo tiene que estar encendido con MetaTrader abierto en la misma cuenta (con la contraseña de operador) mientras operas. Si lo cierras, deja de vigilar. No abras operaciones estando bloqueado: se cierran en segundos y esas operaciones tan cortas son las que las firmas de fondeo penalizan. El código fuente está en <a href="/descargas/GTFX_JournalGuard.mq5" download className="text-accent hover:underline">GTFX_JournalGuard.mq5</a>.</p>
             </div>
             {origin !== 'https://journal.cesarzorrilla.com' && <p className="text-xs text-warn">Estás en {origin}: al añadir el servicio, cambia también el campo «JournalUrl» por esta dirección.</p>}
           </>

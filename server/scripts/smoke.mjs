@@ -738,11 +738,11 @@ try {
     assert(est.status === 200 && est.data.locked === true && est.data.hard_lock === true && est.data.action === 'cerrar_todo', `estado bloqueado ${JSON.stringify(est.data)}`);
     const sync = await api('POST', '/sync/mt5', { account: { login: '777001', server: 'Demo', currency: 'USD', balance: 50000, equity: 50000, floating: 0, open_positions: 0, server_time: Math.floor(Date.now() / 1000), gmt_time: Math.floor(Date.now() / 1000) }, positions: [] }, as);
     assert(sync.status === 200 && sync.data.action === 'cerrar_todo', `la sincronización también avisa cerrar_todo: ${JSON.stringify(sync.data)}`);
-    // El guardián avisa de que su suelo de capital se tocó: el bloqueo no se acorta, queda registrado y sigue cerrar_todo.
-    const suelo = await api('POST', '/sync/mt5/bloquear', { login: '777001', server: 'Demo', equity: 49480, base: 50000, limit: 500, floating: -120 }, as);
+    // El guardián avisa de que la pérdida cerrada del día tocó su límite: el bloqueo no se acorta, queda registrado y sigue cerrar_todo.
+    const suelo = await api('POST', '/sync/mt5/bloquear', { login: '777001', server: 'Demo', loss: 520, limit: 500, base: 50000 }, as);
     assert(suelo.status === 200 && suelo.data.action === 'cerrar_todo' && suelo.data.locked === true, `suelo del guardián ${JSON.stringify(suelo.data)}`);
     const stSuelo = await api('GET', `/accounts/${id}/status`);
-    assert(stSuelo.status === 200 && stSuelo.data.events.some((e) => e.kind === 'daily_loss' && /Suelo de capital/.test(e.message)), `evento del suelo registrado: ${JSON.stringify(stSuelo.data.events).slice(0, 300)}`);
+    assert(stSuelo.status === 200 && stSuelo.data.events.some((e) => e.kind === 'daily_loss' && /Guardián de MetaTrader/.test(e.message)), `evento del suelo registrado: ${JSON.stringify(stSuelo.data.events).slice(0, 300)}`);
     // Operación que llega por sincronización abierta en pleno bloqueo (tras el bloqueo): se guarda y queda marcada como violación.
     await new Promise((r) => setTimeout(r, 3000));
     const nowSec = Math.floor(Date.now() / 1000);

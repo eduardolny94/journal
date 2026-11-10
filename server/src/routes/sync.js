@@ -11,7 +11,7 @@ import { getDb } from '../db.js';
 import { SyncError, accountForToken, applySync, resolveAccountForUser, touchUserSync, userForToken } from '../services/mt5Sync.js';
 import { applyTradingviewSync } from '../services/tradingviewSync.js';
 import { requireSubscription } from '../services/subscriptions.js';
-import { applyEquityLock, evaluateAccountRisk } from '../services/risk.js';
+import { applyGuardLock, evaluateAccountRisk } from '../services/risk.js';
 
 const router = Router();
 const isTest = process.env.NODE_ENV === 'test';
@@ -91,16 +91,16 @@ router.get('/mt5/estado', tokenAuth, requireSubscription(getDb), (req, res, next
   }
 });
 
-// POST /api/sync/mt5/bloquear { login, server, equity, base, limit, floating } → el guardián avisa de que su suelo local de
-// capital (balance/equidad de inicio del día menos el límite) se ha tocado. El journal bloquea la cuenta hasta el siguiente
-// reinicio del día (motivo pérdida diaria) y, con bloqueo estricto, responde cerrar_todo para que el guardián siga cerrando.
+// POST /api/sync/mt5/bloquear { login, server, loss, limit, base } → el guardián avisa de que la pérdida cerrada del día
+// tocó su límite local. El journal bloquea la cuenta hasta el siguiente reinicio del día (motivo pérdida diaria) y lo deja
+// registrado; con bloqueo estricto responde cerrar_todo (el guardián lo aplica como «no abrir más»).
 router.post('/mt5/bloquear', tokenAuth, requireSubscription(getDb), (req, res, next) => {
   try {
     const account = guardAccount(req, res);
     if (account === undefined) return;
     if (!account) return res.json(SIN_CUENTA);
     const b = req.body || {};
-    const status = applyEquityLock(getDb(), account.id, { equity: Number(b.equity), base: Number(b.base), limit: Number(b.limit), floating: Number(b.floating) });
+    const status = applyGuardLock(getDb(), account.id, { loss: Number(b.loss), limit: Number(b.limit) });
     res.json(estadoDe(status));
   } catch (err) {
     next(err);
