@@ -832,6 +832,18 @@ try {
     assert(s1.status === 200 && s1.data.account_id === acc.data.id && s1.data.account_created === false, `primer login → cuenta existente ${JSON.stringify(s1.data)}`);
     const det = await api('GET', `/accounts/${acc.data.id}`);
     assert(det.data.sync.login === '6100001' && det.data.sync.enabled === false, `cuenta asociada sin token propio ${JSON.stringify(det.data.sync)}`);
+    // Número de cuenta de MetaTrader puesto a mano en la ficha: el guardián con el token único recibe los límites de esa cuenta.
+    const man = await api('POST', '/accounts', { name: 'Manual MT5', firm: 'The5ers', platform: 'mt5', account_type: 'evaluacion', size: 200000, currency: 'USD', timezone: 'America/New_York', day_reset_hour: 17, daily_max_loss: 3500, weekly_max_loss: 6000, max_trades_per_day: 2, mt5_login: '26807332' });
+    assert(man.status === 201 && man.data.sync.login === '26807332', `login manual al crear ${man.status} ${JSON.stringify(man.data.sync)}`);
+    const gEst = await api('GET', '/sync/mt5/estado?login=26807332&server=X', undefined, as);
+    assert(gEst.status === 200 && gEst.data.limit_daily === 3500 && gEst.data.limit_weekly === 6000 && gEst.data.limit_trades === 2 && gEst.data.account_name === 'Manual MT5', `guardián con token único y login manual ${JSON.stringify(gEst.data)}`);
+    const gNo = await api('GET', '/sync/mt5/estado?login=999', undefined, as);
+    assert(gNo.status === 200 && /no está enlazada/.test(gNo.data.pending || '') && /Manual MT5/.test(gNo.data.pending), `aviso con las cuentas enlazadas ${JSON.stringify(gNo.data)}`);
+    const badLogin = await api('PUT', `/accounts/${man.data.id}`, { mt5_login: '12ab' });
+    assert(badLogin.status === 400, `login con letras debe dar 400, dio ${badLogin.status}`);
+    const mover = await api('PUT', `/accounts/${man.data.id}`, { mt5_login: '' });
+    assert(mover.status === 200 && mover.data.sync.login === null, `vaciar el número desenlaza ${JSON.stringify(mover.data.sync)}`);
+    await api('PUT', `/accounts/${man.data.id}`, { mt5_login: '26807332' });
     // Otro login en el mismo terminal: no da 409, crea una cuenta nueva con los datos de MT5.
     const open = gmt - 7200;
     const s2 = await api('POST', '/sync/mt5', { account: mt5('6100002', { balance: 10000, equity: 10000, currency: 'EUR' }), positions: [{ id: '610002', symbol: 'GBPUSD', type: 'sell', volume: 0.2, open_price: 1.3, close_price: 1.299, open_time: open, close_time: open + 600, profit: 20, commission: -1, swap: 0, fee: 0 }] }, as);

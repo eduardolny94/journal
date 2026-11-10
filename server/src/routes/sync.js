@@ -105,7 +105,7 @@ function sinCuenta(req) {
   const login = String(src.login ?? '').trim().replace(/\D/g, '').slice(0, 20);
   const otras = getDb().prepare("SELECT name, sync_login FROM accounts WHERE user_id = ? AND is_archived = 0 AND platform = 'mt5' AND sync_login IS NOT NULL ORDER BY id").all(req.syncUser.id);
   const enlazadas = otras.slice(0, 3).map((a) => `«${String(a.name).replace(/["\\]/g, '')}» es la ${a.sync_login}`).join(', ');
-  const pending = `La cuenta de MT5 ${login} no está enlazada con ninguna cuenta del journal${enlazadas ? ` (${enlazadas})` : ''}. En el journal: Cuentas → Conectar → «Token solo para esta cuenta», y pega ese token aquí.`;
+  const pending = `La cuenta de MT5 ${login} no está enlazada con ninguna cuenta del journal${enlazadas ? ` (${enlazadas})` : ''}. En el journal: Cuentas → Editar la cuenta → «Número de cuenta en MetaTrader» → pon ${login} y guarda.`;
   return { ok: true, locked: false, hard_lock: false, action: 'ninguna', lock_reason: null, lock_until: null, limit_daily: null, limit_weekly: null, limit_trades: null, pending };
 }
 

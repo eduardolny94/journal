@@ -63,6 +63,7 @@ interface FormState {
   weekly_max_loss: string;
   max_trades_per_day: string;
   hard_lock: boolean;
+  mt5_login: string;
   is_archived: boolean;
   outcome: Outcome;
   purchased_at: string;
@@ -86,6 +87,7 @@ const EMPTY: FormState = {
   weekly_max_loss: '',
   max_trades_per_day: '',
   hard_lock: false,
+  mt5_login: '',
   is_archived: false,
   outcome: 'activa',
   purchased_at: '',
@@ -111,6 +113,7 @@ function fromAccount(a: Account | null | undefined): FormState {
     weekly_max_loss: a.weekly_max_loss !== null && a.weekly_max_loss !== undefined ? String(a.weekly_max_loss) : '',
     max_trades_per_day: a.max_trades_per_day !== null && a.max_trades_per_day !== undefined ? String(a.max_trades_per_day) : '',
     hard_lock: !!a.hard_lock,
+    mt5_login: a.sync?.login ?? '',
     is_archived: !!a.is_archived,
     outcome: (a.outcome as Outcome) || 'activa',
     purchased_at: a.purchased_at ?? '',
@@ -223,6 +226,7 @@ export default function AccountForm({ open, onClose, account, onSaved, allAccoun
         weekly_max_loss: numOrNull(form.weekly_max_loss),
         max_trades_per_day: numOrNull(form.max_trades_per_day),
         hard_lock: form.hard_lock,
+        ...(form.platform === 'mt5' ? { mt5_login: form.mt5_login.trim() } : {}),
         is_archived: form.is_archived ? 1 : 0,
         outcome: form.outcome,
         purchased_at: form.purchased_at || null,
@@ -308,6 +312,16 @@ export default function AccountForm({ open, onClose, account, onSaved, allAccoun
               onChange={(e) => set('platform', e.target.value as Platform)}
               options={PLATFORM_OPTIONS}
             />
+            {form.platform === 'mt5' && (
+              <Input
+                label="Número de cuenta en MetaTrader"
+                inputMode="numeric"
+                placeholder="p. ej. 26807332"
+                value={form.mt5_login}
+                onChange={(e) => set('mt5_login', e.target.value.replace(/\D/g, '').slice(0, 20))}
+                hint="El número (login) con el que entras en MetaTrader 5. Con él, el guardián y la sincronización saben que ese MetaTrader es esta cuenta."
+              />
+            )}
             <Select
               label="Tipo de cuenta"
               value={form.account_type}

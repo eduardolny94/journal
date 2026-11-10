@@ -159,6 +159,25 @@ function linkParent(db, userId, accountId) {
   db.prepare('UPDATE accounts SET outcome = ?, funded_at = COALESCE(funded_at, ?) WHERE id = ? AND user_id = ?').run(outcome, fundedAt, parent.id, userId);
 }
 
+/**
+ * Número de cuenta de MetaTrader (login) que el usuario pone a mano en la ficha: enlaza esta cuenta del journal con ese
+ * MetaTrader para la sincronización y el guardián con el token único. Si otra cuenta suya tenía ese número, se le quita.
+ * `undefined` no cambia nada; vacío desenlaza.
+ */
+function applyMt5Login(db, userId, accountId, raw) {
+  if (raw === undefined) return;
+  const login = String(raw ?? '').trim();
+  if (login !== '' && !/^\d{1,20}$/.test(login)) throw new HttpError(400, 'El número de cuenta de MetaTrader solo lleva dígitos.');
+  const cur = db.prepare('SELECT sync_login FROM accounts WHERE id = ? AND user_id = ?').get(accountId, userId);
+  if (!cur || (cur.sync_login || '') === login) return;
+  if (login === '') {
+    db.prepare('UPDATE accounts SET sync_login = NULL, sync_server = NULL WHERE id = ? AND user_id = ?').run(accountId, userId);
+    return;
+  }
+  db.prepare('UPDATE accounts SET sync_login = NULL, sync_server = NULL WHERE user_id = ? AND id != ? AND sync_login = ?').run(userId, accountId, login);
+  db.prepare('UPDATE accounts SET sync_login = ?, sync_server = NULL WHERE id = ? AND user_id = ?').run(login, accountId, userId);
+}
+
 function parseRiskInput(body, existing = null) {
   const b = body && typeof body === 'object' ? body : {};
   const pick = (key) => (b[key] !== undefined ? b[key] : existing ? existing[key] : null);
@@ -239,6 +258,7 @@ router.post('/', (req, res, next) => {
         data.hard_lock ? 1 : 0,
       );
     const newId = Number(result.lastInsertRowid);
+    applyMt5Login(db, req.user.id, newId, req.body?.mt5_login);
     linkParent(db, req.user.id, newId);
     // Coste de la evaluación (solo al crear): se registra como gasto en Finanzas.
     const price = optionalNonNegative(req.body && req.body.purchase_price, 'El coste de la evaluación');
@@ -299,6 +319,7 @@ router.put('/:id', (req, res, next) => {
       account.id,
       req.user.id,
     );
+    applyMt5Login(db, req.user.id, account.id, req.body?.mt5_login);
     linkParent(db, req.user.id, account.id);
     res.json(accountWithStatus(db, account.id));
   } catch (err) {
