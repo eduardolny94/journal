@@ -84,3 +84,27 @@ Pedido de César: poner en el journal «100k, 1.500 al día, 4.000 a la semana»
 
 Día y semana: el guardián usa los del bróker (medianoche del servidor = 17:00 de Nueva York en The5ers), que coinciden
 con la ficha por defecto del journal (America/New_York, reinicio a las 17).
+
+## Guardián v3.0: panel «Abrir con riesgo fijo» (11-11-2026)
+
+Pedido de César: «un EA como position size, que pueda configurar todo y me venga de una vez según mi SL, el TP1 y TP2».
+
+- Panel en el gráfico (objetos `GTFXP_*`): riesgo por operación %, TP1 y TP2 en veces el stop (R), % que se cierra en
+  TP1, «stop a la entrada al tocar TP1». «Preparar operación» pone una línea roja de stop (1,5 × rango medio de 14 velas
+  bajo el precio); se arrastra: debajo del precio = compra, encima = venta. Lotes = riesgo / pérdida por lote al stop
+  (`OrderCalcProfit`), redondeado hacia abajo al paso de volumen; si el riesgo resultante supera el objetivo en 1 % no abre.
+- Abre **una sola posición** (stop y TP2 en el bróker) y gestiona el TP1 localmente: al tocarlo, cierre parcial del % y stop
+  a la entrada (una modificación). Motivo: la lista de prácticas prohibidas de The5ers define «bulk trading» como
+  «multiple trades are open simultaneously»; abrir dos posiciones a la vez para TP1/TP2 podría leerse así, y además
+  contaría como dos operaciones para el máximo diario. El TP1 necesita el terminal abierto; si está apagado, la operación
+  sigue con su stop y su TP2.
+- Seguridad: confirmación antes de enviar (`ConfirmarAbrir`), 1,5 s de espera tras preparar, no abre si la cuenta está
+  bloqueada o Algo Trading está apagado, riesgo máximo 5 %. El guardián fija el modo de ejecución del símbolo antes de
+  abrir o cerrar (`SetTypeFillingBySymbol`; antes usaba el modo por defecto, que algunos brókers rechazan).
+- Temporizador a 1 s para el TP1; la consulta al journal sigue cada `Segundos`.
+- Sin probar con órdenes reales al publicarlo: solo compilado. Probar primero en una cuenta demo de MetaQuotes.
+
+Token: los mensajes de «token no válido» ya no dicen «genera uno nuevo» (César lo hacía cada vez y anulaba el anterior);
+guardián y servicio comparten el token válido en la carpeta común. En el Mac, el segundo terminal (B) debe arrancar con
+`USER=user` para compartir esa carpeta con la app oficial (corregido en `~/.local/bin/mt5-b`).
+

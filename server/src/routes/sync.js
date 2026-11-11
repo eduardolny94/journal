@@ -28,13 +28,13 @@ function tokenAuth(req, res, next) {
     const db = getDb();
     if (token.startsWith('gtfxu_')) {
       const user = userForToken(db, token);
-      if (!user) return res.status(401).json({ error: 'Token de sincronización no válido o revocado. Genera uno nuevo en Conectar → Sincronización automática.', code: 'bad_sync_token' });
+      if (!user) return res.status(401).json({ error: 'Token de sincronización no válido o revocado (cada token nuevo anula el anterior). Pega el último que generaste en Conectar → Sincronización automática.', code: 'bad_sync_token' });
       req.syncUser = user;
       req.user = { id: user.id };
       return next();
     }
     const account = accountForToken(db, token);
-    if (!account) return res.status(401).json({ error: 'Token de sincronización no válido o revocado. Genera uno nuevo en Cuentas.', code: 'bad_sync_token' });
+    if (!account) return res.status(401).json({ error: 'Token de sincronización no válido o revocado (cada token nuevo anula el anterior). Pega el último que generaste en Cuentas → Conectar.', code: 'bad_sync_token' });
     if (account.is_archived) return res.status(409).json({ error: 'La cuenta está archivada: no recibe operaciones.', code: 'account_archived' });
     req.syncAccount = account;
     req.user = { id: account.user_id };

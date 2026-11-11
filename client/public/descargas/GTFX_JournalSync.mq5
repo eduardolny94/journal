@@ -25,7 +25,7 @@
 //+------------------------------------------------------------------+
 #property service
 #property strict
-#property version   "1.2"
+#property version   "1.3"
 #property description "Sincroniza las operaciones cerradas y el balance de esta cuenta con el journal de Global Traders FX."
 
 input string JournalUrl    = "https://journal.cesarzorrilla.com"; // Direccion del journal
@@ -247,7 +247,7 @@ void ProcesarRespuesta(int codigo, string respuesta)
       g_firma = "";
       return;
    }
-   if(codigo == 401)      Aviso("el token no es valido o fue revocado. Genera uno nuevo en el journal (Cuentas -> Sincronizar) y vuelve a anadir el servicio.");
+   if(codigo == 401)      Aviso("el token no es valido o fue revocado. Pega en las propiedades del servicio el ULTIMO que generaste (cada token nuevo anula el anterior); no generes otro.");
    else if(codigo == 409) Aviso("el journal rechazo el envio: " + respuesta);
    else if(codigo == 402) Aviso("la suscripcion del journal no esta activa.");
    else if(codigo == 429) Aviso("demasiados envios seguidos; se reintenta en un minuto.");

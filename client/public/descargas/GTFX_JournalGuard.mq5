@@ -23,6 +23,12 @@
 //| Avisa en pantalla y con notificacion al movil (MetaQuotes ID en    |
 //| Herramientas -> Opciones -> Notificaciones).                       |
 //|                                                                    |
+//| PANEL "ABRIR CON RIESGO FIJO": pulsas Preparar, arrastras la linea |
+//| roja al stop y el panel calcula los lotes para arriesgar tu % de la|
+//| cuenta. Abre UNA posicion con el stop y el TP final en el broker;  |
+//| el TP1 lo gestiona el programa (cierra una parte y mueve el stop a |
+//| la entrada). Todo se configura en el panel o en los parametros.    |
+//|                                                                    |
 //| Instalacion (Windows y Mac, igual):                                |
 //|  1. MetaTrader 5: Archivo -> Abrir carpeta de datos -> MQL5 ->     |
 //|     Experts, y copia ahi GTFX_JournalGuard.ex5.                    |
@@ -35,7 +41,7 @@
 //| si lo cierras o apagas el equipo, deja de vigilar.                 |
 //+------------------------------------------------------------------+
 #property copyright "Global Traders FX"
-#property version   "2.3"
+#property version   "3.0"
 #property strict
 #property description "Aplica en MetaTrader los limites de la ficha de tu cuenta en el journal (perdida diaria, semanal y maximo de operaciones). Al tocar uno no deja abrir mas operaciones; no toca las que ya estaban abiertas."
 
@@ -52,6 +58,15 @@ input bool   CerrarAbiertas    = false;  // Al bloquear, cerrar tambien las que 
 input bool   BorrarPendientes  = true;   // Al bloquear, borrar las ordenes pendientes
 input int    Segundos          = 5;      // Cada cuantos segundos se revisa
 
+input group  "Panel: abrir operaciones con riesgo fijo"
+input bool   PanelActivo       = true;   // Mostrar el panel en este grafico
+input double RiesgoPct         = 0.5;    // % de la cuenta que arriesgas por operacion
+input double TP1_R             = 1.0;    // TP1 a cuantas veces el stop (R). 0 = sin TP1
+input double TP2_R             = 2.0;    // TP2 (objetivo final) a cuantas veces el stop (R). 0 = sin TP final
+input int    PctEnTP1          = 50;     // % de la posicion que se cierra en TP1
+input bool   StopAEntrada      = true;   // Al tocar TP1, mover el stop al precio de entrada
+input bool   ConfirmarAbrir    = true;   // Pedir confirmacion antes de enviar la orden
+
 CTrade   g_trade;
 double   g_limD = 0, g_limW = 0;         // limites en moneda de la cuenta (0 = sin limite)
 int      g_maxN = 0;                     // maximo de operaciones al dia (0 = sin limite)
@@ -66,6 +81,15 @@ int      g_fallos = 0;
 long     g_diaAviso = 0;
 ulong    g_ultimoCierre = 0;
 string   g_token = "";                   // token en uso: el del parametro o el compartido
+// Panel
+#define P "GTFXP_"
+#define MAGIA 26111101
+double   g_pRiesgo = 0, g_pR1 = 0, g_pR2 = 0;
+int      g_pPct = 0;
+bool     g_pBE = true, g_pListo = false, g_prep = false;
+double   g_slPrecio = 0;
+string   g_prepSim = "";
+ulong    g_prepMs = 0, g_ultimoTP1 = 0;
 
 bool   ConJournal() { return StringLen(g_token) >= 20; }
 string Gv(const string nombre) { return "GTFX_Guard_" + nombre + "_" + (string)AccountInfoInteger(ACCOUNT_LOGIN); }
@@ -334,7 +358,7 @@ void Consultar()
       if(g_fallos == 0)
       {
          Print("GTFX_JournalGuard: respuesta del journal ", codigo, ": ", respuesta);
-         g_nota = codigo == 401 ? "Token no valido: genera uno nuevo en el journal." : (codigo == 409 ? "Este token es de otra cuenta de MT5." : "El journal respondio " + (string)codigo + ".");
+         g_nota = codigo == 401 ? "Token no valido. Pega aqui el ULTIMO que generaste (cada token nuevo anula el anterior); no generes otro." : (codigo == 409 ? "Este token es de otra cuenta de MT5." : "El journal respondio " + (string)codigo + ".");
       }
       g_fallos++;
       return;
@@ -403,6 +427,7 @@ void Aplicar()
       if(ticket == 0) continue;
       if(!CerrarAbiertas && PositionGetInteger(POSITION_TIME_MSC) <= corte) continue;   // ya estaba abierta: se queda
       hecho = true;
+      g_trade.SetTypeFillingBySymbol(PositionGetString(POSITION_SYMBOL));
       if(!g_trade.PositionClose(ticket))
          Print("GTFX_JournalGuard: no se pudo cerrar la posicion ", ticket, ": ", g_trade.ResultRetcodeDescription());
    }
@@ -443,11 +468,343 @@ void Pintar()
    Comment(t);
 }
 
+//====================================================================
+// PANEL: abrir operaciones con riesgo fijo (tipo "position sizer")
+// Arrastras la linea roja del STOP; el panel calcula los lotes para que, si salta el stop, pierdas tu % de la cuenta.
+// Abre UNA sola posicion con el stop y el TP final (TP2) puestos en el broker. El TP1 lo gestiona este programa: al
+// tocarlo cierra la parte indicada y, si quieres, mueve el stop a la entrada (una modificacion por operacion).
+//====================================================================
+void PObj(const string n, const ENUM_OBJECT tipo, const int x, const int y, const int w, const int h)
+{
+   string nombre = P + n;
+   if(ObjectFind(0, nombre) < 0) ObjectCreate(0, nombre, tipo, 0, 0, 0);
+   ObjectSetInteger(0, nombre, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, nombre, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, nombre, OBJPROP_YDISTANCE, y);
+   if(w > 0) ObjectSetInteger(0, nombre, OBJPROP_XSIZE, w);
+   if(h > 0) ObjectSetInteger(0, nombre, OBJPROP_YSIZE, h);
+   ObjectSetInteger(0, nombre, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, nombre, OBJPROP_HIDDEN, true);
+   ObjectSetInteger(0, nombre, OBJPROP_BACK, false);
+   ObjectSetInteger(0, nombre, OBJPROP_ZORDER, 10);
+}
+
+void PTexto(const string n, const int x, const int y, const string txt, const color c = clrSilver, const int tam = 9)
+{
+   PObj(n, OBJ_LABEL, x, y, 0, 0);
+   ObjectSetString(0, P + n, OBJPROP_TEXT, txt);
+   ObjectSetString(0, P + n, OBJPROP_FONT, "Arial");
+   ObjectSetInteger(0, P + n, OBJPROP_FONTSIZE, tam);
+   ObjectSetInteger(0, P + n, OBJPROP_COLOR, c);
+}
+
+void PBoton(const string n, const int x, const int y, const int w, const int h, const string txt, const color fondo, const color tinta = clrWhite)
+{
+   PObj(n, OBJ_BUTTON, x, y, w, h);
+   ObjectSetString(0, P + n, OBJPROP_TEXT, txt);
+   ObjectSetString(0, P + n, OBJPROP_FONT, "Arial");
+   ObjectSetInteger(0, P + n, OBJPROP_FONTSIZE, 9);
+   ObjectSetInteger(0, P + n, OBJPROP_COLOR, tinta);
+   ObjectSetInteger(0, P + n, OBJPROP_BGCOLOR, fondo);
+   ObjectSetInteger(0, P + n, OBJPROP_BORDER_COLOR, C'70,70,70');
+   ObjectSetInteger(0, P + n, OBJPROP_STATE, false);
+}
+
+void PCampo(const string n, const int x, const int y, const int w, const string txt)
+{
+   PObj(n, OBJ_EDIT, x, y, w, 20);
+   ObjectSetString(0, P + n, OBJPROP_TEXT, txt);
+   ObjectSetString(0, P + n, OBJPROP_FONT, "Arial");
+   ObjectSetInteger(0, P + n, OBJPROP_FONTSIZE, 9);
+   ObjectSetInteger(0, P + n, OBJPROP_COLOR, clrWhite);
+   ObjectSetInteger(0, P + n, OBJPROP_BGCOLOR, C'40,40,40');
+   ObjectSetInteger(0, P + n, OBJPROP_BORDER_COLOR, C'90,90,90');
+   ObjectSetInteger(0, P + n, OBJPROP_ALIGN, ALIGN_CENTER);
+   ObjectSetInteger(0, P + n, OBJPROP_READONLY, false);
+}
+
+void PLinea(const string n, const double precio, const color c, const bool arrastrable, const ENUM_LINE_STYLE estilo, const string txt)
+{
+   string nombre = P + n;
+   if(ObjectFind(0, nombre) < 0) ObjectCreate(0, nombre, OBJ_HLINE, 0, 0, precio);
+   ObjectSetDouble(0, nombre, OBJPROP_PRICE, precio);
+   ObjectSetInteger(0, nombre, OBJPROP_COLOR, c);
+   ObjectSetInteger(0, nombre, OBJPROP_WIDTH, arrastrable ? 2 : 1);
+   ObjectSetInteger(0, nombre, OBJPROP_STYLE, estilo);
+   ObjectSetInteger(0, nombre, OBJPROP_SELECTABLE, arrastrable);
+   ObjectSetInteger(0, nombre, OBJPROP_SELECTED, arrastrable);
+   ObjectSetInteger(0, nombre, OBJPROP_BACK, false);
+   ObjectSetString(0, nombre, OBJPROP_TEXT, txt);
+   ObjectSetString(0, nombre, OBJPROP_TOOLTIP, txt);
+}
+
+double PLeer(const string n, const double defecto)
+{
+   string t = ObjectGetString(0, P + n, OBJPROP_TEXT);
+   StringReplace(t, ",", ".");
+   StringReplace(t, "%", "");
+   double v = StringToDouble(t);
+   return v >= 0 && MathIsValidNumber(v) ? v : defecto;
+}
+
+bool ParcialActiva() { return g_pPct > 0 && g_pPct < 100 && g_pR1 > 0 && (g_pR2 <= 0 || g_pR1 < g_pR2); }
+
+void PanelCrear()
+{
+   if(!PanelActivo) return;
+   int x = 8, y = 215;
+   PObj("fondo", OBJ_RECTANGLE_LABEL, x, y, 268, 196);
+   ObjectSetInteger(0, P + "fondo", OBJPROP_BGCOLOR, C'24,24,24');
+   ObjectSetInteger(0, P + "fondo", OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, P + "fondo", OBJPROP_COLOR, C'70,70,70');
+   ObjectSetInteger(0, P + "fondo", OBJPROP_ZORDER, 5);
+   PTexto("titulo", x + 8, y + 6, "ABRIR CON RIESGO FIJO", clrWhite, 9);
+   PTexto("l1", x + 8,  y + 30, "Riesgo por operacion %");   PCampo("riesgo", x + 196, y + 27, 62, DoubleToString(g_pRiesgo, 2));
+   PTexto("l2", x + 8,  y + 54, "TP1 a (veces el stop)");    PCampo("r1",     x + 196, y + 51, 62, DoubleToString(g_pR1, 2));
+   PTexto("l3", x + 8,  y + 78, "TP2 final a (veces el stop)"); PCampo("r2",  x + 196, y + 75, 62, DoubleToString(g_pR2, 2));
+   PTexto("l4", x + 8,  y + 102, "% que se cierra en TP1");  PCampo("pct",    x + 196, y + 99, 62, (string)g_pPct);
+   PBoton("be", x + 8, y + 123, 250, 20, "", C'50,50,50');
+   PBoton("abrir", x + 8, y + 147, 170, 24, "", C'30,90,160');
+   PBoton("cancelar", x + 182, y + 147, 76, 24, "Cancelar", C'70,70,70');
+   PTexto("info1", x + 8, y + 175, "", clrSilver, 8);
+   PTexto("info2", x + 8, y + 186, "", clrSilver, 8);
+   g_pListo = true;
+   PanelActualizar();
+}
+
+void PanelBorrar() { ObjectsDeleteAll(0, P); g_pListo = false; }
+
+// Plan de la operacion segun la linea del stop. dir: +1 compra, -1 venta.
+bool PlanOperacion(int &dir, double &entrada, double &sl, double &tp1, double &tp2, double &lotes, double &riesgo, string &msg)
+{
+   dir = 0; entrada = 0; tp1 = 0; tp2 = 0; lotes = 0; riesgo = 0; msg = "";
+   sl = ObjectGetDouble(0, P + "sl", OBJPROP_PRICE);
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID), ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   if(sl <= 0 || bid <= 0 || ask <= 0) { msg = "Sin precios todavia"; return false; }
+   if(sl < bid)      { dir = 1;  entrada = ask; }
+   else if(sl > ask) { dir = -1; entrada = bid; }
+   else { msg = "El stop esta dentro del spread"; return false; }
+   sl = NormalizeDouble(sl, _Digits);
+   double dist = MathAbs(entrada - sl);
+   double minDist = (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+   if(dist <= minDist || dist <= (ask - bid)) { msg = "Stop demasiado cerca del precio"; return false; }
+   if(g_pR1 > 0) tp1 = NormalizeDouble(entrada + dir * dist * g_pR1, _Digits);
+   if(g_pR2 > 0) tp2 = NormalizeDouble(entrada + dir * dist * g_pR2, _Digits);
+   double perd = 0;
+   if(!OrderCalcProfit(dir > 0 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, _Symbol, 1.0, entrada, sl, perd) || perd >= 0)
+   { msg = "No puedo calcular cuanto vale ese stop"; return false; }
+   double objetivo = AccountInfoDouble(ACCOUNT_BALANCE) * g_pRiesgo / 100.0;
+   double paso = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP), vmin = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN), vmax = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
+   if(paso <= 0 || objetivo <= 0) { msg = "Pon un % de riesgo mayor que 0"; return false; }
+   lotes = MathFloor(objetivo / MathAbs(perd) / paso + 1e-9) * paso;
+   if(lotes < vmin) { msg = "Stop muy lejano: ni el lote minimo cabe en tu %"; return false; }
+   if(vmax > 0 && lotes > vmax) lotes = vmax;
+   lotes = NormalizeDouble(lotes, 2);
+   riesgo = MathAbs(perd) * lotes;
+   if(riesgo > objetivo * 1.01) { msg = "Calculo incoherente: no abro"; return false; }
+   return true;
+}
+
+void PanelActualizar()
+{
+   if(!g_pListo) return;
+   ObjectSetString(0, P + "be", OBJPROP_TEXT, g_pBE ? "Al tocar TP1: stop a la entrada  [SI]" : "Al tocar TP1: stop a la entrada  [NO]");
+   ObjectSetInteger(0, P + "be", OBJPROP_BGCOLOR, g_pBE ? C'30,100,60' : C'50,50,50');
+   if(!g_prep)
+   {
+      ObjectSetString(0, P + "abrir", OBJPROP_TEXT, Bloqueada() ? "BLOQUEADA HOY" : "Preparar operacion");
+      ObjectSetInteger(0, P + "abrir", OBJPROP_BGCOLOR, Bloqueada() ? C'90,40,40' : C'30,90,160');
+      ObjectSetString(0, P + "info1", OBJPROP_TEXT, "Pulsa Preparar y arrastra la linea roja al stop.");
+      ObjectSetString(0, P + "info2", OBJPROP_TEXT, "Debajo del precio = compra. Encima = venta.");
+      ChartRedraw();
+      return;
+   }
+   int dir; double entrada, sl, tp1, tp2, lotes, riesgo; string msg;
+   bool ok = PlanOperacion(dir, entrada, sl, tp1, tp2, lotes, riesgo, msg);
+   if(!ok)
+   {
+      ObjectSetString(0, P + "abrir", OBJPROP_TEXT, "No se puede abrir");
+      ObjectSetInteger(0, P + "abrir", OBJPROP_BGCOLOR, C'70,70,70');
+      ObjectSetString(0, P + "info1", OBJPROP_TEXT, msg);
+      ObjectSetString(0, P + "info2", OBJPROP_TEXT, "");
+      if(ObjectFind(0, P + "tp1") >= 0) ObjectDelete(0, P + "tp1");
+      if(ObjectFind(0, P + "tp2") >= 0) ObjectDelete(0, P + "tp2");
+      ChartRedraw();
+      return;
+   }
+   if(tp1 > 0) PLinea("tp1", tp1, clrMediumSeaGreen, false, STYLE_DASH, "TP1"); else if(ObjectFind(0, P + "tp1") >= 0) ObjectDelete(0, P + "tp1");
+   if(tp2 > 0) PLinea("tp2", tp2, clrLimeGreen, false, STYLE_SOLID, "TP2 final"); else if(ObjectFind(0, P + "tp2") >= 0) ObjectDelete(0, P + "tp2");
+   double pip = (_Digits == 3 || _Digits == 5) ? 10 * _Point : _Point;
+   bool bloq = Bloqueada();
+   ObjectSetString(0, P + "abrir", OBJPROP_TEXT, bloq ? "BLOQUEADA HOY" : (dir > 0 ? "COMPRAR " : "VENDER ") + DoubleToString(lotes, 2) + " lotes");
+   ObjectSetInteger(0, P + "abrir", OBJPROP_BGCOLOR, bloq ? C'90,40,40' : (dir > 0 ? C'20,120,70' : C'170,50,50'));
+   ObjectSetString(0, P + "info1", OBJPROP_TEXT, "Riesgo " + Dinero(riesgo) + " · stop a " + DoubleToString(MathAbs(entrada - sl) / pip, 1) + " pips (" + DoubleToString(sl, _Digits) + ")");
+   string t2 = "";
+   if(tp1 > 0 && ParcialActiva()) t2 += "TP1 " + DoubleToString(tp1, _Digits) + " (" + (string)g_pPct + " %)  ";
+   if(tp2 > 0) t2 += "TP2 " + DoubleToString(tp2, _Digits);
+   if(g_limD > 0 && riesgo > g_limD - MathMax(0, g_perdD)) t2 = "OJO: arriesgas mas de lo que te queda hoy";
+   ObjectSetString(0, P + "info2", OBJPROP_TEXT, t2);
+   ChartRedraw();
+}
+
+void PanelPreparar()
+{
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   if(bid <= 0) return;
+   // Stop inicial: 1,5 veces el rango medio de las ultimas 14 velas por debajo del precio (compra). Se arrastra adonde quieras.
+   double suma = 0; int n = 0;
+   for(int i = 1; i <= 14; i++) { double h = iHigh(_Symbol, PERIOD_CURRENT, i), l = iLow(_Symbol, PERIOD_CURRENT, i); if(h > 0 && l > 0) { suma += h - l; n++; } }
+   double rango = n > 0 ? suma / n : 200 * _Point;
+   g_slPrecio = NormalizeDouble(bid - 1.5 * rango, _Digits);
+   g_prep = true; g_prepSim = _Symbol; g_prepMs = GetTickCount64();
+   PLinea("sl", g_slPrecio, clrTomato, true, STYLE_SOLID, "STOP (arrastrame)");
+   PanelActualizar();
+}
+
+void PanelCancelar()
+{
+   g_prep = false;
+   if(ObjectFind(0, P + "sl") >= 0) ObjectDelete(0, P + "sl");
+   if(ObjectFind(0, P + "tp1") >= 0) ObjectDelete(0, P + "tp1");
+   if(ObjectFind(0, P + "tp2") >= 0) ObjectDelete(0, P + "tp2");
+   PanelActualizar();
+}
+
+void PanelAbrir()
+{
+   if(GetTickCount64() - g_prepMs < 1500) return;   // evita abrir con un doble clic al preparar
+   if(Bloqueada()) { Alert("Global Traders FX: la cuenta esta bloqueada hoy por tus limites. No se abre."); return; }
+   if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED) || !MQLInfoInteger(MQL_TRADE_ALLOWED)) { Alert("GTFX: activa el boton \"Algo Trading\" (en verde) para poder abrir desde el panel."); return; }
+   int dir; double entrada, sl, tp1, tp2, lotes, riesgo; string msg;
+   if(!PlanOperacion(dir, entrada, sl, tp1, tp2, lotes, riesgo, msg)) { Alert("GTFX: no se abre. " + msg); return; }
+   if(ConfirmarAbrir)
+   {
+      string pregunta = (dir > 0 ? "COMPRAR " : "VENDER ") + DoubleToString(lotes, 2) + " lotes de " + _Symbol
+                      + "\nRiesgo: " + Dinero(riesgo) + " (" + DoubleToString(g_pRiesgo, 2) + " %)"
+                      + "\nStop: " + DoubleToString(sl, _Digits)
+                      + (tp1 > 0 && ParcialActiva() ? "\nTP1: " + DoubleToString(tp1, _Digits) + " (cierra " + (string)g_pPct + " %)" : "")
+                      + (tp2 > 0 ? "\nTP final: " + DoubleToString(tp2, _Digits) : "")
+                      + "\n\nCuenta " + (string)AccountInfoInteger(ACCOUNT_LOGIN) + ". ¿Enviar la orden?";
+      if(MessageBox(pregunta, "Global Traders FX", MB_YESNO | MB_ICONQUESTION) != IDYES) return;
+      // El precio se ha movido mientras confirmabas: se recalcula con el precio de ahora.
+      if(!PlanOperacion(dir, entrada, sl, tp1, tp2, lotes, riesgo, msg)) { Alert("GTFX: no se abre. " + msg); return; }
+      if(Bloqueada()) { Alert("Global Traders FX: la cuenta esta bloqueada hoy por tus limites. No se abre."); return; }
+   }
+   g_trade.SetExpertMagicNumber(MAGIA);
+   g_trade.SetTypeFillingBySymbol(_Symbol);
+   bool ok = g_trade.PositionOpen(_Symbol, dir > 0 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, lotes, entrada, sl, tp2, "GTFX panel");
+   uint rc = g_trade.ResultRetcode();
+   if(!ok || (rc != TRADE_RETCODE_DONE && rc != TRADE_RETCODE_DONE_PARTIAL && rc != TRADE_RETCODE_PLACED))
+   {
+      Alert("GTFX: el broker no acepto la orden: " + g_trade.ResultRetcodeDescription());
+      return;
+   }
+   // En cuentas con cobertura el ticket de la posicion es el de la orden que la abrio.
+   ulong ticket = g_trade.ResultOrder();
+   if(ParcialActiva() && tp1 > 0 && ticket > 0)
+   {
+      GlobalVariableSet("GTFX_TP1_"  + (string)ticket, tp1);
+      GlobalVariableSet("GTFX_TP1P_" + (string)ticket, (double)g_pPct);
+      GlobalVariableSet("GTFX_TP1B_" + (string)ticket, g_pBE ? 1.0 : 0.0);
+   }
+   Avisar("Global Traders FX: " + (dir > 0 ? "COMPRA " : "VENTA ") + DoubleToString(lotes, 2) + " " + _Symbol + " · riesgo " + Dinero(riesgo) + " · stop " + DoubleToString(sl, _Digits)
+          + (tp2 > 0 ? " · TP final " + DoubleToString(tp2, _Digits) : "") + (ParcialActiva() && tp1 > 0 ? " · TP1 " + DoubleToString(tp1, _Digits) + " lo gestiona el programa" : ""));
+   PanelCancelar();
+}
+
+// TP1 de las posiciones abiertas con el panel: al tocarlo, cierra la parte indicada y mueve el stop a la entrada.
+void GestionarTP1()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0) continue;
+      string k = "GTFX_TP1_" + (string)tk;
+      if(!GlobalVariableCheck(k)) continue;
+      double tp1 = GlobalVariableGet(k);
+      string sim = PositionGetString(POSITION_SYMBOL);
+      long tipo = PositionGetInteger(POSITION_TYPE);
+      double px = tipo == POSITION_TYPE_BUY ? SymbolInfoDouble(sim, SYMBOL_BID) : SymbolInfoDouble(sim, SYMBOL_ASK);
+      if(px <= 0 || tp1 <= 0) continue;
+      if(tipo == POSITION_TYPE_BUY ? px < tp1 : px > tp1) continue;
+      if(GetTickCount64() - g_ultimoTP1 < 2000) return;   // sin rafagas de peticiones
+      g_ultimoTP1 = GetTickCount64();
+      double vol = PositionGetDouble(POSITION_VOLUME), abre = PositionGetDouble(POSITION_PRICE_OPEN), tp = PositionGetDouble(POSITION_TP), slAct = PositionGetDouble(POSITION_SL);
+      double paso = SymbolInfoDouble(sim, SYMBOL_VOLUME_STEP), vmin = SymbolInfoDouble(sim, SYMBOL_VOLUME_MIN);
+      int dig = (int)SymbolInfoInteger(sim, SYMBOL_DIGITS);
+      double pct = GlobalVariableCheck("GTFX_TP1P_" + (string)tk) ? GlobalVariableGet("GTFX_TP1P_" + (string)tk) : 50;
+      bool be = GlobalVariableCheck("GTFX_TP1B_" + (string)tk) && GlobalVariableGet("GTFX_TP1B_" + (string)tk) > 0;
+      double cerrar = paso > 0 ? NormalizeDouble(MathFloor(vol * pct / 100.0 / paso + 1e-9) * paso, 2) : 0;
+      g_trade.SetTypeFillingBySymbol(sim);
+      if(cerrar >= vmin && vol - cerrar >= vmin - 1e-9)
+      {
+         if(!g_trade.PositionClosePartial(tk, cerrar))
+         {
+            double fallos = GlobalVariableCheck("GTFX_TP1F_" + (string)tk) ? GlobalVariableGet("GTFX_TP1F_" + (string)tk) : 0;
+            Print("GTFX_JournalGuard: no pude cerrar la parte de TP1 de ", tk, ": ", g_trade.ResultRetcodeDescription());
+            if(fallos < 4) { GlobalVariableSet("GTFX_TP1F_" + (string)tk, fallos + 1); continue; }
+         }
+      }
+      if(be && PositionSelectByTicket(tk))
+      {
+         double nuevo = NormalizeDouble(abre, dig);
+         bool mejora = tipo == POSITION_TYPE_BUY ? (slAct < nuevo) : (slAct == 0 || slAct > nuevo);
+         if(mejora && !g_trade.PositionModify(tk, nuevo, tp))
+            Print("GTFX_JournalGuard: no pude mover el stop a la entrada de ", tk, ": ", g_trade.ResultRetcodeDescription());
+      }
+      GlobalVariableDel(k);
+      GlobalVariableDel("GTFX_TP1P_" + (string)tk);
+      GlobalVariableDel("GTFX_TP1B_" + (string)tk);
+      GlobalVariableDel("GTFX_TP1F_" + (string)tk);
+      Avisar("Global Traders FX: TP1 tocado en " + sim + ". Cerrada la parte indicada" + (be ? " y stop movido a la entrada." : "."));
+   }
+   // Linea de TP1 de las posiciones gestionadas en este grafico (solo informativa).
+   if(!g_pListo) return;
+   for(int i = ObjectsTotal(0, 0, OBJ_HLINE) - 1; i >= 0; i--)
+   {
+      string n = ObjectName(0, i, 0, OBJ_HLINE);
+      if(StringFind(n, P + "m_") != 0) continue;
+      string tkTxt = StringSubstr(n, StringLen(P + "m_"));
+      if(!GlobalVariableCheck("GTFX_TP1_" + tkTxt) || !PositionSelectByTicket((ulong)StringToInteger(tkTxt))) ObjectDelete(0, n);
+   }
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0 || PositionGetString(POSITION_SYMBOL) != _Symbol || !GlobalVariableCheck("GTFX_TP1_" + (string)tk)) continue;
+      PLinea("m_" + (string)tk, GlobalVariableGet("GTFX_TP1_" + (string)tk), clrMediumSeaGreen, false, STYLE_DOT, "TP1 (lo gestiona el programa)");
+   }
+}
+
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+{
+   if(!g_pListo) return;
+   if(id == CHARTEVENT_OBJECT_CLICK)
+   {
+      if(sparam == P + "abrir")    { ObjectSetInteger(0, sparam, OBJPROP_STATE, false); if(!g_prep) { if(!Bloqueada()) PanelPreparar(); } else PanelAbrir(); }
+      if(sparam == P + "cancelar") { ObjectSetInteger(0, sparam, OBJPROP_STATE, false); PanelCancelar(); }
+      if(sparam == P + "be")       { ObjectSetInteger(0, sparam, OBJPROP_STATE, false); g_pBE = !g_pBE; PanelActualizar(); }
+   }
+   if(id == CHARTEVENT_OBJECT_ENDEDIT)
+   {
+      if(sparam == P + "riesgo") { g_pRiesgo = MathMin(5.0, PLeer("riesgo", g_pRiesgo)); ObjectSetString(0, sparam, OBJPROP_TEXT, DoubleToString(g_pRiesgo, 2)); }
+      if(sparam == P + "r1")     { g_pR1 = PLeer("r1", g_pR1); ObjectSetString(0, sparam, OBJPROP_TEXT, DoubleToString(g_pR1, 2)); }
+      if(sparam == P + "r2")     { g_pR2 = PLeer("r2", g_pR2); ObjectSetString(0, sparam, OBJPROP_TEXT, DoubleToString(g_pR2, 2)); }
+      if(sparam == P + "pct")    { g_pPct = (int)MathMin(100, PLeer("pct", g_pPct)); ObjectSetString(0, sparam, OBJPROP_TEXT, (string)g_pPct); }
+      PanelActualizar();
+   }
+   if(id == CHARTEVENT_OBJECT_DRAG && sparam == P + "sl")
+   {
+      g_slPrecio = ObjectGetDouble(0, P + "sl", OBJPROP_PRICE);
+      PanelActualizar();
+   }
+}
+
 void Revisar()
 {
    Calcular();
    Aplicar();
    Pintar();
+   PanelActualizar();
 }
 
 int OnInit()
@@ -467,10 +824,23 @@ int OnInit()
       Alert("GTFX_JournalGuard: activa el boton \"Algo Trading\" (en verde) o no podre cerrar las operaciones nuevas.");
    g_trade.SetAsyncMode(false);
    g_trade.SetDeviationInPoints(50);
-   EventSetTimer(MathMax(2, Segundos));
+   EventSetTimer(1);
+   // Valores del panel: de los parametros al arrancar o al cambiarlos; lo que escribas en el panel se conserva al cambiar de marco.
+   static bool primera = true;
+   if(primera || UninitializeReason() == REASON_PARAMETERS)
+   {
+      g_pRiesgo = MathMax(0, MathMin(5.0, RiesgoPct)); g_pR1 = MathMax(0, TP1_R); g_pR2 = MathMax(0, TP2_R);
+      g_pPct = (int)MathMax(0, MathMin(100, PctEnTP1)); g_pBE = StopAEntrada;
+      primera = false;
+   }
+   if(g_prep && g_prepSim != _Symbol) g_prep = false;   // otro simbolo: se descarta la operacion a medio preparar
    Consultar();
-   Revisar();
-   Print("GTFX_JournalGuard 2.3 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
+   Calcular();
+   Aplicar();
+   Pintar();
+   PanelCrear();
+   if(g_prep && PanelActivo) { PLinea("sl", g_slPrecio, clrTomato, true, STYLE_SOLID, "STOP (arrastrame)"); PanelActualizar(); }
+   Print("GTFX_JournalGuard 3.0 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
    return INIT_SUCCEEDED;
 }
 
@@ -478,17 +848,22 @@ void OnDeinit(const int reason)
 {
    EventKillTimer();
    Comment("");
+   PanelBorrar();
 }
 
 void OnTimer()
 {
-   Consultar();
-   Revisar();
+   static int n = 0;
+   GestionarTP1();
+   if(++n >= MathMax(2, Segundos)) { n = 0; Consultar(); Revisar(); }
+   else if(g_prep) PanelActualizar();
 }
 
 void OnTick()
 {
    Aplicar();
+   GestionarTP1();
+   if(g_prep) PanelActualizar();
 }
 
 void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest &request, const MqlTradeResult &result)
