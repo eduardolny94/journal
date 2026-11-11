@@ -201,3 +201,17 @@ AUDJPY sin sesgo. VIX 21,7, S&P −3 % en 20 días: riesgo en modo refugio, apoy
 - **Radar (corregido hoy):** tasa GBP 4,00 % (antes se quedaba en 3,75 % por un fallo de lectura del calendario).
   USD +3,7 · JPY +0,9 · EUR +0,4 · GBP +0,3 · CHF −0,3 · AUD −1,0 · CAD −1,9 · NZD −3,8.
 - **Pendiente:** empleo de EE. UU. viernes 14:30 (65 mil).
+
+## 2026-11-10 · IPC de EE. UU. de octubre (14:30 España)
+
+- **Descontado antes:** subyacente mensual 0,2 %, general mensual 0,3 %; anual 3,9 % y subyacente 2,8 %. Subida de la Fed
+  en diciembre en precio. El dólar llegaba cediendo por la caída de la tensión (VIX de 25,6 a 19,9), no por el dato.
+- **Dato:** subyacente mensual **0,3 %** (previsto 0,2 %) y general mensual **0,4 %** (previsto 0,3 %): caliente.
+- **Reacción medida por el radar (3 h):** EURUSD −35 pips, GBPUSD −47, USDJPY +50, USDCHF +37, USDCAD +31, AUDUSD −28.
+  Coincide con lo medido el día antes (`_ipc`, 30 datos desde 2023): subyacente por encima del previsto → dólar sube el
+  71 % de las veces (n 7); por debajo → baja el 90 % (n 10); clavado → 54 %. El NFP fuerte previo no anticipa el IPC.
+- **Radar tras el dato (11-11):** USD +3,3 (antes +3,1); índice de sorpresas +0,19 σ; momentum del dólar de −0,8 a +1,2 σ.
+  USDCAD y USDCHF alcistas fuertes; EURUSD y GBPUSD bajistas moderados; **el oro pierde el sesgo alcista** (+0,7).
+  Titulares: se refuerza la subida de diciembre y se debate su tamaño.
+- **Pendiente:** el mercado de bonos cierra el 11-11 (Día de los Veteranos), así que el 2 años de FRED no se mueve hasta
+  el 12; PIB del Reino Unido el 12 a las 08:00; IPP de EE. UU. el 13.
