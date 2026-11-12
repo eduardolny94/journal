@@ -108,3 +108,19 @@ Token: los mensajes de «token no válido» ya no dicen «genera uno nuevo» (C�
 guardián y servicio comparten el token válido en la carpeta común. En el Mac, el segundo terminal (B) debe arrancar con
 `USER=user` para compartir esa carpeta con la app oficial (corregido en `~/.local/bin/mt5-b`).
 
+
+## Guardián v3.1: señales automáticas a Discord (12-11-2026)
+
+Pedido de César: publicar sus operaciones en su canal de Discord (entrada, SL, TP1, TP2) con los menos pasos posibles y
+desde el móvil. Primero se hizo con TradingView (`GTFX_SenalDiscord.pine` + alerta con webhook), que funciona pero exige
+escribir precios y crear una alerta por operación. La vía automática va en el guardián:
+
+- `SenalesDiscord` (apagado por defecto). Activado, cada posición nueva de la cuenta con stop se publica sola: espera a
+  que tenga SL y, hasta `SenalEsperaSeg`, a que tenga TP. TP2 = el TP de la posición; TP1 = `SenalTP1_R` veces el stop
+  (si cae antes del TP). No publica posiciones anteriores a activarlo, de más de 10 minutos, sin stop, ni en bloqueo.
+- Después: «TP1 alcanzado» al tocar el nivel; al cerrarse del todo, «TP final», «Stop tocado», «Cerrada en ganancia por
+  el stop» u «Operación cerrada» (cierre manual). Los cierres parciales no avisan.
+- El webhook no va en los parámetros: se lee de `GTFX_discord.txt` en la carpeta común de MetaTrader (en el Mac se copió
+  desde `~/.config/gtfx/discord.env`). Hay que permitir `https://discord.com` en Opciones → Asesores Expertos → WebRequest.
+- Si Discord falla, no reintenta durante 30 s para no frenar al guardián. No envía lotes, saldo ni número de cuenta.
+- Publicado solo compilado: sin probar con una operación real.

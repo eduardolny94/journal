@@ -29,6 +29,10 @@
 //| el TP1 lo gestiona el programa (cierra una parte y mueve el stop a |
 //| la entrada). Todo se configura en el panel o en los parametros.    |
 //|                                                                    |
+//| SENALES A DISCORD (opcional): con "SenalesDiscord" activado, cada  |
+//| operacion que abras en la cuenta se publica sola en tu canal, con  |
+//| entrada, SL, TP1 y TP2, y luego avisa de TP1, TP final o stop.     |
+//|                                                                    |
 //| Instalacion (Windows y Mac, igual):                                |
 //|  1. MetaTrader 5: Archivo -> Abrir carpeta de datos -> MQL5 ->     |
 //|     Experts, y copia ahi GTFX_JournalGuard.ex5.                    |
@@ -41,7 +45,7 @@
 //| si lo cierras o apagas el equipo, deja de vigilar.                 |
 //+------------------------------------------------------------------+
 #property copyright "Global Traders FX"
-#property version   "3.0"
+#property version   "3.1"
 #property strict
 #property description "Aplica en MetaTrader los limites de la ficha de tu cuenta en el journal (perdida diaria, semanal y maximo de operaciones). Al tocar uno no deja abrir mas operaciones; no toca las que ya estaban abiertas."
 
@@ -67,6 +71,13 @@ input int    PctEnTP1          = 50;     // % de la posicion que se cierra en TP
 input bool   StopAEntrada      = true;   // Al tocar TP1, mover el stop al precio de entrada
 input bool   ConfirmarAbrir    = true;   // Pedir confirmacion antes de enviar la orden
 
+input group  "Senales a Discord (automaticas al abrir una operacion)"
+input bool   SenalesDiscord    = false;  // Publicar en Discord cada operacion que abras en esta cuenta
+input double SenalTP1_R        = 1.0;    // TP1 a cuantas veces el stop (0 = no anunciar TP1)
+input int    SenalEsperaSeg    = 45;     // Segundos de espera a que pongas el TP antes de publicar
+input string SenalCerca        = "(o cercano)";         // Texto junto al precio de entrada
+input string SenalPie          = "Gestiona tu riesgo";  // Ultima linea de la senal (vacio = sin ella)
+
 CTrade   g_trade;
 double   g_limD = 0, g_limW = 0;         // limites en moneda de la cuenta (0 = sin limite)
 int      g_maxN = 0;                     // maximo de operaciones al dia (0 = sin limite)
@@ -90,6 +101,11 @@ bool     g_pBE = true, g_pListo = false, g_prep = false;
 double   g_slPrecio = 0;
 string   g_prepSim = "";
 ulong    g_prepMs = 0, g_ultimoTP1 = 0;
+// Senales a Discord
+string   g_webhook = "";
+ulong    g_ultDiscord = 0, g_discordHasta = 0;
+bool     g_avisoDiscord = false;
+datetime g_senalDesde = 0;
 
 bool   ConJournal() { return StringLen(g_token) >= 20; }
 string Gv(const string nombre) { return "GTFX_Guard_" + nombre + "_" + (string)AccountInfoInteger(ACCOUNT_LOGIN); }
@@ -465,6 +481,7 @@ void Pintar()
       else if(!g_delJournal) t += "\n  Esperando los limites del journal...";
    }
    else t += "\n  Sin token: pega el token del journal para usar los limites de la ficha.";
+   if(SenalesDiscord) t += "\n  Senales a Discord: ACTIVAS (se publica cada operacion nueva con stop)";
    Comment(t);
 }
 
@@ -799,6 +816,163 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    }
 }
 
+//====================================================================
+// SENALES A DISCORD: cada operacion que abres en esta cuenta (desde el movil o desde aqui) se publica sola.
+// Espera a que tenga stop (y unos segundos a que pongas el TP), publica entrada, SL, TP1 y TP2, y despues avisa de
+// TP1 tocado, TP final, stop o cierre manual. La direccion del webhook se lee del archivo GTFX_discord.txt de la
+// carpeta comun de MetaTrader; hay que permitir https://discord.com en Opciones -> Asesores Expertos -> WebRequest.
+//====================================================================
+string NombreActivo(const string simbolo)
+{
+   string s = simbolo;
+   StringToUpper(s);
+   if(StringFind(s, "XAU") >= 0 || StringFind(s, "GOLD") >= 0) return "Gold";
+   if(StringFind(s, "XAG") >= 0 || StringFind(s, "SILVER") >= 0) return "Silver";
+   if(StringFind(s, "BTC") >= 0) return "Bitcoin";
+   if(StringFind(s, "US30") >= 0 || StringFind(s, "DJ30") >= 0 || StringFind(s, "WS30") >= 0) return "US30";
+   if(StringFind(s, "NAS") >= 0 || StringFind(s, "USTEC") >= 0 || StringFind(s, "NDX") >= 0 || StringFind(s, "US100") >= 0) return "Nasdaq";
+   if(StringFind(s, "SPX") >= 0 || StringFind(s, "US500") >= 0) return "S&P 500";
+   // quita el sufijo del broker (EURUSD.r, EURUSD_i, EURUSD#...)
+   for(int i = 0; i < StringLen(s); i++)
+   {
+      ushort c = StringGetCharacter(s, i);
+      if(c == '.' || c == '_' || c == '#' || c == '-') return StringSubstr(s, 0, i);
+   }
+   return s;
+}
+
+string JsonEsc(string t)
+{
+   StringReplace(t, "\\", "\\\\");
+   StringReplace(t, "\"", "\\\"");
+   StringReplace(t, "\n", "\\n");
+   return t;
+}
+
+bool LeerWebhook()
+{
+   if(g_webhook != "") return true;
+   int h = FileOpen("GTFX_discord.txt", FILE_READ | FILE_TXT | FILE_ANSI | FILE_COMMON | FILE_SHARE_READ);
+   if(h == INVALID_HANDLE) return false;
+   string t = FileReadString(h);
+   FileClose(h);
+   StringTrimLeft(t);
+   StringTrimRight(t);
+   if(StringFind(t, "https://discord.com/api/webhooks/") != 0) return false;
+   g_webhook = t;
+   return true;
+}
+
+bool Discord(const string texto)
+{
+   if(GetTickCount64() < g_discordHasta) return false;
+   if(!LeerWebhook())
+   {
+      if(!g_avisoDiscord) { g_avisoDiscord = true; Alert("GTFX: no encuentro la direccion de Discord (archivo GTFX_discord.txt en la carpeta comun de MetaTrader)."); }
+      g_discordHasta = GetTickCount64() + 30000;
+      return false;
+   }
+   string body = "{\"content\":\"" + JsonEsc(texto) + "\"}";
+   char datos[];
+   StringToCharArray(body, datos, 0, WHOLE_ARRAY, CP_UTF8);
+   ArrayResize(datos, ArraySize(datos) - 1);
+   char res[];
+   string hdr;
+   ResetLastError();
+   int c = WebRequest("POST", g_webhook, "Content-Type: application/json\r\n", 5000, datos, res, hdr);
+   if(c == 204 || c == 200) return true;
+   if(c == -1 && GetLastError() == 4014 && !g_avisoDiscord)
+   {
+      g_avisoDiscord = true;
+      Alert("GTFX: para publicar en Discord, Herramientas -> Opciones -> Asesores Expertos -> \"Permitir WebRequest\" y anade https://discord.com");
+   }
+   else Print("GTFX_JournalGuard: Discord no acepto el mensaje (", c, "): ", CharArrayToString(res, 0, -1, CP_UTF8));
+   g_discordHasta = GetTickCount64() + 30000;   // si falla, no insistir durante 30 s (no frenar al guardian)
+   return false;
+}
+
+void Senales()
+{
+   if(!SenalesDiscord) return;
+   datetime ahora = TimeTradeServer();
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0) continue;
+      string k = "GTFX_SD_" + (string)tk, k1 = "GTFX_SD1_" + (string)tk;
+      string sim = PositionGetString(POSITION_SYMBOL), act = NombreActivo(sim);
+      int dir = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ? 1 : -1;
+      double abre = PositionGetDouble(POSITION_PRICE_OPEN), sl = PositionGetDouble(POSITION_SL), tp = PositionGetDouble(POSITION_TP);
+      int dig = (int)SymbolInfoInteger(sim, SYMBOL_DIGITS);
+      datetime t0 = (datetime)PositionGetInteger(POSITION_TIME);
+      string lado = dir > 0 ? "BUY" : "SELL";
+      if(!GlobalVariableCheck(k))
+      {
+         long edad = (long)(ahora - t0);
+         if(t0 < g_senalDesde || edad > 600) continue;        // anteriores a activar las senales, o ya viejas: no se publican
+         if(Bloqueada()) continue;                             // en bloqueo el guardian la va a cerrar
+         if(sl <= 0) continue;                                 // sin stop no se publica
+         if(tp <= 0 && edad < SenalEsperaSeg) continue;        // tiempo para que pongas el TP
+         if(GetTickCount64() - g_ultDiscord < 1500) return;
+         g_ultDiscord = GetTickCount64();
+         double riesgo = MathAbs(abre - sl);
+         double tp1 = SenalTP1_R > 0 && riesgo > 0 ? NormalizeDouble(abre + dir * riesgo * SenalTP1_R, dig) : 0;
+         bool dosTP = tp > 0 && tp1 > 0 && (dir > 0 ? tp1 < tp : tp1 > tp) && MathAbs(tp - tp1) > riesgo * 0.05;
+         string m = (dir > 0 ? "🟢 **BUY " : "🔴 **SELL ") + act + " NOW**\n" + act + " Entrada: " + DoubleToString(abre, dig) + (SenalCerca != "" ? " " + SenalCerca : "")
+                  + "\nSL: " + DoubleToString(sl, dig);
+         if(dosTP)
+            m += "\nTP1: " + DoubleToString(tp1, dig) + "  (" + DoubleToString(SenalTP1_R, 1) + "R)\nTP2: " + DoubleToString(tp, dig) + "  (" + DoubleToString(MathAbs(tp - abre) / riesgo, 1) + "R)";
+         else if(tp > 0)
+            m += "\nTP: " + DoubleToString(tp, dig) + "  (" + DoubleToString(MathAbs(tp - abre) / riesgo, 1) + "R)";
+         else if(tp1 > 0)
+            m += "\nTP1: " + DoubleToString(tp1, dig) + "  (" + DoubleToString(SenalTP1_R, 1) + "R)";
+         if(SenalPie != "") m += "\n⚠️ " + SenalPie;
+         if(Discord(m))
+         {
+            GlobalVariableSet(k, 1);
+            if(tp1 > 0 && (dosTP || tp <= 0)) GlobalVariableSet(k1, tp1);
+            Print("GTFX_JournalGuard: senal publicada en Discord: ", lado, " ", act, " ", DoubleToString(abre, dig));
+         }
+         continue;
+      }
+      if(GlobalVariableCheck(k1))
+      {
+         double tp1 = GlobalVariableGet(k1);
+         double px = dir > 0 ? SymbolInfoDouble(sim, SYMBOL_BID) : SymbolInfoDouble(sim, SYMBOL_ASK);
+         if(px > 0 && tp1 > 0 && (dir > 0 ? px >= tp1 : px <= tp1))
+         {
+            if(GetTickCount64() - g_ultDiscord < 1500) return;
+            g_ultDiscord = GetTickCount64();
+            if(Discord("✅ **TP1 alcanzado** · " + act + "\n" + lado + " " + act + " · Entrada " + DoubleToString(abre, dig) + " · TP1 " + DoubleToString(tp1, dig)))
+               GlobalVariableDel(k1);
+         }
+      }
+   }
+}
+
+// Al cerrarse del todo una operacion publicada: TP final, stop o cierre manual.
+void SenalCierre(const ulong deal)
+{
+   if(!SenalesDiscord || deal == 0 || !HistoryDealSelect(deal)) return;
+   long ent = HistoryDealGetInteger(deal, DEAL_ENTRY);
+   if(ent != DEAL_ENTRY_OUT && ent != DEAL_ENTRY_OUT_BY) return;
+   ulong pos = (ulong)HistoryDealGetInteger(deal, DEAL_POSITION_ID);
+   string k = "GTFX_SD_" + (string)pos;
+   if(!GlobalVariableCheck(k) || PositionSelectByTicket(pos)) return;   // no publicada, o cierre parcial (sigue abierta)
+   string sim = HistoryDealGetString(deal, DEAL_SYMBOL), act = NombreActivo(sim);
+   int dig = (int)SymbolInfoInteger(sim, SYMBOL_DIGITS);
+   string px = DoubleToString(HistoryDealGetDouble(deal, DEAL_PRICE), dig);
+   double prof = HistoryDealGetDouble(deal, DEAL_PROFIT);
+   long razon = HistoryDealGetInteger(deal, DEAL_REASON);
+   string m;
+   if(razon == DEAL_REASON_TP)      m = "🎯 **TP final alcanzado** · " + act + " en " + px;
+   else if(razon == DEAL_REASON_SL) m = prof > 0 ? "🔒 **Cerrada en ganancia por el stop** · " + act + " en " + px : "❌ **Stop tocado** · " + act + " en " + px;
+   else                             m = (prof >= 0 ? "✅" : "⚪") + " **Operacion cerrada** · " + act + " en " + px;
+   Discord(m);
+   GlobalVariableDel(k);
+   GlobalVariableDel("GTFX_SD1_" + (string)pos);
+}
+
 void Revisar()
 {
    Calcular();
@@ -825,6 +999,15 @@ int OnInit()
    g_trade.SetAsyncMode(false);
    g_trade.SetDeviationInPoints(50);
    EventSetTimer(1);
+   // Senales a Discord: solo las operaciones abiertas desde que se activan (recordado aunque se reinicie el terminal).
+   string gvDesde = Gv("senal_desde");
+   if(SenalesDiscord)
+   {
+      if(!GlobalVariableCheck(gvDesde)) GlobalVariableSet(gvDesde, (double)TimeTradeServer());
+      g_senalDesde = (datetime)GlobalVariableGet(gvDesde);
+      g_avisoDiscord = false; g_discordHasta = 0; g_webhook = "";
+   }
+   else if(GlobalVariableCheck(gvDesde)) GlobalVariableDel(gvDesde);
    // Valores del panel: de los parametros al arrancar o al cambiarlos; lo que escribas en el panel se conserva al cambiar de marco.
    static bool primera = true;
    if(primera || UninitializeReason() == REASON_PARAMETERS)
@@ -840,7 +1023,7 @@ int OnInit()
    Pintar();
    PanelCrear();
    if(g_prep && PanelActivo) { PLinea("sl", g_slPrecio, clrTomato, true, STYLE_SOLID, "STOP (arrastrame)"); PanelActualizar(); }
-   Print("GTFX_JournalGuard 3.0 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
+   Print("GTFX_JournalGuard 3.1 en la cuenta ", (string)AccountInfoInteger(ACCOUNT_LOGIN), " · limite dia ", Dinero(g_limD), " · semana ", Dinero(g_limW), " · operaciones ", (string)g_maxN);
    return INIT_SUCCEEDED;
 }
 
@@ -855,6 +1038,7 @@ void OnTimer()
 {
    static int n = 0;
    GestionarTP1();
+   Senales();
    if(++n >= MathMax(2, Segundos)) { n = 0; Consultar(); Revisar(); }
    else if(g_prep) PanelActualizar();
 }
@@ -868,6 +1052,6 @@ void OnTick()
 
 void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest &request, const MqlTradeResult &result)
 {
-   if(trans.type == TRADE_TRANSACTION_DEAL_ADD) Revisar();
+   if(trans.type == TRADE_TRANSACTION_DEAL_ADD) { SenalCierre(trans.deal); Revisar(); }
 }
 //+------------------------------------------------------------------+
