@@ -1,17 +1,25 @@
 //@version=6
 // GTFX · Señal a Discord
-// Escribes la operación en Entradas (entrada, stop, TP1, TP2), el indicador la dibuja como la herramienta de
-// posición y, con una alerta de TradingView con webhook a Discord, publica la señal y después avisa de entrada, TP1, TP2
-// o stop. Pasos en la descripción de la descarga del journal.
-indicator("GTFX · Señal a Discord", overlay = true, max_boxes_count = 10, max_labels_count = 20, max_lines_count = 10)
+// Lo mínimo para mandar una señal: escribe SOLO el stop (o elige Compra/Venta y el stop se pone solo) y crea la alerta.
+// La entrada es el precio de ese momento y los TP se calculan por R (1R y 2R), salvo que escribas los tuyos.
+// Con una alerta «Cualquier llamada a la función alert()» y el webhook de Discord publica la señal y después avisa de
+// TP1, TP2 o stop. En un par sin operación solo muestra una etiqueta de ayuda y no envía nada.
+indicator("GTFX · Señal a Discord", overlay = true, max_boxes_count = 10, max_labels_count = 20, max_lines_count = 20)
 
-// ── Operación: TradingView te pide un clic en el gráfico para cada precio
-G1 = "Operación (escribe los precios)"
-pEntrada = input.price(0, "Entrada", group = G1)
-pSL      = input.price(0, "Stop (SL)", group = G1)
-pTP1     = input.price(0, "TP1", group = G1)
-pTP2     = input.price(0, "TP2", group = G1)
-tipo     = input.string("Ahora (mercado)", "Tipo de entrada", options = ["Ahora (mercado)", "Límite (esperar el precio)"], group = G1)
+// ── Operación: basta con el stop
+G1 = "Operación (basta con el stop)"
+pSL       = input.price(0, "Stop (SL) · 0 = automático", group = G1)
+direccion = input.string("Según mi stop", "Dirección", options = ["Según mi stop", "Compra", "Venta"], tooltip = "«Según mi stop»: stop por debajo del precio = compra, por encima = venta. Con «Compra» o «Venta» y el stop en 0, el stop se pone solo detrás del último mínimo o máximo.", group = G1)
+pEntrada  = input.price(0, "Entrada · 0 = precio actual", group = G1)
+pTP1      = input.price(0, "TP1 · 0 = automático", group = G1)
+pTP2      = input.price(0, "TP2 · 0 = automático", group = G1)
+tipo      = input.string("Ahora (mercado)", "Si escribes la entrada", options = ["Ahora (mercado)", "Límite (esperar el precio)"], group = G1)
+
+G0 = "Automáticos"
+r1        = input.float(1.0, "TP1 a cuántas veces el stop (R)", minval = 0.1, step = 0.1, group = G0)
+r2        = input.float(2.0, "TP2 a cuántas veces el stop (R)", minval = 0.2, step = 0.1, group = G0)
+velasSL   = input.int(10, "Stop automático: detrás del máximo/mínimo de estas velas", minval = 2, maxval = 200, group = G0)
+margenATR = input.float(0.1, "Stop automático: margen extra (en ATR)", minval = 0, step = 0.05, group = G0)
 
 // ── Mensaje
 G2 = "Mensaje"
@@ -25,22 +33,14 @@ formato  = input.string("Discord", "Formato", options = ["Discord", "Texto"], to
 seguir   = input.bool(true, "Avisar también de entrada, TP1, TP2 y stop", group = G2)
 G3 = "Dibujo"
 barras   = input.int(30, "Ancho de las cajas (velas)", minval = 5, maxval = 300, group = G3)
+cRojo    = input.color(color.new(#f23645, 78), "Colores de cajas: riesgo / beneficio", inline = "c", group = G3)
+cVerde   = input.color(color.new(#089981, 78), "", inline = "c", group = G3)
 lineas   = input.bool(true, "Líneas de entrada, SL y TP extendidas a la derecha", group = G3)
 cEntrada = input.color(color.new(#2962ff, 0), "Colores de líneas: entrada / SL / TP", inline = "l", group = G3)
 cSL      = input.color(color.new(#f23645, 0), "", inline = "l", group = G3)
 cTP      = input.color(color.new(#089981, 0), "", inline = "l", group = G3)
-cRojo    = input.color(color.new(#f23645, 78), "Colores: riesgo / beneficio", inline = "c", group = G3)
-cVerde   = input.color(color.new(#089981, 78), "", inline = "c", group = G3)
 
-// ── Datos de la operación
-esVenta = pSL > pEntrada
-// ¿Los precios son de este par? Si cambias de par, los precios del anterior quedan lejísimos (p. ej. 0,83 en el oro): sin señal.
-enEstePar = pEntrada > 0 and math.abs(pEntrada - close) / close <= 0.08
-valida  = enEstePar and (esVenta ? (pTP2 < pTP1 and pTP1 < pEntrada and pEntrada < pSL) : (pTP2 > pTP1 and pTP1 > pEntrada and pEntrada > pSL))
-riesgo  = math.abs(pEntrada - pSL)
-rr(p)   => riesgo > 0 ? math.abs(p - pEntrada) / riesgo : 0.0
-f(x)    => str.tostring(math.round_to_mintick(x))
-lado    = idioma == "SELL / BUY" ? (esVenta ? "SELL" : "BUY") : (esVenta ? "VENTA" : "COMPRA")
+// ── Nombre del activo
 nombreAuto() =>
     t = syminfo.ticker
     if str.contains(t, "XAU") or t == "GOLD"
@@ -57,86 +57,106 @@ nombreAuto() =>
         "S&P 500"
     else
         t
-activo  = activoIn != "" ? activoIn : nombreAuto()
-esAhora = tipo == "Ahora (mercado)"
+activo = activoIn != "" ? activoIn : nombreAuto()
 
-// Mensaje: en JSON para Discord (escapando comillas y barras) o en texto plano.
+// ── Operación en vista previa (se recalcula con el precio hasta que se publica)
+// Un precio escrito solo vale si es de este par: al cambiar de par, el del anterior queda lejísimos y se ignora.
+esDeEstePar(float x) => x > 0 and math.abs(x - close) / close <= 0.08
+slEscrito  = esDeEstePar(pSL)
+entEscrita = esDeEstePar(pEntrada)
+atr        = ta.atr(14)
+minN       = ta.lowest(low, velasSL)
+maxN       = ta.highest(high, velasSL)
+float ent  = entEscrita ? pEntrada : close
+int dir    = direccion == "Compra" ? 1 : direccion == "Venta" ? -1 : slEscrito ? (pSL < ent ? 1 : -1) : 0
+float sl   = slEscrito ? pSL : dir == 1 ? minN - margenATR * atr : dir == -1 ? maxN + margenATR * atr : na
+float rie  = math.abs(ent - sl)
+float tp1  = esDeEstePar(pTP1) ? pTP1 : ent + dir * rie * r1
+float tp2  = esDeEstePar(pTP2) ? pTP2 : ent + dir * rie * r2
+bool valida = dir != 0 and not na(sl) and rie > 0 and (dir == 1 ? (sl < ent and tp1 > ent and tp2 > tp1) : (sl > ent and tp1 < ent and tp2 < tp1))
+bool esLimite = entEscrita and tipo == "Límite (esperar el precio)"
+
+// ── Mensajes
+f(x) => str.tostring(math.round_to_mintick(x))
 esc(s) => str.replace_all(str.replace_all(s, "\\", "\\\\"), "\"", "\\\"")
-mensaje(array<string> lineas) =>
+mensaje(array<string> lineasMsg) =>
     string out = ""
     if formato == "Discord"
         string cuerpo = mencion != "" ? esc(mencion) + "\\n" : ""
-        for [i, l] in lineas
+        for [i, l] in lineasMsg
             cuerpo += (i > 0 ? "\\n" : "") + esc(l)
         out := "{\"content\":\"" + cuerpo + "\"}"
     else
         string cuerpo = mencion != "" ? mencion + "\n" : ""
-        for [i, l] in lineas
+        for [i, l] in lineasMsg
             cuerpo += (i > 0 ? "\n" : "") + l
         out := cuerpo
     out
+ladoDe(int d) => idioma == "SELL / BUY" ? (d < 0 ? "SELL" : "BUY") : (d < 0 ? "VENTA" : "COMPRA")
+rrDe(float p, float e, float s) => math.abs(e - s) > 0 ? math.abs(p - e) / math.abs(e - s) : 0.0
 
-senal() =>
+senal(int d, float e, float s, float t1, float t2, bool limite) =>
     array<string> l = array.new<string>()
-    string ahora = idioma == "SELL / BUY" ? (esAhora ? " NOW" : " LIMIT") : (esAhora ? " AHORA" : " LÍMITE")
-    l.push((esVenta ? "🔴 " : "🟢 ") + "**" + lado + " " + activo + ahora + "**")
-    l.push(activo + " Entrada: " + f(pEntrada) + (cerca != "" ? " " + cerca : ""))
-    l.push("SL: " + f(pSL))
-    l.push("TP1: " + f(pTP1) + "  (" + str.tostring(rr(pTP1), "#.#") + "R)")
-    l.push("TP2: " + f(pTP2) + "  (" + str.tostring(rr(pTP2), "#.#") + "R)")
+    string ahora = idioma == "SELL / BUY" ? (limite ? " LIMIT" : " NOW") : (limite ? " LÍMITE" : " AHORA")
+    l.push((d < 0 ? "🔴 " : "🟢 ") + "**" + ladoDe(d) + " " + activo + ahora + "**")
+    l.push(activo + " Entrada: " + f(e) + (cerca != "" ? " " + cerca : ""))
+    l.push("SL: " + f(s))
+    l.push("TP1: " + f(t1) + "  (" + str.tostring(rrDe(t1, e, s), "#.#") + "R)")
+    l.push("TP2: " + f(t2) + "  (" + str.tostring(rrDe(t2, e, s), "#.#") + "R)")
     if nota != ""
         l.push(nota)
     if pie != ""
         l.push(pie)
     mensaje(l)
 
-aviso(string titulo) =>
+aviso(string titulo, int d, float e, float s, float t1, float t2) =>
     array<string> l = array.new<string>()
     l.push(titulo + " · " + activo)
-    l.push(lado + " " + activo + " · Entrada " + f(pEntrada) + " · SL " + f(pSL) + " · TP1 " + f(pTP1) + " · TP2 " + f(pTP2))
+    l.push(ladoDe(d) + " " + activo + " · Entrada " + f(e) + " · SL " + f(s) + " · TP1 " + f(t1) + " · TP2 " + f(t2))
     mensaje(l)
 
-// ── Seguimiento: 0 esperando la entrada · 1 en curso · 2 TP1 tocado · 3 TP2 (cerrada) · 4 stop (cerrada)
-var int estado = -1
-var int barIni = na
-empieza = valida and estado == -1 and barstate.islast
-if empieza
+// ── Publicación y seguimiento (solo en tiempo real). Al publicar, la operación queda fijada con el precio de ese momento.
+// estado: 0 esperando la entrada (límite) · 1 en curso · 2 TP1 tocado · 3 TP2 (cerrada) · 4 stop (cerrada)
+varip bool  publicada = false
+varip int   estado = -1
+varip int   dF = 0
+varip float eF = na
+varip float sF = na
+varip float t1F = na
+varip float t2F = na
+varip int   barIni = na
+if barstate.isrealtime and valida and not publicada
+    publicada := true
+    dF := dir
+    eF := ent
+    sF := sl
+    t1F := tp1
+    t2F := tp2
     barIni := bar_index
-if empieza
-    estado := esAhora ? 1 : 0
-
-string evento = ""
-if valida and estado >= 0 and estado <= 2 and not empieza
-    tocaEntrada = esVenta ? high >= pEntrada : low <= pEntrada
-    tocaSL      = esVenta ? high >= pSL : low <= pSL
-    tocaTP1     = esVenta ? low <= pTP1 : high >= pTP1
-    tocaTP2     = esVenta ? low <= pTP2 : high >= pTP2
-    if estado == 0 and tocaEntrada
-        estado := 1
-        evento := "▶️ Entrada activada"
-    else if estado >= 1 and tocaSL
-        // si en la misma vela tocan stop y objetivo, se cuenta el stop (lo prudente)
+    estado := esLimite ? 0 : 1
+    alert(senal(dF, eF, sF, t1F, t2F, esLimite), alert.freq_all)
+else if barstate.isrealtime and publicada and estado >= 0 and estado <= 2
+    float p = close
+    string evento = ""
+    if estado == 0
+        if dF == 1 ? p <= eF : p >= eF
+            estado := 1
+            evento := "▶️ Entrada activada"
+    else if dF == 1 ? p <= sF : p >= sF
         estado := 4
         evento := "❌ Stop tocado"
-    else if estado >= 1 and tocaTP2
+    else if dF == 1 ? p >= t2F : p <= t2F
         estado := 3
-        evento := "🎯 TP2 alcanzado (" + str.tostring(rr(pTP2), "#.#") + "R)"
-    else if estado == 1 and tocaTP1
+        evento := "🎯 TP2 alcanzado (" + str.tostring(rrDe(t2F, eF, sF), "#.#") + "R)"
+    else if estado == 1 and (dF == 1 ? p >= t1F : p <= t1F)
         estado := 2
-        evento := "✅ TP1 alcanzado (" + str.tostring(rr(pTP1), "#.#") + "R)"
+        evento := "✅ TP1 alcanzado (" + str.tostring(rrDe(t1F, eF, sF), "#.#") + "R)"
+    if seguir and evento != ""
+        alert(aviso(evento, dF, eF, sF, t1F, t2F), alert.freq_all)
 
-// ── Alertas (solo en tiempo real). La señal sale una vez al activar la alerta; los avisos, una vez por vela.
-varip bool publicada = false
-if barstate.isrealtime and valida and not publicada and estado >= 0 and estado <= 2
-    publicada := true
-    alert(senal(), alert.freq_once_per_bar)
-if barstate.isrealtime and seguir and evento != ""
-    alert(aviso(evento), alert.freq_once_per_bar)
-
-// ── Dibujo, como la herramienta de posición
+// ── Dibujo
 var box bRiesgo = na
 var box bBenef  = na
-var line lTP1   = na
 var line lnE    = na
 var line lnS    = na
 var line ln1    = na
@@ -148,26 +168,30 @@ var label lb2   = na
 var label lbN   = na
 var label lbAyuda = na
 if barstate.islast
-    label.delete(lbAyuda)
-    if not enEstePar
-        lbAyuda := label.new(bar_index + 3, close, "📍 GTFX Señal: sin operación en " + activo + ". Doble clic en «GTFX · Señal a Discord» → Entradas y pon entrada, SL, TP1 y TP2", style = label.style_label_left, color = color.new(#2962ff, 15), textcolor = color.white, size = size.small)
-if barstate.islast and enEstePar
-    box.delete(bRiesgo), box.delete(bBenef), line.delete(lTP1), line.delete(lnE), line.delete(lnS), line.delete(ln1), line.delete(ln2)
-    label.delete(lbE), label.delete(lbS), label.delete(lb1), label.delete(lb2), label.delete(lbN)
-    int t1 = na(barIni) ? bar_index : barIni
-    int t2 = t1 + barras
-    bRiesgo := box.new(t1, math.max(pEntrada, pSL), t2, math.min(pEntrada, pSL), xloc = xloc.bar_index, border_color = color.new(#f23645, 40), bgcolor = cRojo)
-    bBenef  := box.new(t1, math.max(pEntrada, pTP2), t2, math.min(pEntrada, pTP2), xloc = xloc.bar_index, border_color = color.new(#089981, 40), bgcolor = cVerde)
-    lTP1    := line.new(t1, pTP1, t2, pTP1, xloc = xloc.bar_index, color = color.new(#089981, 0), style = line.style_dashed, width = 1)
-    if lineas
-        lnE := line.new(t1, pEntrada, t2, pEntrada, xloc = xloc.bar_index, extend = extend.right, color = cEntrada, width = 2)
-        lnS := line.new(t1, pSL, t2, pSL, xloc = xloc.bar_index, extend = extend.right, color = cSL, width = 2)
-        ln1 := line.new(t1, pTP1, t2, pTP1, xloc = xloc.bar_index, extend = extend.right, color = cTP, width = 1, style = line.style_dashed)
-        ln2 := line.new(t1, pTP2, t2, pTP2, xloc = xloc.bar_index, extend = extend.right, color = cTP, width = 2)
-    string est = not valida ? "⚠ Revisa los precios (el stop y los TP deben ir a cada lado de la entrada, TP1 antes que TP2)" : estado == 0 ? "esperando la entrada" : estado == 1 ? "en curso" : estado == 2 ? "TP1 ✓" : estado == 3 ? "TP2 ✓ · cerrada" : estado == 4 ? "stop · cerrada" : "lista"
-    lbE := label.new(t2, pEntrada, lado + " @" + f(pEntrada) + (est != "" ? "  ·  " + est : ""), xloc = xloc.bar_index, style = label.style_label_left, color = cEntrada, textcolor = valida ? color.white : color.orange, size = size.small)
-    lbS := label.new(t2, pSL, "SL " + f(pSL), xloc = xloc.bar_index, style = label.style_label_left, color = color.new(#f23645, 15), textcolor = color.white, size = size.small)
-    lb1 := label.new(t2, pTP1, "TP1 " + f(pTP1) + " · " + str.tostring(rr(pTP1), "#.#") + "R", xloc = xloc.bar_index, style = label.style_label_left, color = color.new(#089981, 30), textcolor = color.white, size = size.small)
-    lb2 := label.new(t2, pTP2, "TP2 " + f(pTP2) + " · " + str.tostring(rr(pTP2), "#.#") + "R", xloc = xloc.bar_index, style = label.style_label_left, color = color.new(#089981, 15), textcolor = color.white, size = size.small)
-    if nota != ""
-        lbN := label.new(t1, esVenta ? math.max(pSL, pEntrada) : math.min(pSL, pEntrada), nota, xloc = xloc.bar_index, style = esVenta ? label.style_label_down : label.style_label_up, color = color.new(color.black, 100), textcolor = color.gray, size = size.small)
+    box.delete(bRiesgo), box.delete(bBenef), line.delete(lnE), line.delete(lnS), line.delete(ln1), line.delete(ln2)
+    label.delete(lbE), label.delete(lbS), label.delete(lb1), label.delete(lb2), label.delete(lbN), label.delete(lbAyuda)
+    if not valida and not publicada
+        string motivo = dir == 0 ? "sin operación en " + activo + ". Abre los ajustes y escribe tu STOP (o elige Compra/Venta)" : "revisa el stop de " + activo + ": debe quedar " + (dir == 1 ? "por debajo" : "por encima") + " del precio"
+        lbAyuda := label.new(bar_index + 3, close, "📍 GTFX Señal: " + motivo, style = label.style_label_left, color = color.new(#2962ff, 15), textcolor = color.white, size = size.small)
+    else
+        int   d  = publicada ? dF : dir
+        float e  = publicada ? eF : ent
+        float s  = publicada ? sF : sl
+        float a1 = publicada ? t1F : tp1
+        float a2 = publicada ? t2F : tp2
+        int x1 = publicada and not na(barIni) ? barIni : bar_index
+        int x2 = x1 + barras
+        bRiesgo := box.new(x1, math.max(e, s), x2, math.min(e, s), border_color = color.new(#f23645, 40), bgcolor = cRojo)
+        bBenef  := box.new(x1, math.max(e, a2), x2, math.min(e, a2), border_color = color.new(#089981, 40), bgcolor = cVerde)
+        if lineas
+            lnE := line.new(x1, e, x2, e, extend = extend.right, color = cEntrada, width = 2)
+            lnS := line.new(x1, s, x2, s, extend = extend.right, color = cSL, width = 2)
+            ln1 := line.new(x1, a1, x2, a1, extend = extend.right, color = cTP, width = 1, style = line.style_dashed)
+            ln2 := line.new(x1, a2, x2, a2, extend = extend.right, color = cTP, width = 2)
+        string est = not publicada ? "lista: crea la alerta" : estado == 0 ? "esperando la entrada" : estado == 1 ? "en curso" : estado == 2 ? "TP1 ✓" : estado == 3 ? "TP2 ✓ · cerrada" : estado == 4 ? "stop · cerrada" : ""
+        lbE := label.new(x2, e, ladoDe(d) + " @" + f(e) + "  ·  " + est, style = label.style_label_left, color = cEntrada, textcolor = color.white, size = size.small)
+        lbS := label.new(x2, s, "SL " + f(s), style = label.style_label_left, color = color.new(#f23645, 15), textcolor = color.white, size = size.small)
+        lb1 := label.new(x2, a1, "TP1 " + f(a1) + " · " + str.tostring(rrDe(a1, e, s), "#.#") + "R", style = label.style_label_left, color = color.new(#089981, 30), textcolor = color.white, size = size.small)
+        lb2 := label.new(x2, a2, "TP2 " + f(a2) + " · " + str.tostring(rrDe(a2, e, s), "#.#") + "R", style = label.style_label_left, color = color.new(#089981, 15), textcolor = color.white, size = size.small)
+        if nota != ""
+            lbN := label.new(x1, d < 0 ? math.max(s, e) : math.min(s, e), nota, style = d < 0 ? label.style_label_down : label.style_label_up, color = color.new(color.black, 100), textcolor = color.gray, size = size.small)
