@@ -124,3 +124,44 @@ queda como candidato para la capa de convicción.
 **Aplicado:** `bonos` pasa a peso 0 (informativo, se sigue viendo en la ficha del dólar). FEATURE_VERSION 11. El cambio del
 pilar de tipos del oro al 2 años en 20 sesiones se mantiene: ahí se midió el acierto directo, sin efecto de cobertura.
 Lección para la regla de la casa: **un candidato se compara a igual cobertura**, no a umbral fijo.
+
+## Bonos largos (10 y 30 años) y curva frente a oro, plata e índices (13-11-2026)
+
+Pregunta de César: «los bonos de 10 a 30 años también llevan un sesgo con el oro; tenlo muy en cuenta para el sesgo de esos
+activos». Script `server/scripts/bonos-largos-oro.mjs`: FRED DGS2, DGS10, DGS30 y real a 10 años; oro de MT5 (2018–2026,
+2.101 días, la serie con la que se fijó el pilar) y precios diarios de Yahoo 2010–2026 (oro y plata 3.559 días; Nasdaq,
+S&P y Dow 4.143). Cada cifra: % de veces que el activo sube en los 5 días siguientes; diferencia por tres cortes.
+
+**Mismo día (oro MT5):** 2 años 64 % (corr 0,33), 10 años 61 % (0,30), 30 años 60 % (0,23), real 64 % (0,34). El 30 años se
+mueve con el oro, pero menos que el 2 años.
+
+**Como sesgo (cambio acumulado → 5 días siguientes), oro MT5 2018–2026:**
+
+| Señal | sube con señal a favor / en contra | diferencia por cortes |
+|---|---|---|
+| 2 años bajando, 20 sesiones (pilar vigente) | 59 % / 54 % | +3 / +3 / +5 |
+| 10 años bajando, 20 sesiones | 58 % / 54 % | +4 / +6 / −1 |
+| 30 años bajando, 20 sesiones | 57 % / 55 % | +2 / +6 / −2 |
+| 30 años bajando, 60 sesiones | 58 % / 54 % | 0 / +1 / +10 |
+| **curva 30 − 2 años empinándose, 60 sesiones** | **62 % / 49 %** | **+14 / +7 / +19** |
+| 2 años (20 s) + curva (60 s) | 62 % / 49 % | +19 / +10 / +12 |
+
+- El nivel del 30 años solo no añade nada al 2 años: van en la misma dirección el 76 % de los días y, cuando discrepan,
+  el oro sigue al 2 años el 53 % y al 30 años el 47 %.
+- Lo que sí aporta el tramo largo es **la curva**: cuando el 30 años sube más (o baja menos) que el 2 años durante 3
+  meses, el oro sube el 62 % de las semanas siguientes frente al 49 % cuando la curva se aplana.
+- Con 2010–2026 (Yahoo) la curva da −6 / +8 / +13 en el oro y −4 / +9 / +12 en la plata: **falla en 2010–2015**.
+- Índices (2010–2026): curva +4 / +3 / +8 (Nasdaq y S&P), 0 / +3 / +13 (Dow). El 2 años en 20 sesiones separa mejor
+  que el 10 años en 3 meses por sí solo (S&P +8 / +7 / +9 frente a +1 / −1 / +11).
+
+**Prueba dentro del sesgo completo** (`sesgo-instrumentos-hist.mjs --candidata`, 2021–2026, misma cobertura):
+
+| Sesgo ≥ 2, acierto a 5 días | vigente | candidata |
+|---|---|---|
+| Oro (2 años + curva) | 52 % · por tercios 54 / 51 / 53 | 54 % · 51 / 54 / 57 |
+| Nasdaq (2 años en vez de 10) | 55 % | 52 % (peor en 5 de 6 años) |
+
+**Decisión (regla de la casa):** no se cambia ninguna fórmula. En los índices el 2 años empeora el sesgo completo; en el
+oro la curva mejora el total y dos de tres tercios, pero no los tres. La curva entra como **pilar candidato con peso 0**
+(«Curva 30 − 2 años», `instruments.js`): se calcula, se enseña en la ficha del activo y se guarda cada día en
+`radar_instrument_bias`. Lectura del 13-11-2026: −47 pb en 3 meses (se aplana: en contra del oro).

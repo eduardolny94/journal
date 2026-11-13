@@ -58,6 +58,13 @@ export function computeInstruments(db, input) {
   // 56 % (61 / 53 / 55 por cortes) frente a 52 % (56 / 48 / 53); medido en server/scripts/bonos-2y-10y.mjs (2018–2026).
   const dgs2Ch20 = bpChange(db, 'DGS2', 28);
   const dgs10Ch = bpChange(db, FRED_MARKET.dgs10, 84);
+  // Curva 30 años − 2 años en 3 meses (candidata, peso 0): cuando se empina, el oro sube el 62 % de las semanas siguientes
+  // frente al 49 % cuando se aplana (2018–2026, +14 / +7 / +19 puntos por cortes) y los índices 63 % frente a 58 %
+  // (2010–2026, +4 / +3 / +8). Dentro del sesgo completo solo mejora 2 de 3 cortes, así que se enseña y se guarda, pero
+  // no mueve la puntuación. Medido en server/scripts/bonos-largos-oro.mjs (13-11-2026).
+  const dgs30Ch = bpChange(db, FRED_MARKET.dgs30, 84);
+  const dgs2Ch60 = bpChange(db, 'DGS2', 84);
+  const curveCh = dgs30Ch === null || dgs2Ch60 === null ? null : dgs30Ch - dgs2Ch60;
   const hyCh = bpChange(db, FRED_MARKET.hy_spread, 84);
   const breakeven = latest(db, FRED_MARKET.breakeven_10y);
   const usdExp = input.expectations.USD;
@@ -96,6 +103,7 @@ export function computeInstruments(db, input) {
       macro: { value: round(clamp(isMetal ? -usdGrowth * 0.8 : usdGrowth, -2, 2)), raw: usdGrowth, missing: false, text: `sorpresas macro de EE. UU. ${usdGrowth >= 0 ? 'positivas' : 'negativas'} (${fmt(usdGrowth)})` },
       fed: { value: round(fedDiff === null ? 0 : clamp(fedDiff / 50, -2, 2)), raw: fedDiff, missing: !fedFresh, text: fedFresh ? `Fed: ${usdExp.priced} descontada (${fmt(usdExp.priced_pct, 0)} %)` : 'sin expectativa de la Fed cargada' },
       posicionamiento: { value: round(cotRow ? clamp(cotRow.z, -2, 2) * (Math.abs(cotRow.z) >= 1.5 ? 0.5 : 1) : 0), raw: cotRow ? cotRow.ratio : null, missing: !cotRow, percentile: cotRow ? cotRow.percentile : null, weekly_change: cotRow ? cotRow.weekly_change : null, extreme: !!(cotRow && cotRow.extreme), text: cotRow ? `COT ${cotRow.net >= 0 ? 'largo' : 'corto'} neto (percentil ${cotRow.percentile}${cotRow.extreme ? ', extremo' : ''})` : 'sin COT' },
+      curva: { value: round(curveCh === null ? 0 : clamp(curveCh / 20, -2, 2)), raw: curveCh, missing: curveCh === null, text: curveCh === null ? 'sin bono a 30 años' : `curva 30 − 2 años ${curveCh >= 0 ? '+' : ''}${fmt(curveCh, 0)} pb en 3 meses (${curveCh > 0 ? 'se empina: a favor' : 'se aplana: en contra'}; en observación, aún no puntúa)` },
       escenario: { value: scen.value, raw: scen.scenario, missing: scen.scenario === null, scenario: scen.scenario, text: scen.text },
     };
     let num = 0;

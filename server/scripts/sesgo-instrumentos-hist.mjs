@@ -19,7 +19,8 @@ const yahoo = (n) => { const r = JSON.parse(readFileSync(path.join(ROOT, 'data',
 const db = new DatabaseSync(path.join(ROOT, 'server', 'data', 'journal.db'), { readOnly: true });
 const fred = (id) => { const m = new Map(); const f = path.join(ROOT, 'data', 'historico', 'fred', `${id}.json`); if (existsSync(f)) for (const o of JSON.parse(readFileSync(f, 'utf8')).observations) { const v = Number(o.value); if (Number.isFinite(v)) m.set(o.date, v); } for (const r of db.prepare('SELECT date, value FROM radar_series WHERE series_id = ? ORDER BY date').all(id)) if (Number.isFinite(Number(r.value))) m.set(r.date, Number(r.value)); return [...m.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, value]) => ({ date, value })); };
 const PX = { NAS100: yahoo('NDX'), XAUUSD: yahoo('GC') }; const VIX = yahoo('VIX'), DXY = yahoo('DXY');
-const F = { DGS10: fred('DGS10'), DGS2: fred('DGS2'), HY: fred('BAMLH0A0HYM2') };
+const F = { DGS10: fred('DGS10'), DGS2: fred('DGS2'), DGS30: fred('DGS30'), HY: fred('BAMLH0A0HYM2') };
+const CAND = process.argv.includes('--candidata'); // prueba: índices con el 2 años en 20 sesiones y metales con 2 años + curva 30 − 2
 const lastBefore = (rows, date) => { let lo = 0, hi = rows.length - 1, ans = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (rows[m].date < date) { ans = m; lo = m + 1; } else hi = m - 1; } return ans; };
 const shift = (date, days) => { const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
 const bp = (rows, date, days) => { const i = lastBefore(rows, shift(date, -1)); if (i < 0) return null; const j = lastBefore(rows, shift(rows[i].date, -days + 1)); if (j < 0) return null; return (rows[i].value - rows[j].value) * 100; };
@@ -30,7 +31,8 @@ export function scoreAt(sym, date) {
   const mk = (k) => (atrPct ? clamp((last / done[done.length - 1 - k].close - 1) / (atrPct * Math.sqrt(k)), -3, 3) : 0);
   const metal = sym === 'XAUUSD'; const p = {};
   p.momentum = clamp(0.2 * mk(1) + 0.4 * mk(5) + 0.4 * mk(20), -2, 2);
-  const t = metal ? bp(F.DGS2, date, 28) : bp(F.DGS10, date, 84); p.tasas = t === null ? null : clamp(-t / (metal ? 15 : 30), -2, 2);
+  if (!CAND) { const t = metal ? bp(F.DGS2, date, 28) : bp(F.DGS10, date, 84); p.tasas = t === null ? null : clamp(-t / (metal ? 15 : 30), -2, 2); }
+  else { const c2 = bp(F.DGS2, date, 28); const a30 = bp(F.DGS30, date, 84), a2 = bp(F.DGS2, date, 84); const curva = a30 === null || a2 === null ? null : a30 - a2; p.tasas = c2 === null ? null : clamp(metal && curva !== null ? 0.5 * (-c2 / 15) + 0.5 * (curva / 20) : -c2 / 15, -2, 2); }
   if (metal) { const k = lastBefore(DXY, date); p.dolar = k > 20 ? clamp(-((DXY[k].close / DXY[k - 20].close - 1) * 100) / 1.5, -2, 2) : null; } else { const h = bp(F.HY, date, 84); p.dolar = h === null ? null : clamp(-h / 40, -2, 2); }
   const v = lastBefore(VIX, date); p.riesgo = v < 0 ? null : clamp((metal ? VIX[v].close - 18 : 18 - VIX[v].close) / 4, -2, 2);
   let num = 0, den = 0; for (const [k, w] of Object.entries(W)) if (p[k] !== null) { num += w * p[k]; den += w; }

@@ -186,6 +186,7 @@ export const FRED_BY_CURRENCY = {
 /** Series FRED globales que siguen siendo útiles (bonos, crédito, IPC subyacente). */
 export const FRED_MARKET = {
   dgs10: 'DGS10',
+  dgs30: 'DGS30', // curva 30 − 2 años: pilar candidato (peso 0) de índices y metales
   hy_spread: 'BAMLH0A0HYM2',
   real_yield_10y: 'DFII10',
   breakeven_10y: 'T10YIE',
@@ -397,8 +398,8 @@ export const INSTRUMENT_SYMBOLS = INSTRUMENTS.map((i) => i.symbol);
 export const INSTRUMENT_BY_SYMBOL = Object.fromEntries(INSTRUMENTS.map((i) => [i.symbol, i]));
 
 /** Pesos de los pilares de índices y metales (suman 100). */
-export const INSTRUMENT_PILLAR_WEIGHTS = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0 };
-export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)' };
+export const INSTRUMENT_PILLAR_WEIGHTS = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
+export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */
 export function normalizeInstrumentSymbol(raw) {

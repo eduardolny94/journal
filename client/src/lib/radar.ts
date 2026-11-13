@@ -1542,9 +1542,9 @@ export const INSTRUMENT_LABELS: Record<string, string> = {
 };
 
 export const INSTRUMENT_PILLAR_LABELS: Record<string, string> = {
-  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)',
+  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años',
 };
-export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0 };
+export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
 
 /** Normaliza cualquier símbolo (par FX o índice/metal, con o sin sufijo) al del radar. */
 export function normalizeAnySymbol(symbol: string | null | undefined): string | null {

@@ -18,6 +18,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 7. **Horizonte semanal** · hecho. Tarjeta "Sesgo de fondo (semanas)" en la pestaña Semana: pares con fuerza ≥2, su acierto histórico a 20 días por fuerza y por par, y la novedad del sesgo. La calibración de cada tarjeta incluye ya el horizonte de 20 días.
 9. **Quitar el nivel de tasas en divisas refugio** · medido y descartado: candidato `sin_carry_refugio` en el backtest, 44,0 % dentro | 48,5 % fuera de muestra, peor que los pesos vigentes. Se mantiene el pilar.
 
+- **Índices y metales (13-11-2026):** el sesgo de Nasdaq, oro y demás instrumentos se guarda cada día en `radar_instrument_bias`. Reconstruido 2021–2026 (`sesgo-instrumentos-hist.mjs`): el alcista acierta 65 % (Nasdaq) y 60 % (oro) a 5 días frente a 57 % de base; el bajista no vale. Pilar candidato nuevo a peso 0: **curva 30 − 2 años en 3 meses** (oro 62 % frente a 49 % en 2018–2026, +14 / +7 / +19 por cortes; falla en 2010–2015 y dentro del sesgo completo mejora 2 de 3 tercios). No se aplicó: pasar los índices al 2 años en 20 sesiones (empeora el sesgo completo, 55 % → 52 %). Candidato pendiente: subir el peso de las expectativas de la Fed (bajadas descontadas → Nasdaq 64 % frente a 56 %, oro 59 % frente a 54 %, tres cortes en 15 años). Detalle en `docs/BONOS-DIRECCION.md` y `docs/SESGO-NASDAQ-ORO.md`.
+
 ## Pendientes, por orden
 
 8. **Especialización por par.** USDJPY responde a lo macro (bonos a 10 años de EE. UU. y Japón, intervención); USDCAD es el par donde mejor funciona el método. Pilares y pesos por par y, para USDJPY, el diferencial de bonos a 10 años como pilar (el MoF publica el JGB a 10 años en el mismo CSV que ya se descarga).
