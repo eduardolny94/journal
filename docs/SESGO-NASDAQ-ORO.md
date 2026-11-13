@@ -66,3 +66,76 @@ Fed** (bajadas → suben los dos); en el Nasdaq, además, el régimen de riesgo.
 Candidato: subir el peso de las expectativas de la Fed (5 → 15–20) en índices y oro, restándolo del momentum, y medirlo a
 igual cobertura cuando `radar_instrument_bias` tenga meses de lecturas reales o reconstruyendo el pilar con
 `radar_hist_pilares.json`. No se toca el peso hasta que mejore en los tres cortes.
+
+## Pesos medidos con 15 años y cambios aplicados (13-11-2026, `server/scripts/instrumentos-pesos.mjs`)
+
+Encargo del usuario: «haz lo que tengas que hacer siempre y cuando lo mejore, y haz el análisis». Reconstrucción día a
+día sin mirar el futuro, 2011-08 → 2026-10 (≈ 3.835 días por activo): momentum, tipos, dólar (metales), VIX, macro
+(pilar de crecimiento del dólar), Fed (−pilar de expectativas del dólar) y curva 30 − 2 años. Sin crédito (FRED solo da
+3 años) ni COT. Horizonte 5 días, tres cortes (2011–16 / 2016–21 / 2021–26), variantes a igual cobertura.
+
+**Cada pilar por separado** (el activo sube con el pilar ≥ 0,5 frente a ≤ −0,5; diferencia por cortes):
+
+| Pilar | Nasdaq | S&P 500 | Dow | Oro | Plata |
+|---|---|---|---|---|---|
+| momentum propio (30 % del sesgo) | **−5 / −4 / −6** | **−13 / −9 / −2** | −9 / −11 / 0 | **−6 / −8 / −2** | −1 / −16 / +6 |
+| tipos | +6 / +4 / +12 | +7 / +6 / +11 | +9 / 0 / +13 | +7 / +9 / +4 | +8 / −2 / +8 |
+| Fed (lo que descuenta el 2 años) | +2 / +5 / +13 | +3 / +7 / +11 | +3 / +6 / +14 | +7 / +6 / +8 | +8 / −2 / +16 |
+| VIX | −4 / +2 / −4 | −7 / −1 / −2 | −7 / −3 / −5 | +11 / +3 / −3 | +8 / +8 / +1 |
+| macro (sorpresas de EE. UU.) | −5 / −3 / −7 | −5 / −6 / −7 | −5 / −1 / −12 | +6 / +1 / −7 | +10 / −5 / +4 |
+| dólar | — | — | — | −1 / −2 / +9 | 0 / −3 / +9 |
+| curva 30 − 2 | −1 / −3 / +12 | 0 / −2 / +11 | −3 / +1 / +13 | −5 / +9 / +13 | −4 / +9 / +14 |
+
+El momentum propio a 1/5/20 días **va al revés** a 5 días en los cinco activos; en los índices, también el VIX y las
+sorpresas macro (buena noticia = el índice sube menos).
+
+**Métrica.** El acierto del signo engaña en activos que suben el 55–60 % de las semanas (cuantas más señales alcistas,
+más «acierto»). Se usa la **separación**: % de subidas con sesgo alcista − % con sesgo bajista, a igual cobertura.
+
+| Separación (puntos) · todo · por cortes | vigente | nuevo |
+|---|---|---|
+| Nasdaq | 7 · −7 / +3 / +12 | **11 · +12 / +6 / +15** |
+| S&P 500 | 4 · −5 / −5 / +11 | **11 · +9 / +9 / +13** |
+| Dow | 3 · −1 / −4 / +5 | **10 · +9 / +4 / +17** |
+| Oro | 6 · +8 / +4 / +7 | **11 · +14 / +12 / +9** |
+| Plata | 8 · +14 / −3 / +13 | 11 · +14 / +7 / +13 |
+
+Mejor en los tres cortes en Nasdaq, S&P, Dow y oro (plata: igual en dos y mejor en uno). El rendimiento medio a favor
+también sube (S&P 0,06 → 0,18 %; Dow 0,01 → 0,12 %; oro 0,09 → 0,19 % por señal), en los tres cortes salvo el último
+del Nasdaq.
+
+**Aplicado en `constants.js` / `instruments.js`:**
+
+- Índices medidos (Nasdaq, S&P, Dow): momentum, macro y VIX a peso 0; Fed de 5 a 20; tipos 20, crédito 15 y COT 5 sin
+  tocar (no se pudieron medir hacia atrás y quedaron fuera de las dos ramas de la comparación).
+- Oro y plata: momentum a peso 0; el resto igual.
+- El pilar «Fed» pasa a ser lo que descuenta el bono a 2 años (pilar de expectativas del dólar, al revés); FedWatch
+  queda como texto y como reserva.
+- DAX, FTSE y Nikkei conservan los pesos anteriores (sin medir).
+- Los pilares a peso 0 se siguen enseñando, atenuados y con «no puntúa».
+- Un pilar sin dato ya no entra en el denominador (antes arrastraba la puntuación hacia cero).
+
+**Lo que significa cada lado con los pesos nuevos** (sesgo ≥ 2, 2011–2026; por cortes):
+
+| | con sesgo alcista sube | con sesgo bajista sube | base |
+|---|---|---|---|
+| Nasdaq | 67 % (66 / 67 / 67; n 918) | 56 % (56 / 61 / 51; n 1.433) | 60 % |
+| S&P 500 | 67 % (66 / 68 / 66) | 56 % (55 / 61 / 53) | 60 % |
+| Dow | 65 % (64 / 64 / 67) | 55 % (52 / 62 / 52) | 58 % |
+| Oro | 64 % (70 / 65 / 62; n 632) | 53 % (52 / 52 / 55; n 1.382) | 54 % |
+| Plata | 60 % (63 / 59 / 61) | 49 % (47 / 51 / 49) | 51 % |
+
+El sesgo alcista es fiable y estable; el bajista significa «sube menos», no «baja». Por eso: (1) el lado bajista nunca
+se etiqueta «fuerte» en estos activos y (2) lleva el aviso «sirve para no comprar, no para vender» con su cifra
+(`INSTRUMENT_EVIDENCE`, campo `evidence` del activo).
+
+**Medido y no aplicado:**
+
+- Subir la Fed o añadir la curva restándolo del momentum (rejilla de 15 variantes): ninguna mejora el acierto en los
+  tres cortes en índices; en el oro alguna mejora 1–3 puntos, por debajo del mínimo de la regla.
+- Momentum al revés (peso −15): mejora la separación en oro y plata, pero el rendimiento cae en el último corte.
+- **Off-lit** (proporción de volumen en corto fuera de bolsa, FINRA, QQQ y SPY, 2019–2026, 1.978 días;
+  `finra-corto-descarga.mjs`): Nasdaq 63 % frente a 60 % a 5 días (+2 / +3 / +3 por cortes, mínimo); S&P +9 / −16 / −9.
+  Sin señal estable: no entra.
+- Lectura del 13-11-2026 con los pesos nuevos: Nasdaq −5,5, S&P −5,7 y Dow −5,2 (bajista moderado, con el aviso); oro
+  −1,4 y plata −1,5 (sin sesgo).

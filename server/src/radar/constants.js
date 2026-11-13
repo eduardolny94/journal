@@ -397,8 +397,38 @@ export const INSTRUMENTS = [
 export const INSTRUMENT_SYMBOLS = INSTRUMENTS.map((i) => i.symbol);
 export const INSTRUMENT_BY_SYMBOL = Object.fromEntries(INSTRUMENTS.map((i) => [i.symbol, i]));
 
-/** Pesos de los pilares de índices y metales (suman 100). */
-export const INSTRUMENT_PILLAR_WEIGHTS = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
+/**
+ * Pesos de los pilares de índices y metales, por tipo de activo (se normalizan por la suma de los que tienen dato).
+ * Medidos con 15 años (server/scripts/instrumentos-pesos.mjs, 13-11-2026) a igual cobertura y por tres cortes:
+ *  - el momentum propio (1/5/20 días) va al revés a 5 días en los cinco activos → peso 0;
+ *  - en los índices, las sorpresas macro y el nivel del VIX tampoco aciertan el sentido → peso 0, y lo que descuenta
+ *    el mercado de la Fed (bono a 2 años) pasa de 5 a 20. Separación alcista − bajista: de 3–7 a 10–12 puntos en los
+ *    tres cortes de Nasdaq, S&P y Dow;
+ *  - en los metales solo se quita el momentum: oro de 6 a 11 puntos, mejor en los tres cortes.
+ * Los pilares a peso 0 se siguen calculando y enseñando.
+ */
+export const INSTRUMENT_PILLAR_WEIGHTS_BY_KIND = {
+  index: { momentum: 0, tasas: 20, dolar: 15, riesgo: 0, macro: 0, fed: 20, posicionamiento: 5, escenario: 0, curva: 0 },
+  metal: { momentum: 0, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 },
+};
+/**
+ * Pesos anteriores al 13-11-2026. Siguen valiendo para los índices no medidos (DAX, FTSE, Nikkei): los pesos nuevos solo
+ * se aplican a los activos de INSTRUMENT_EVIDENCE, que son los que tienen 15 años de comprobación.
+ */
+export const INSTRUMENT_PILLAR_WEIGHTS_LEGACY = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
+/** Compatibilidad: pesos de los metales. */
+export const INSTRUMENT_PILLAR_WEIGHTS = INSTRUMENT_PILLAR_WEIGHTS_BY_KIND.metal;
+/**
+ * Lo medido con esos pesos (2011–2026, sesgo ≥ 2, 5 días): % de semanas que el activo sube con sesgo alcista, con sesgo
+ * bajista y en general. En activos que suben casi siempre, «bajista» significa «sube menos», no «baja».
+ */
+export const INSTRUMENT_EVIDENCE = {
+  NAS100: { bull: 67, bear: 56, base: 60, n_bull: 918, n_bear: 1433 },
+  US500: { bull: 67, bear: 56, base: 60, n_bull: 918, n_bear: 1433 },
+  US30: { bull: 65, bear: 55, base: 58, n_bull: 918, n_bear: 1433 },
+  XAUUSD: { bull: 64, bear: 53, base: 54, n_bull: 632, n_bear: 1382 },
+  XAGUSD: { bull: 60, bear: 49, base: 51, n_bull: 631, n_bear: 1382 },
+};
 export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */

@@ -1,3 +1,4 @@
+// OJO: usa los pesos anteriores al 13-11-2026 (con momentum); la referencia actual es instrumentos-pesos.mjs.
 // Sesgo histórico (point-in-time) del radar para Nasdaq y oro, reconstruido con los pilares que tienen historial:
 // momentum (30), tipos (20: bono a 10 años en 84 días para el índice; bono a 2 años en 28 días para el oro),
 // crédito de alto riesgo / dólar (15) y riesgo VIX (15) = 80 de los 100 puntos de `INSTRUMENT_PILLAR_WEIGHTS`

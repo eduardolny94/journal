@@ -66,10 +66,10 @@ export default function RadarPair() {
       <PairCard pair={pair} favorite={favorites.includes(pair.symbol)} onToggleFavorite={toggleFavorite} />
       <div className="grid gap-4 xl:grid-cols-2">
         {isInstrument ? (
-          <Card title="Qué empuja el sesgo" subtitle="Pilares del activo: valor normalizado (−2 débil … +2 fuerte) y su lectura.">
+          <Card title="Qué empuja el sesgo" subtitle="Pilares del activo: valor normalizado (−2 débil … +2 fuerte) y su lectura. Los atenuados son contexto y no puntúan.">
             <ul className="space-y-2">
               {Object.entries(pair.pillars ?? {}).map(([k, v]) => (
-                <li key={k} className="flex items-start gap-3 text-xs">
+                <li key={k} className={cn('flex items-start gap-3 text-xs', v.weight === 0 && 'opacity-60')} title={v.weight === 0 ? 'Se enseña como contexto: no entra en la puntuación' : undefined}>
                   <span className="w-40 shrink-0 text-gray-400">{INSTRUMENT_PILLAR_LABELS[k] ?? k}</span>
                   <span className="relative mt-1 h-1.5 w-24 shrink-0 rounded-full bg-gray-800">
                     <span className={cn('absolute top-0 h-full rounded-full', v.value >= 0 ? 'bg-profit' : 'bg-loss')} style={v.value >= 0 ? { left: '50%', width: `${Math.min(50, Math.abs(v.value) * 25)}%` } : { right: '50%', width: `${Math.min(50, Math.abs(v.value) * 25)}%` }} />

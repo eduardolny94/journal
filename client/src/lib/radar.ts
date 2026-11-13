@@ -103,6 +103,8 @@ export const PILLARS: ReadonlyArray<{ key: PillarKey; label: string; weight: num
 export interface Pillar {
   /** Valor normalizado (z-score recortado a −2..+2). */
   value: number;
+  /** Peso del pilar en la puntuación (solo índices y metales; 0 = se enseña pero no puntúa). */
+  weight?: number;
   raw: number | null;
   missing: boolean;
   text: string;
@@ -1481,7 +1483,7 @@ export function topDrivers(pair: Pick<RadarPair, 'base' | 'quote' | 'diff' | 'pi
     const sign = pair.diff >= 0 ? 1 : -1;
     return Object.entries(pair.pillars ?? {})
       .filter(([, v]) => !v.missing)
-      .map(([k, v]) => ({ label: (INSTRUMENT_PILLAR_LABELS[k] ?? k).toLowerCase(), v: v.value * (INSTRUMENT_PILLAR_WEIGHTS[k] ?? 10) * sign }))
+      .map(([k, v]) => ({ label: (INSTRUMENT_PILLAR_LABELS[k] ?? k).toLowerCase(), v: v.value * (typeof v.weight === 'number' ? v.weight : INSTRUMENT_PILLAR_WEIGHTS[k] ?? 10) * sign }))
       .filter((x) => x.v > 0)
       .sort((x, y) => y.v - x.v)
       .slice(0, max)
@@ -1544,7 +1546,8 @@ export const INSTRUMENT_LABELS: Record<string, string> = {
 export const INSTRUMENT_PILLAR_LABELS: Record<string, string> = {
   momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años',
 };
-export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
+/** Pesos de reserva (metales); el servidor envía el peso real de cada pilar en `weight` (índices y metales pesan distinto). */
+export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 0, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
 
 /** Normaliza cualquier símbolo (par FX o índice/metal, con o sin sufijo) al del radar. */
 export function normalizeAnySymbol(symbol: string | null | undefined): string | null {

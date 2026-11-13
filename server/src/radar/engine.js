@@ -336,7 +336,7 @@ async function compute() {
   let instruments = [];
   try {
     const usd = core.currencies.find((c) => c.code === 'USD');
-    instruments = computeInstruments(db, { prices, cot, usdGrowth: usd ? usd.pillars.crecimiento.value : 0, usdCycle: usd ? usd.pillars.ciclo : null, expectations: expByCcy, now });
+    instruments = computeInstruments(db, { prices, cot, usdGrowth: usd ? usd.pillars.crecimiento.value : 0, usdExpect: usd && usd.pillars.expectativas && !usd.pillars.expectativas.missing ? usd.pillars.expectativas.value : null, usdCycle: usd ? usd.pillars.ciclo : null, expectations: expByCcy, now });
   } catch (e) {
     console.warn('[radar] índices y metales:', e.message);
   }

@@ -1,7 +1,7 @@
 // Sesgo de índices y metales. Pilares: momentum propio, tipos reales (metales) o bono a 10 años (índices),
 // dólar (metales) o crédito de alto riesgo (índices), riesgo (VIX), sorpresas macro de EE. UU., expectativas de la
 // Fed y COT (dinero gestionado / fondos apalancados). Misma forma de salida que un par FX (base/quote = null).
-import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
+import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
 import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
@@ -70,6 +70,12 @@ export function computeInstruments(db, input) {
   const usdExp = input.expectations.USD;
   const fedFresh = !!(usdExp && usdExp.updated_at && (now - new Date(usdExp.updated_at).getTime()) / 86400000 <= EXPECTATION_MAX_AGE_DAYS);
   const fedDiff = fedFresh ? (Number(usdExp.prob_cut) || 0) - (Number(usdExp.prob_hike) || 0) : null;
+  // Lo que el mercado descuenta de la Fed = pilar de expectativas del dólar (bono a 2 años en 1 y 3 meses), al revés:
+  // recortes descontados → positivo. Es la versión medida con 15 años (Nasdaq 64 % frente a 55 %, oro 61 % frente a 53 %,
+  // en los tres cortes); si falta, se usa la probabilidad de FedWatch cargada a mano.
+  const usdExpect = Number.isFinite(Number(input.usdExpect)) && input.usdExpect !== null && input.usdExpect !== undefined ? Number(input.usdExpect) : null;
+  const fedValue = usdExpect !== null ? clamp(-usdExpect, -2, 2) : fedDiff === null ? 0 : clamp(fedDiff / 50, -2, 2);
+  const fedText = `${usdExpect === null ? '' : `el bono a 2 años descuenta ${usdExpect > 0.3 ? 'más subidas de la Fed (pesa)' : usdExpect < -0.3 ? 'recortes de la Fed (apoya)' : 'una Fed estable'}`}${fedFresh ? `${usdExpect === null ? '' : '; '}FedWatch: ${usdExp.priced} descontada (${fmt(usdExp.priced_pct, 0)} %)` : ''}` || 'sin expectativa de la Fed';
   const usdGrowth = Number(input.usdGrowth) || 0;
   const nowIso = new Date(now).toISOString();
   const in2h = new Date(now + 2 * 3600 * 1000).toISOString();
@@ -101,22 +107,31 @@ export function computeInstruments(db, input) {
         ? { value: round(vix === null ? 0 : clamp((vix - 18) / 4, -2, 2)), raw: vix, missing: vix === null, text: vix === null ? 'sin VIX' : `VIX ${fmt(vix, 1)} (${vix > 22 ? 'miedo: refugio' : vix < 15 ? 'calma: menos refugio' : 'normal'})` }
         : { value: round(vix === null ? 0 : clamp((18 - vix) / 4, -2, 2)), raw: vix, missing: vix === null, text: vix === null ? 'sin VIX' : `VIX ${fmt(vix, 1)} (${vix > 22 ? 'tensión' : vix < 15 ? 'calma' : 'normal'})` },
       macro: { value: round(clamp(isMetal ? -usdGrowth * 0.8 : usdGrowth, -2, 2)), raw: usdGrowth, missing: false, text: `sorpresas macro de EE. UU. ${usdGrowth >= 0 ? 'positivas' : 'negativas'} (${fmt(usdGrowth)})` },
-      fed: { value: round(fedDiff === null ? 0 : clamp(fedDiff / 50, -2, 2)), raw: fedDiff, missing: !fedFresh, text: fedFresh ? `Fed: ${usdExp.priced} descontada (${fmt(usdExp.priced_pct, 0)} %)` : 'sin expectativa de la Fed cargada' },
+      fed: { value: round(fedValue), raw: usdExpect !== null ? round(-usdExpect) : fedDiff, missing: usdExpect === null && !fedFresh, text: fedText },
       posicionamiento: { value: round(cotRow ? clamp(cotRow.z, -2, 2) * (Math.abs(cotRow.z) >= 1.5 ? 0.5 : 1) : 0), raw: cotRow ? cotRow.ratio : null, missing: !cotRow, percentile: cotRow ? cotRow.percentile : null, weekly_change: cotRow ? cotRow.weekly_change : null, extreme: !!(cotRow && cotRow.extreme), text: cotRow ? `COT ${cotRow.net >= 0 ? 'largo' : 'corto'} neto (percentil ${cotRow.percentile}${cotRow.extreme ? ', extremo' : ''})` : 'sin COT' },
       curva: { value: round(curveCh === null ? 0 : clamp(curveCh / 20, -2, 2)), raw: curveCh, missing: curveCh === null, text: curveCh === null ? 'sin bono a 30 años' : `curva 30 − 2 años ${curveCh >= 0 ? '+' : ''}${fmt(curveCh, 0)} pb en 3 meses (${curveCh > 0 ? 'se empina: a favor' : 'se aplana: en contra'}; en observación, aún no puntúa)` },
       escenario: { value: scen.value, raw: scen.scenario, missing: scen.scenario === null, scenario: scen.scenario, text: scen.text },
     };
     let num = 0;
     let den = 0;
-    for (const [k, w] of Object.entries(INSTRUMENT_PILLAR_WEIGHTS)) {
+    const ev = INSTRUMENT_EVIDENCE[ins.symbol] || null;
+    // Pesos medidos solo para los activos con comprobación de 15 años; el resto conserva los anteriores.
+    const W = ev ? INSTRUMENT_PILLAR_WEIGHTS_BY_KIND[ins.kind] : INSTRUMENT_PILLAR_WEIGHTS_LEGACY;
+    for (const [k, w] of Object.entries(W)) {
+      pillars[k].weight = w;
+      // Un pilar sin dato no entra ni en el numerador ni en el denominador: no arrastra la puntuación hacia cero.
+      if (!w || pillars[k].missing) continue;
       num += w * pillars[k].value;
       den += w;
     }
-    const score = round((5 * num) / den);
+    for (const k of ['momentum', 'macro', 'riesgo']) if (!W[k]) pillars[k].text += ' · no puntúa: a 5 días no acierta el sentido (medido 2011–2026)';
+    const score = den ? round((5 * num) / den) : 0;
     const bias = score >= 0 ? 'alcista' : 'bajista';
-    const strength = Math.abs(score) >= 4 ? 'fuerte' : Math.abs(score) >= 2 ? 'moderado' : 'sin sesgo';
-    const missing = Object.entries(pillars).filter(([k, x]) => x.missing && INSTRUMENT_PILLAR_WEIGHTS[k]).length;
-    const weighted = Object.keys(pillars).filter((k) => INSTRUMENT_PILLAR_WEIGHTS[k]).length;
+    let strength = Math.abs(score) >= 4 ? 'fuerte' : Math.abs(score) >= 2 ? 'moderado' : 'sin sesgo';
+    // Donde el lado bajista no ha significado bajadas (el activo siguió subiendo ≥ 50 % de las semanas), nunca es «fuerte».
+    if (ev && score < 0 && ev.bear >= 50 && strength === 'fuerte') strength = 'moderado';
+    const missing = Object.entries(pillars).filter(([k, x]) => x.missing && W[k]).length;
+    const weighted = Object.keys(pillars).filter((k) => W[k]).length;
     const confidence = Math.round(100 * (1 - missing / weighted) * Math.min(1, Math.abs(score) / 6));
     const structure = { yesterday: p.yesterday, trend: p.trend, levels: p.levels, pos_pd: p.pos_pd, expected: p.expected };
     const warnings = [];
@@ -126,7 +141,10 @@ export function computeInstruments(db, input) {
     if (strength !== 'sin sesgo' && ((p.trend.h4 !== 'lateral' && (p.trend.h4 === 'alcista') !== dirUp) || (p.trend.d1 !== 'lateral' && (p.trend.d1 === 'alcista') !== dirUp))) {
       warnings.push({ kind: 'contra_estructura', text: 'La estructura de 4 h o diaria va contra el sesgo macro: esperar confirmación.' });
     }
-    const top = Object.entries(pillars).filter(([, v]) => !v.missing).map(([k, v]) => ({ k, v: v.value * INSTRUMENT_PILLAR_WEIGHTS[k] })).sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 4);
+    if (ev && strength !== 'sin sesgo' && !dirUp && ev.bear >= 50) {
+      warnings.push({ kind: 'bajista_no_es_venta', text: `Con sesgo bajista, ${ins.label} siguió subiendo el ${ev.bear} % de las semanas (2011–2026, n ${ev.n_bear}; con sesgo alcista, el ${ev.bull} %). Sirve para no comprar, no para vender.` });
+    }
+    const top = Object.entries(pillars).filter(([, v]) => !v.missing).map(([k, v]) => ({ k, v: v.value * (W[k] || 0) })).filter((x) => x.v !== 0).sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 4);
     const reasons = top.map(({ k }) => `${INSTRUMENT_PILLAR_LABELS[k]}: ${pillars[k].text}`);
     list.push({
       symbol: ins.symbol,
@@ -148,6 +166,7 @@ export function computeInstruments(db, input) {
       momentum: p.momentum,
       structure,
       plan: planForInstrument(ins, bias, strength, score, s.digits, structure),
+      evidence: ev,
       reasons,
       warnings,
       next_events: nextEv,
