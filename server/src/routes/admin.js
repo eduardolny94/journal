@@ -187,7 +187,7 @@ router.post('/users/:id/subscription/:action', (req, res, next) => {
   }
 });
 
-// PUT /api/admin/users/:id/access  { role?, is_disabled? }
+// PUT /api/admin/users/:id/access  { role?, is_disabled?, radar_access? }
 router.put('/users/:id/access', requireOwner, (req, res, next) => {
   try {
     const db = getDb();
@@ -207,6 +207,11 @@ router.put('/users/:id/access', requireOwner, (req, res, next) => {
       if (user.id === req.user.id && off) throw new HttpError(400, 'No puedes desactivar tu propia cuenta.');
       db.prepare('UPDATE users SET is_disabled = ? WHERE id = ?').run(off ? 1 : 0, user.id);
       logEvent(db, { user_id: user.id, actor_id: req.user.id, kind: off ? 'acceso_desactivado' : 'acceso_activado' });
+    }
+    if (b.radar_access !== undefined) {
+      const on = b.radar_access === true || b.radar_access === 1 || b.radar_access === '1';
+      db.prepare('UPDATE users SET radar_access = ? WHERE id = ?').run(on ? 1 : 0, user.id);
+      logEvent(db, { user_id: user.id, actor_id: req.user.id, kind: on ? 'radar_concedido' : 'radar_retirado' });
     }
     res.json(userDetail(db, user.id));
   } catch (err) {

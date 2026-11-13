@@ -410,6 +410,8 @@ CREATE INDEX IF NOT EXISTS idx_mesa_fichas_fecha ON mesa_fichas(fecha, agente);
 const COLUMN_MIGRATIONS = [
   { table: 'users', column: 'role', ddl: "TEXT DEFAULT 'user'" },
   { table: 'users', column: 'is_disabled', ddl: 'INTEGER DEFAULT 0' },
+  // Acceso al Radar concedido por el dueño desde el panel (además de RADAR_OWNER_EMAILS).
+  { table: 'users', column: 'radar_access', ddl: 'INTEGER DEFAULT 0' },
   { table: 'users', column: 'last_login_at', ddl: 'TEXT' },
   // Guía de bienvenida vista (fecha) para no repetirla en cada dispositivo.
   { table: 'users', column: 'tour_completed_at', ddl: 'TEXT' },

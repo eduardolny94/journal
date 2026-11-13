@@ -680,6 +680,26 @@ try {
     await api('PUT', `/admin/users/${user2Id}/access`, { is_disabled: false });
   });
 
+  await test('admin: el dueño concede y retira el acceso al Radar', async () => {
+    const as2 = { token: user2Token };
+    const before = await api('GET', '/auth/me', undefined, as2);
+    if (before.data.features.radar === true) return; // RADAR_OWNER_EMAILS="*" en este entorno: nada que conceder
+    const blocked = await api('GET', '/radar/favorites', undefined, as2);
+    assert(blocked.status === 403, `sin permiso el Radar debe dar 403 (${blocked.status})`);
+    const denied = await api('PUT', `/admin/users/${user2Id}/access`, { radar_access: true }, as2);
+    assert(denied.status === 403, `solo el dueño concede el Radar (${denied.status})`);
+    const on = await api('PUT', `/admin/users/${user2Id}/access`, { radar_access: true });
+    assert(on.status === 200 && on.data.user.radar_access === true, `conceder: ${JSON.stringify(on.data.user)}`);
+    const me = await api('GET', '/auth/me', undefined, as2);
+    assert(me.data.features.radar === true, 'tras concederlo, features.radar debe ser true');
+    const open = await api('GET', '/radar/favorites', undefined, as2);
+    assert(open.status !== 403, `con permiso el Radar no debe dar 403 (${open.status})`);
+    const off = await api('PUT', `/admin/users/${user2Id}/access`, { radar_access: false });
+    assert(off.status === 200 && off.data.user.radar_access === false, `retirar: ${JSON.stringify(off.data.user)}`);
+    const again = await api('GET', '/radar/favorites', undefined, as2);
+    assert(again.status === 403, `al retirarlo vuelve el 403 (${again.status})`);
+  });
+
   await test('admin: dueño con todos los permisos y administrador limitado', async () => {
     const me1 = await api('GET', '/auth/me');
     assert(me1.data.features.owner === true, `el primer usuario debería ser dueño: ${JSON.stringify(me1.data.features)}`);

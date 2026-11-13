@@ -1,6 +1,6 @@
 // Gestión de un suscriptor: suscripción, pago manual, email, acceso e historial (pagos, eventos, emails).
 import { useCallback, useEffect, useState } from 'react';
-import { Ban, CalendarPlus, CheckCircle2, Mail, RotateCcw, Save, Trash2, UserCheck, UserX, Wallet } from 'lucide-react';
+import { Ban, CalendarPlus, CheckCircle2, Mail, Radar, RotateCcw, Save, Trash2, UserCheck, UserX, Wallet } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input, Textarea } from '../ui/Input';
@@ -123,6 +123,7 @@ export default function UserDetailModal({ userId, onClose, onChanged, settings, 
             {s?.current_period_end && <span className={cn('tnum', daysLeftClass(detail.days_left))}>{fmtDate(s.current_period_end)} · {daysLeftText(detail.days_left)}</span>}
             {u.admin_level && <Badge variant={u.admin_level === 'owner' ? 'warn' : 'accent'}>{LEVEL_LABELS[u.admin_level]}</Badge>}
             {u.is_disabled && <Badge variant="loss">Acceso desactivado</Badge>}
+            {u.radar_access && <Badge variant="accent">Radar</Badge>}
             <span className="ml-auto flex flex-wrap gap-1">
               <Button size="sm" variant="secondary" disabled={busy || !s} onClick={() => void run(() => subscriptionAction(u.id, 'extend', { days: 7 }), 'Periodo extendido 7 días.')} leftIcon={<CalendarPlus className="h-3.5 w-3.5" />}>+7 d</Button>
               <Button size="sm" variant="secondary" disabled={busy || !s} onClick={() => void run(() => subscriptionAction(u.id, 'extend', { days: 30 }), 'Periodo extendido 30 días.')} leftIcon={<CalendarPlus className="h-3.5 w-3.5" />}>+30 d</Button>
@@ -173,6 +174,7 @@ export default function UserDetailModal({ userId, onClose, onChanged, settings, 
                       </select>
                     </label>
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => setAccess(u.id, { is_disabled: !u.is_disabled }), u.is_disabled ? 'Acceso activado.' : 'Acceso desactivado: no podrá iniciar sesión.')} leftIcon={u.is_disabled ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5 text-loss" />}>{u.is_disabled ? 'Activar acceso' : 'Desactivar acceso'}</Button>
+                    <Button size="sm" variant={u.radar_access ? 'ghost' : 'secondary'} disabled={busy || !!u.radar_by_env} title={u.radar_by_env ? 'Lo tiene por la configuración del servidor' : undefined} onClick={() => void run(() => setAccess(u.id, { radar_access: !u.radar_access }), u.radar_access ? 'Acceso al Radar retirado.' : 'Acceso al Radar concedido: lo verá al recargar la página.')} leftIcon={<Radar className="h-3.5 w-3.5" />}>{u.radar_access ? 'Quitar Radar' : 'Dar acceso al Radar'}</Button>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-500">Los roles y el acceso los gestiona el dueño de la plataforma.</p>

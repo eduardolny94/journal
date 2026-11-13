@@ -12,7 +12,7 @@ export const STATUS_VARIANTS: Record<EffectiveStatus, BadgeVariant> = { prueba: 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = { manual: 'Manual', transferencia: 'Transferencia', paypal: 'PayPal', zelle: 'Zelle', binance: 'Binance', tarjeta: 'Tarjeta', efectivo: 'Efectivo', otro: 'Otro' };
 export const EVENT_LABELS: Record<string, string> = {
   creada: 'Suscripción creada', editada: 'Suscripción editada', pago: 'Pago registrado', pago_eliminado: 'Pago eliminado', cancelada: 'Cancelada', reactivada: 'Reactivada',
-  extendida: 'Periodo extendido', vencida: 'Venció', email: 'Email', rol: 'Cambio de rol', acceso_desactivado: 'Acceso desactivado', acceso_activado: 'Acceso activado',
+  extendida: 'Periodo extendido', vencida: 'Venció', email: 'Email', rol: 'Cambio de rol', acceso_desactivado: 'Acceso desactivado', acceso_activado: 'Acceso activado', radar_concedido: 'Radar concedido', radar_retirado: 'Radar retirado',
 };
 
 export interface Subscription {
@@ -37,6 +37,10 @@ export interface AdminUserRow {
   created_at: string;
   role: string;
   is_disabled: boolean;
+  /** Puede ver el Radar (concedido en el panel o por la lista del servidor). */
+  radar_access?: boolean;
+  /** Lo tiene por la lista del servidor (RADAR_OWNER_EMAILS): no se quita desde el panel. */
+  radar_by_env?: boolean;
   is_admin: boolean;
   admin_level: AdminLevel;
   last_login_at: string | null;
@@ -65,7 +69,7 @@ export interface Payment {
 export interface SubEvent { id: number; kind: string; detail: string; created_at: string; actor_name?: string | null; user_name?: string; user_email?: string }
 export interface EmailLogRow { id: number; user_id?: number | null; to_email: string; template_key: string; subject: string; status: 'enviado' | 'simulado' | 'error'; error: string | null; created_at: string; user_name?: string | null }
 export interface UserDetail {
-  user: { id: number; email: string; name: string; created_at: string; role: string; is_disabled: boolean; is_admin: boolean; admin_level: AdminLevel; last_login_at: string | null };
+  user: { id: number; email: string; name: string; created_at: string; role: string; is_disabled: boolean; radar_access?: boolean; radar_by_env?: boolean; is_admin: boolean; admin_level: AdminLevel; last_login_at: string | null };
   subscription: Subscription | null;
   effective_status: EffectiveStatus;
   days_left: number | null;
@@ -119,7 +123,7 @@ export const saveSubscription = (id: number, body: Record<string, unknown>) => a
 export const addPayment = (id: number, body: Record<string, unknown>) => api<UserDetail & { email: SendResult | null }>(`/admin/users/${id}/payments`, { method: 'POST', body });
 export const deletePayment = (paymentId: number) => api<{ ok: boolean }>(`/admin/payments/${paymentId}`, { method: 'DELETE' });
 export const subscriptionAction = (id: number, action: 'cancel' | 'reactivate' | 'extend', body: Record<string, unknown> = {}) => api<UserDetail>(`/admin/users/${id}/subscription/${action}`, { method: 'POST', body });
-export const setAccess = (id: number, body: { role?: 'user' | 'admin' | 'owner'; is_disabled?: boolean }) => api<UserDetail>(`/admin/users/${id}/access`, { method: 'PUT', body });
+export const setAccess = (id: number, body: { role?: 'user' | 'admin' | 'owner'; is_disabled?: boolean; radar_access?: boolean }) => api<UserDetail>(`/admin/users/${id}/access`, { method: 'PUT', body });
 export const sendEmail = (id: number, body: { template_key?: string; subject?: string; body?: string }) => api<SendResult>(`/admin/users/${id}/email`, { method: 'POST', body });
 export const fetchPayments = (signal?: AbortSignal) => api<Payment[]>('/admin/payments', { signal });
 export const fetchTemplates = (signal?: AbortSignal) => api<{ templates: EmailTemplate[]; mailer: MailerInfo; variables: string[] }>('/admin/email-templates', { signal });

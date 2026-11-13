@@ -87,6 +87,7 @@ export function SubscribersTab({ onManage, reloadKey }: { onManage: (id: number,
                       <span className="font-semibold text-gray-100 hover:text-accent-soft">{u.name}</span>
                       {u.admin_level && <Badge variant={u.admin_level === 'owner' ? 'warn' : 'accent'} className="ml-2">{LEVEL_LABELS[u.admin_level]}</Badge>}
                       {u.is_disabled && <Badge variant="loss" className="ml-2">Desactivado</Badge>}
+                      {u.radar_access && !u.admin_level && <Badge variant="accent" className="ml-2">Radar</Badge>}
                       <span className="block text-xs text-gray-500">{u.email} · alta {fmtDate(u.created_at)}</span>
                     </button>
                   </td>

@@ -1,6 +1,7 @@
 // Suscripciones: planes, estados, periodos, pagos manuales, eventos, ajustes y consultas del panel de administración.
 // La pasarela de pago todavía no existe: `provider` queda en 'manual' y los campos provider_* están reservados.
 import { adminLevel, isAdmin } from './admin.js';
+import { radarByEnv } from '../radar/access.js';
 
 export const PLANS = {
   prueba: { label: 'Prueba', months: 0 },
@@ -207,7 +208,7 @@ function monthlyValue(sub) {
 
 export function listUsers(db, { search = '', status = '', plan = '' } = {}) {
   const today = todayYmd();
-  const rows = db.prepare(`SELECT u.id, u.email, u.name, u.created_at, u.role, u.is_disabled, u.last_login_at,
+  const rows = db.prepare(`SELECT u.id, u.email, u.name, u.created_at, u.role, u.is_disabled, u.radar_access, u.last_login_at,
       (SELECT COUNT(*) FROM trades t WHERE t.user_id = u.id) AS trades,
       (SELECT COUNT(*) FROM accounts a WHERE a.user_id = u.id) AS accounts,
       (SELECT COALESCE(SUM(amount), 0) FROM subscription_payments p WHERE p.user_id = u.id) AS paid_total
@@ -217,17 +218,17 @@ export function listUsers(db, { search = '', status = '', plan = '' } = {}) {
   return rows
     .map((u) => {
       const sub = subs[u.id] || null;
-      return { ...u, is_disabled: !!u.is_disabled, is_admin: isAdmin(db, u), admin_level: adminLevel(db, u), subscription: sub, effective_status: effectiveStatus(sub, today), days_left: daysLeft(sub, today) };
+      return { ...u, is_disabled: !!u.is_disabled, radar_access: !!u.radar_access || radarByEnv(u), radar_by_env: radarByEnv(u), is_admin: isAdmin(db, u), admin_level: adminLevel(db, u), subscription: sub, effective_status: effectiveStatus(sub, today), days_left: daysLeft(sub, today) };
     })
     .filter((u) => (!q || u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q)) && (!status || u.effective_status === status) && (!plan || (u.subscription && u.subscription.plan === plan)));
 }
 
 export function userDetail(db, userId) {
-  const user = db.prepare('SELECT id, email, name, created_at, role, is_disabled, last_login_at FROM users WHERE id = ?').get(userId);
+  const user = db.prepare('SELECT id, email, name, created_at, role, is_disabled, radar_access, last_login_at FROM users WHERE id = ?').get(userId);
   if (!user) return null;
   const sub = getSubscription(db, userId);
   return {
-    user: { ...user, is_disabled: !!user.is_disabled, is_admin: isAdmin(db, user), admin_level: adminLevel(db, user) },
+    user: { ...user, is_disabled: !!user.is_disabled, radar_access: !!user.radar_access || radarByEnv(user), radar_by_env: radarByEnv(user), is_admin: isAdmin(db, user), admin_level: adminLevel(db, user) },
     subscription: sub,
     effective_status: effectiveStatus(sub),
     days_left: daysLeft(sub),
