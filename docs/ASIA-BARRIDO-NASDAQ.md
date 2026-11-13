@@ -97,3 +97,31 @@ Lectura: el retroceso al 50–75 % ocurre casi siempre (8–9 de cada 10) y casi
 cada 10). Lo que no está garantizado es el «luego sigue»: tras tocar, llega a 1R más o menos la mitad de las veces. A 2R
 sale algo positivo, pero con n de 16–23 en el Nasdaq no es una conclusión. Pendiente: exportación M5 y M1 del NAS100 de
 MT5 (≈ 17 meses) para repetirlo con n ≈ 170 y cortes.
+
+### Con la exportación de MT5 del usuario (13-11-2026, definitivo)
+
+`data/mt5-largo/US100_M5.csv` (2025-06-13 → 2026-11-13, 368 días, 366 barridas, 185 velas H1 que cierran dentro) y
+`US100_M1.csv` agrupado a 3 min (2026-08-05 → 2026-11-13, 73 días, 33 velas). Spread 1 punto.
+
+| US100, 5 min, vela H1 cierra dentro (n 185) | |
+|---|---|
+| retrocede al 50 % sin romper la mecha | **91 %** (109/120; en 65 la vela ya cierra más allá del 50 %) |
+| retrocede al 75 % sin romper la mecha | **90 %** (150/167) |
+| antes de retroceder ya hizo nuevo extremo | 48 % |
+| hay FVG en la franja 50–75 % | 80 % (148/185) |
+| ese FVG se vuelve a tocar tras el cierre de la H1 | 92 % (136/148) |
+| tras tocar el 50 %, sigue (nuevo extremo antes de romper la mecha) | 45 % (49/109) |
+
+| Entrada límite, stop tras la mecha | n | 1R | 2R | R̄ 1R | R̄ 2R | R̄ 2R por bloques |
+|---|---|---|---|---|---|---|
+| en el 50 % de la vela | 109 | 44 % | 26 % | −0,12 | −0,23 | −0,14 · −0,40 · −0,12 |
+| en el 75 % de la vela | 150 | 45 % | 29 % | −0,09 | −0,14 | −0,27 · −0,24 · +0,08 |
+| borde del primer FVG | 162 | 42 % | 29 % | −0,15 | −0,12 | −0,23 · −0,26 · +0,11 |
+| borde del FVG en la franja 50–75 % | 136 | 48 % | 30 % | −0,04 | −0,07 | −0,11 · −0,33 · +0,22 |
+
+Barrida a las 11 h o después + FVG en franja: 1R 55 %, R̄ 2R +0,25, pero n 31. En 3 min (agosto–noviembre) el FVG en
+franja da 1R 46 % (13/28), R̄ 2R +0,18; en 5 min el mismo periodo 48 % (13/27), +0,11: **3 y 5 min salen igual**.
+
+**Conclusión:** la descripción es correcta (retrocede 9 de cada 10 veces y toca el hueco 9 de cada 10), pero no da
+ventaja: tras tocar llega a 1R el 44–48 % y el resultado medio es negativo en dos de los tres bloques. El positivo
+preliminar de los 50 días de Yahoo era el último tramo (+0,22), no una propiedad estable.
