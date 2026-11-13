@@ -68,3 +68,32 @@ antes. La barrida a las 10 h sale positiva (+0,19R a 2R, n 84), pero es un solo 
 Sirve como información, no como sistema: tras llevarse un lado de Asia, el Nasdaq vuelve al medio ≈ 2 de cada 3 veces;
 si la vela de 1 hora cierra de vuelta dentro, ≈ 4 de cada 5; si en 3 velas no ha vuelto dentro, lo normal es que siga
 (63 %). Coincide con el oro (64 % / 76 % / 36 %).
+
+## Retroceso al 50 % / 75 % de la vela H1 y hueco (FVG) de 3–5 min (13-11-2026, preliminar)
+
+Pregunta: cuando la vela H1 de la barrida cierra de vuelta dentro, ¿cuántas veces retrocede al 50 % o al 75 % de esa vela,
+toca un FVG de 3 o 5 minutos y luego sigue? Script: `server/scripts/asia-barrido-vela.mjs` (definiciones en la cabecera).
+Datos del Nasdaq: futuro NQ de Yahoo, **solo 50 días en 5 min** (2026-09-04 → 2026-11-13) y 20 días en 3 min; el oro
+(exportación M5 de MT5, 363 días, 165 velas que cierran dentro) sirve de contraste con más historial.
+«Sigue» = tras tocar el nivel hace nuevo extremo más allá de la vela antes de romper la mecha. Entrada límite en el nivel,
+stop tras la mecha + spread (pesimista).
+
+| | NQ 5 min | NQ 3 min | Oro 5 min |
+|---|---|---|---|
+| vela H1 cierra dentro | 28 de 50 | 13 de 20 | 165 de 347 |
+| retrocede al 50 % sin romper la mecha | 89 % (16/18) | 7/8 | 92 % (82/89) |
+| … y luego sigue | 56 % (9/16) | 3/7 | 48 % (39/82) |
+| entrada en el 50 %: 1R · R̄ 2R | 56 % · +0,05 | 43 % · −0,14 | 46 % · +0,06 |
+| retrocede al 75 % sin romper la mecha | 78 % (18/23) | 8/10 | 88 % (127/145) |
+| entrada en el 75 %: 1R · R̄ 2R | 56 % (10/18) · +0,33 | 4/8 · +0,13 | 52 % · +0,16 |
+| hay FVG en la franja 50–75 % | 82 % (23/28) | — | 67 % (111/165) |
+| ese FVG se vuelve a tocar | 87 % (20/23) | — | 95 % (105/111) |
+| entrada en el borde del FVG: 1R · R̄ 2R | 50 % (10/20) · +0,11 | — | 51 % · +0,14 |
+
+Oro por bloques (R̄ 2R): 50 % → +0,44 · −0,32 · +0,07; 75 % → +0,46 · −0,09 · +0,16; FVG en franja → +0,31 · +0,27 ·
+−0,16. **No es estable en todos los bloques.**
+
+Lectura: el retroceso al 50–75 % ocurre casi siempre (8–9 de cada 10) y casi siempre hay un hueco que se toca (≈ 9 de
+cada 10). Lo que no está garantizado es el «luego sigue»: tras tocar, llega a 1R más o menos la mitad de las veces. A 2R
+sale algo positivo, pero con n de 16–23 en el Nasdaq no es una conclusión. Pendiente: exportación M5 y M1 del NAS100 de
+MT5 (≈ 17 meses) para repetirlo con n ≈ 170 y cortes.
