@@ -61,3 +61,38 @@ Por temporalidad (sumando activos y presets; no son muestras independientes):
 **Lectura.** En 1 y 5 minutos la señal ≥ 75 % sale el triple de veces que en 15 (28 % de las sesiones frente a 9 %), pero
 en 5 min casi no mejora al conjunto (74 % frente a 69 %). En 15 min sale poco y mejora mucho (86 % frente a 62 %, n 43).
 En 1 min solo hay 9 sesiones de historial: 10 señales no permiten concluir nada. Sigue sin medirse el riesgo/beneficio.
+
+## ¿Es rentable entrar al cierre de la caja con ≥ 75 %? (13-11-2026)
+
+Pregunta de César: si cada vez que sale ≥ 75 % entra al cerrar la caja (IB), ¿gana?
+
+**Cómo funciona el indicador (deducido de sus etiquetas y comprobado).** Los dos niveles que marca son extensiones del 50 %
+de la caja: máximo + 0,5 × rango y mínimo − 0,5 × rango. ✅ = toca primero el nivel del lado con más porcentaje; ❌ = toca
+primero el contrario.
+
+**Operación medida.** Entrada al cierre de la última vela de la caja, a favor del lado ≥ 75 %; objetivo = el nivel que
+marca; stop = el nivel contrario; se sigue hasta que toque uno (o hasta la caja del día siguiente). Coste: 0,35 $ en oro y
+1,5 puntos en Nasdaq. Simulado con las velas del gráfico dentro de TradingView (`window.__edgeBT`); el resultado coincide
+con el ✅/❌ del indicador en todas las señales ≥ 75 % (86 de 86) y en 472 de 476 sesiones de 15 min.
+
+| Activo | Temp. | Preset | Señales | Gana / pierde | Gana cada vez | Total | Por operación |
+|---|---|---|---|---|---|---|---|
+| Oro | 15 min | 0100-0200 | 15 | 14 / 1 | 0,46R | +5,45R | +0,36R |
+| Oro | 15 min | 0130-0230 | 7 | 5 / 2 | 0,46R | +0,31R | +0,04R |
+| Nasdaq | 15 min | 0100-0200 | 13 | 10 / 3 | 0,48R | +1,82R | +0,14R |
+| Nasdaq | 15 min | 0130-0230 | 8 | 8 / 0 | 0,47R | +3,77R | +0,47R |
+| **15 min, total** | | | **43** | **37 / 6** | 0,47R | **+11,35R** | **+0,26R** |
+| Oro | 5 min | 0100-0200 | 16 | 11 / 5 | 0,42R | −0,42R | −0,03R |
+| Oro | 5 min | 0130-0230 | 10 | 8 / 2 | 0,49R | +1,96R | +0,20R |
+| Nasdaq | 5 min | 0100-0200 | 8 | 6 / 2 | 0,56R | +1,38R | +0,17R |
+| Nasdaq | 5 min | 0130-0230 | 9 | 7 / 2 | 0,60R | +2,23R | +0,25R |
+| **5 min, total** | | | **43** | **32 / 11** | 0,50R | **+5,15R** | **+0,12R** |
+
+**La clave: se gana menos de la mitad de lo que se arriesga.** El porcentaje alto sale cuando la caja cierra pegada al lado
+del objetivo, así que el objetivo queda cerca (mediana 0,43 veces el stop). Cada acierto da ~0,47R y cada fallo quita 1R:
+hace falta acertar más del **68 %** solo para no perder. En 15 min acertó el 86 % (37 de 43; con esa muestra el valor real
+puede estar entre el 73 % y el 93 %), en 5 min el 74 %. Positivo, con poco margen y pocas operaciones (unas 8 al mes
+sumando los dos activos y las dos sesiones, que además se solapan).
+
+En 15 min, el resto de sesiones (sin el filtro ≥ 75 %) da: oro −0,04R/−0,02R por operación; Nasdaq +0,16R/+0,14R (el
+Nasdaq subió en el periodo: gana aun sin filtro).
