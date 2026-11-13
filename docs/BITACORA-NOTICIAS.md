@@ -215,3 +215,22 @@ AUDJPY sin sesgo. VIX 21,7, S&P −3 % en 20 días: riesgo en modo refugio, apoy
   Titulares: se refuerza la subida de diciembre y se debate su tamaño.
 - **Pendiente:** el mercado de bonos cierra el 11-11 (Día de los Veteranos), así que el 2 años de FRED no se mueve hasta
   el 12; PIB del Reino Unido el 12 a las 08:00; IPP de EE. UU. el 13.
+
+## 2026-11-13 · IPP de EE. UU. de octubre (14:30 España)
+
+- **Descontado antes:** general mensual 0,4 % (anterior 1,3 %), subyacente mensual 0,3 % (anterior 0,7 %); anual 6,6 % y
+  subyacente 5,0 %. Venía de un IPC caliente el 10-11 (subyacente 0,3 % frente a 0,2 %).
+- **Medido antes del dato (32 publicaciones, 01-2024 → 09-2026, velas H1):** tras un IPC subyacente caliente, el IPP
+  subyacente salió por encima 4 veces, clavado 3 y por debajo 0 (n 7). IPP subyacente por encima → USDCAD sube la
+  primera hora 9/10 y el día 7/10; clavado → sube el día 2/5; general por debajo → dólar y USDCAD bajan el día 11/15.
+  El día de IPP mueve 0,47 ATR en USDCAD. Por bloques no es estable (38 %, 78 %, 50 %): orientación, no ventaja.
+- **Dato (calendario del radar; la web del BLS no respondió):** general mensual **0,3 %** (una décima por debajo),
+  subyacente mensual **0,3 %** (clavado); anual 6,5 % (previsto 6,6 %), subyacente anual 5,0 % (clavado). Revisiones al
+  alza del mes anterior: general de 1,3 % a 1,4 %, subyacente de 0,7 % a 0,8 %. Sin comercio: 0,5 % mensual, 4,9 % anual.
+- **Lectura:** neutro con un punto blando en el general, compensado por las revisiones. No cambia la subida de diciembre.
+- **Reacción (25 min):** USDCAD −8 pips (1,4247; a las 12:07 estaba en 1,4269), USDJPY −14, USDCHF −6, EURUSD +5,
+  GBPUSD +12. Dólar algo más débil, movimiento pequeño.
+- **Radar tras el dato (14:56):** USD +3,04 · CAD −3,19; USDCAD alcista fuerte (diferencia +6,2, confianza 93) pero nivel C
+  (49 % a 5 días) y aviso de **sobreextendido** (2,0 ATR sobre su media de 20 días: así el sesgo acertó 38–40 % a 5–10
+  días, n ≈ 600). Momentum de 1 hora negativo (−0,75 σ), diario +1,41 σ. Canadá: ventas mayoristas 0,7 % (previsto 0,5 %).
+- **Pendiente:** hablan hoy Collins, Logan, Bowman, Daly y Jefferson (Fed).
