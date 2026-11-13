@@ -125,3 +125,34 @@ franja da 1R 46 % (13/28), R̄ 2R +0,18; en 5 min el mismo periodo 48 % (13/27),
 **Conclusión:** la descripción es correcta (retrocede 9 de cada 10 veces y toca el hueco 9 de cada 10), pero no da
 ventaja: tras tocar llega a 1R el 44–48 % y el resultado medio es negativo en dos de los tres bloques. El positivo
 preliminar de los 50 días de Yahoo era el último tramo (+0,22), no una propiedad estable.
+
+## Entradas con la metodología de ICT (13-11-2026)
+
+Script: `server/scripts/asia-ict.mjs` (reglas fijadas antes de medir, en la cabecera). Modelo 2022 de ICT: barrida de un
+lado de Asia → cambio de estructura (MSS: cierre más allá del último pivote, plazo 3 h) → desplazamiento con FVG → entrada
+con orden límite (2 h) y stop detrás del extremo de la barrida. Evento = primera vez que se supera cada lado (hasta 2 por
+día). US100 M5 de MT5: 365 días, **541 barridas, 306 con cambio de estructura (57 %)**, el 88 % deja FVG.
+
+| Entrada (US100, 5 min) | n | 1R | R̄ 1R | R̄ 2R | R̄ 3R | R̄ 2R por bloques |
+|---|---|---|---|---|---|---|
+| mercado al cierre del MSS | 306 | 45 % | 0,00 | −0,02 | 0,00 | −0,01 · +0,03 · −0,08 |
+| borde del FVG | 152 | 50 % | +0,06 | +0,05 | +0,03 | +0,06 · +0,16 · −0,09 |
+| mitad del FVG | 141 | 50 % | +0,01 | +0,02 | +0,01 | −0,07 · +0,17 · −0,06 |
+| FVG con stop ajustado | 152 | 45 % | −0,07 | +0,04 | +0,11 | +0,04 · +0,19 · −0,13 |
+| OTE 70,5 % | 152 | 53 % | +0,05 | +0,01 | +0,10 | −0,08 · +0,08 · +0,01 |
+| order block | 158 | 48 % | −0,02 | −0,16 | −0,12 | −0,16 · −0,28 · −0,02 |
+
+Filtros de ICT (US100): zona horaria de Londres mejor que la de Nueva York (FVG +0,13/+0,06/+0,16 con n 62 frente a
+−0,11/−0,09/−0,15 con n 28). **Sesgo diario a favor** (ayer cerró por encima del alto de anteayer → compras; por debajo
+del bajo → ventas): FVG +0,26/+0,22/+0,31 (n 41) y OTE +0,14/+0,21/+0,51 (n 42); el OTE con sesgo es positivo en los 3
+bloques y los 3 objetivos (n 16, 16 y 10). En contra del sesgo o neutro: ≈ 0 o negativo.
+
+Contraste con más historial (mismas reglas): oro M5 (363 días) FVG +0,04/+0,11/+0,01, positivo solo en el primer bloque;
+**oro M15 (1.089 días, 2022-08 → 2026-10) todas las entradas negativas** (FVG −0,22/−0,14/−0,13, OTE −0,41); plata M15
+igual (−0,08/−0,03/−0,02). El filtro de sesgo diario **no se repite** en oro ni plata (oro M5 con sesgo: FVG −0,12, OTE
+−0,36).
+
+**Conclusión:** las entradas de ICT tras la barrida de Asia quedan en empate en el Nasdaq (+0,05R) y en negativo en oro y
+plata con 4 años. Ninguna pasa la regla de la casa en el conjunto. Única pista: Nasdaq + sesgo diario a favor + OTE (o
+FVG) en la zona horaria de Londres; n 42, medido entre ~15 filtros, así que puede ser azar. Para confirmarla hace falta
+más historial del Nasdaq (M15 de 4 años y M5 con «máx. barras» sin límite) y, para el SMT, el US500.
