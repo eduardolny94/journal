@@ -19,7 +19,7 @@
 //      segunda barrida del día.
 // Regla de la casa: una variante solo vale si es positiva en los 3 bloques temporales.
 // Uso: node server/scripts/asia-ict.mjs --archivo data/mt5-largo/US100_M5.csv --spread 1 [--agrupar 3] [--cortes 3]
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -105,7 +105,7 @@ for (let di = 2; di < days.length; di++) {
       piv = side === 'high' ? seq[j].l : seq[j].h;
       if (side === 'high' ? b.c < piv : b.c > piv) { mss = m; break; }
     }
-    const row = { date: d.date, side, dir, order, k, hourSweep: seq[k].hour, mss: mss >= 0, v: {}, bias: bias === 0 ? 'neutro' : bias === dir ? 'a favor' : 'en contra', pd: side === 'high' ? ext > p1.h : ext < p1.l };
+    const row = { date: d.date, side, dir, order, k, hourSweep: seq[k].hour, mss: mss >= 0, v: {}, bias: bias === 0 ? 'neutro' : bias === dir ? 'a favor' : 'en contra', pd: side === 'high' ? ext > p1.h : ext < p1.l, prev: Math.sign(p1.c - p1.bars[0].o), rangeAsia: aH - aL };
     if (mss >= 0) {
       const mb = seq[mss]; const t = mb.hour + mb.min / 60;
       row.kz = t >= 9 && t < 12 ? 'Londres' : t >= 15.5 && t < 18 ? 'Nueva York' : 'fuera';
@@ -171,3 +171,5 @@ for (const key of ['F', 'O']) {
     console.log(`  ${NAMES[key].padEnd(30)} ${parts.join(' · ')}`);
   }
 }
+
+if (arg('--json', null)) writeFileSync(path.resolve(ROOT, arg('--json')), JSON.stringify(EV));

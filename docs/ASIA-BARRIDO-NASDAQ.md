@@ -156,3 +156,38 @@ igual (−0,08/−0,03/−0,02). El filtro de sesgo diario **no se repite** en o
 plata con 4 años. Ninguna pasa la regla de la casa en el conjunto. Única pista: Nasdaq + sesgo diario a favor + OTE (o
 FVG) en la zona horaria de Londres; n 42, medido entre ~15 filtros, así que puede ser azar. Para confirmarla hace falta
 más historial del Nasdaq (M15 de 4 años y M5 con «máx. barras» sin límite) y, para el SMT, el US500.
+
+## Solo Londres: vuelta (ICT) frente a continuación (13-11-2026)
+
+Literatura revisada antes de medir: (1) Boyarchenko, Larsen y Whelan, «The Overnight Drift» (RFS 2023): la prima del
+S&P se ganaba entre las 02:00 y las 03:00 NY, más tras días de ventas; el propio Fed de Nueva York publicó en julio de
+2026 que entre 2021 y 2025 ese efecto ha desaparecido. En nuestros datos (H1, 598 días): Londres 09–12 h servidor
++1,7 pb de media (t 1,2); tras día bajista +4,0 pb (t 1,6): débil. (2) Osler (2003), «Stop-loss orders and price
+cascades»: los stops propagan la tendencia durante horas → hipótesis de continuación en vez de vuelta.
+
+**Vuelta, solo Londres** (`asia-ict.mjs`, MSS entre 09:00 y 11:59; 132 cambios de estructura): FVG 1R 56 %, R̄ 2R +0,06
+(n 62); OTE R̄ 2R +0,05 (n 60). A favor de la vela de ayer: FVG 2R 44 %, +0,32 (n 25; bloques +0,50 · +0,29 · +0,13) y
+OTE +0,44 (n 27; +0,88 · −0,25 · +0,64); en contra de ayer −0,11 / −0,27. Comprar tras día bajista (lo que sugería la
+deriva nocturna): −0,70 (n 10), refutado. Ojo: en H1 con 571 días y todas las horas, ir a favor de ayer no mejoraba
+(−0,10 frente a −0,04): pista con n pequeño.
+
+**Continuación, solo Londres** (`asia-londres-continuacion.mjs` en M5 y `-h1.mjs` en H1): la primera vela H1 de las
+09–11 h que supera un lado de Asia y **cierra fuera**. Entrada al cierre («mercado») o en el retest del nivel roto
+(límite 3 h); stop en el medio del rango de Asia; objetivos 1R/2R/3R.
+
+| Rotura al ALZA que cierra fuera → compra | n | 1R | 2R | R̄ 2R | por bloques / años |
+|---|---|---|---|---|---|
+| M5 2025-06 → 2026-11, retest | 54 | 59 % | 46 % | **+0,42** | +0,71 · +0,24 · +0,23 |
+| M5 2025-06 → 2026-11, mercado | 77 | 56 % | 36 % | +0,28 | +0,27 · +0,12 · +0,45 |
+| H1 2024-05 → 2026-10, mercado | 144 | 50 % | 35 % | +0,22 | 2024 +0,21 · 2025 +0,20 · 2026 +0,25 |
+| H1, tramo anterior e independiente (antes de 2025-06-13), mercado | 57 | 51 % | 35 % | +0,23 | — |
+| H1, retest | 103 | 52 % | 36 % | +0,17 | 2024 +0,23 · 2025 +0,21 · 2026 +0,07 |
+| **Control:** comprar sin condición a esas horas, mismo riesgo | 1.732 | 47 % | 31 % | −0,01 | +0,04 · −0,05 · +0,02 |
+
+Rotura a la BAJA que cierra fuera → venta: M5 −0,24 (retest, n 36) y −0,11 (mercado); H1 por años −0,18 · −0,02 · +0,18:
+sin ventaja. Oro M15 (4 años, 345 eventos): −0,01 / +0,03, tampoco.
+
+**Lectura:** es lo primero de esta serie que cumple la regla de la casa en el Nasdaq: positivo en los tres años, en el
+tramo anterior independiente y frente a un control sin condición (el mercado alcista no lo explica: comprar a ciegas da
+≈ 0). Tamaño modesto (+0,2R por operación, ~55 al año, t ≈ 2 con n 144) y solo al alza y solo en el Nasdaq. Candidata
+para seguimiento en papel; pendiente repetirla con más años (M15 desde 2020) y en US500/US30.
