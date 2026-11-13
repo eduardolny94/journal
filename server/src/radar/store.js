@@ -135,6 +135,25 @@ export function saveSnapshot(db, snapshot, now = new Date()) {
   return at;
 }
 
+/**
+ * Guarda el sesgo del día de índices y metales: `score_open` es la primera lectura del día UTC (la que había antes de
+ * Londres, la que vale para medir sin mirar el futuro) y `score_last` la más reciente.
+ */
+export function saveInstrumentBias(db, instruments, now = new Date()) {
+  const at = new Date(now).toISOString();
+  const date = at.slice(0, 10);
+  const stmt = db.prepare(`INSERT INTO radar_instrument_bias (date, symbol, score_open, score_last, pillars, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(date, symbol) DO UPDATE SET score_last = excluded.score_last, pillars = excluded.pillars, updated_at = excluded.updated_at`);
+  let n = 0;
+  for (const x of instruments || []) {
+    if (!x || !x.symbol || !Number.isFinite(Number(x.score))) continue;
+    const pillars = Object.fromEntries(Object.entries(x.pillars || {}).map(([k, v]) => [k, v && v.missing ? null : v.value]));
+    stmt.run(date, x.symbol, Number(x.score), Number(x.score), JSON.stringify(pillars), at);
+    n++;
+  }
+  return n;
+}
+
 export function latestSnapshotRow(db) {
   const row = db.prepare('SELECT id, created_at, payload FROM radar_snapshots ORDER BY created_at DESC, id DESC LIMIT 1').get();
   if (!row) return null;

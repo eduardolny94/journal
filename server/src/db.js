@@ -329,6 +329,17 @@ CREATE TABLE IF NOT EXISTS radar_daily_bias (
   PRIMARY KEY(date, symbol)
 );
 
+-- Sesgo diario de índices y metales (Nasdaq, oro…): primera y última lectura de cada día UTC, con sus pilares.
+CREATE TABLE IF NOT EXISTS radar_instrument_bias (
+  date TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  score_open REAL,
+  score_last REAL,
+  pillars TEXT,
+  updated_at TEXT,
+  PRIMARY KEY(date, symbol)
+);
+
 CREATE TABLE IF NOT EXISTS radar_opciones (
   fecha TEXT NOT NULL,
   symbol TEXT NOT NULL,

@@ -22,7 +22,7 @@ import { refreshTono } from './sources/tono.js';
 import { clienteApi } from '../mesa/agentes.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
 import { readExpectation, weekPlan } from './week.js';
-import { getMeta, getMetaJson, setMeta, listManual, setManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, latestSnapshotRow } from './store.js';
+import { getMeta, getMetaJson, setMeta, listManual, setManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, saveInstrumentBias, latestSnapshotRow } from './store.js';
 
 const BACKTEST_EVERY_MS = 7 * 86400000;
 const CALENDAR_HISTORY_YEARS = 3;
@@ -388,6 +388,7 @@ async function compute() {
     try {
       // Los índices y metales se guardan junto a los pares para medir su acierto con el tiempo.
       saveSnapshot(db, { ...snapshot, pairs: [...core.pairs, ...instruments] }, nowDate); // histórico completo (28 pares) para los backtests
+      try { saveInstrumentBias(db, instruments, nowDate); } catch (e) { console.warn('[radar] sesgo diario de índices y metales:', e.message); }
       state.lastSnapshotSaved = now;
     } catch (e) {
       console.warn('[radar] no se pudo guardar el snapshot:', e.message);
