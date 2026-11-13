@@ -29,9 +29,10 @@ const SIMBOLO = arg('--simbolo', 'XAUUSD');
 const ASIA = [2, 8], POST = [9, 23];
 
 const SPREAD = { EURUSD: 1, GBPUSD: 1.3, USDJPY: 1, USDCHF: 1.3, USDCAD: 1.5, AUDUSD: 1.2, NZDUSD: 1.6, EURGBP: 1.4, EURJPY: 1.6, GBPJPY: 2.2, AUDJPY: 1.8, CADJPY: 2, EURAUD: 2.5, EURCAD: 2.5, GBPNZD: 3.5, EURNZD: 3 };
-const pipOf = (s) => (s === 'XAUUSD' ? 0.1 : s.endsWith('JPY') ? 0.01 : 0.0001);
-const spreadOf = (s) => (s === 'XAUUSD' ? 0.3 : (SPREAD[s] ?? 2.5) * pipOf(s));
-const currenciesOf = (s) => (s === 'XAUUSD' ? ['USD'] : [s.slice(0, 3), s.slice(3, 6)]);
+const INDICES = { NAS100F: 1.5, US30F: 3, US500F: 0.6 }; // spread en puntos
+const pipOf = (s) => (s in INDICES ? 1 : s === 'XAUUSD' ? 0.1 : s.endsWith('JPY') ? 0.01 : 0.0001);
+const spreadOf = (s) => (s in INDICES ? INDICES[s] : s === 'XAUUSD' ? 0.3 : (SPREAD[s] ?? 2.5) * pipOf(s));
+const currenciesOf = (s) => (s === 'XAUUSD' || s in INDICES ? ['USD'] : [s.slice(0, 3), s.slice(3, 6)]);
 
 // ---------- radar y calendario (point-in-time) ----------
 let biasBy = {}; const news = new Set(); // clave "YYYY-MM-DD HH|CCY" en hora de servidor
