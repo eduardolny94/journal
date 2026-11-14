@@ -132,3 +132,68 @@ La fase del ciclo se enseña igualmente en cada divisa (contexto, como pide Curt
 Horizonte largo (mismo backtest, sesgo bruto sin modelo): a **60 días** el sesgo con fuerza 3 acierta 57,2 % (n=1.868)
 y con fuerza 4 **63,2 % y +72 pips** (n=481), frente a 52,5 % y 51,3 % a 5 días. Curto tiene razón en que el macro
 paga a meses, no a días: el apartado Swing y la tarjeta de sesgo largo deben leerse a ese horizonte.
+
+## Claridad del sesgo con 15 años (14-11-2026)
+
+Pedido de César: «un sesgo más claro y más certero». Script `server/scripts/radar-sesgo-15a.mjs`; código
+`server/src/radar/clarity.js`. Datos: radar reconstruido point-in-time 2011 → 2026 con los pesos de producción
+(`radar_hist_pilares_cand.json`) y cierres diarios del bróker con la hora corregida, en los **8 pares fijos** (USDJPY,
+AUDJPY, EURJPY, USDCHF, EURGBP, EURUSD, GBPUSD, USDCAD). 17.747 pares-día con |sesgo| ≥ 2. Acierto = el precio cerró a
+favor del sesgo N sesiones después. Bloques: 2011–15 / 2016–20 / 2021–26.
+
+**Punto de partida.** 5 d 55,2 % · 10 d 56,2 % · 20 d **57,5 %** (62,2 / 52,4 / 58,4). El sesgo es de semanas, no de días.
+
+| Par | 20 d | bloques | n |
+|---|---|---|---|
+| EURUSD | 63,3 % | 75,1 / 57,9 / 62,1 | 1.252 |
+| EURJPY | 62,7 % | 69,4 / 56,7 / 64,1 | 1.908 |
+| USDJPY | 60,7 % | 66,7 / 52,2 / 65,0 | 2.602 |
+| AUDJPY | 58,9 % | 66,1 / 52,5 / 58,7 | 2.954 |
+| GBPUSD | 58,1 % | 54,5 / 60,6 / 60,6 | 1.641 |
+| EURGBP | 55,7 % | 55,8 / 47,0 / 62,4 | 1.731 |
+| USDCAD | 54,7 % | 63,3 / 51,9 / 50,9 | 2.295 |
+| USDCHF | 51,2 % | 59,8 / 47,3 / 49,9 | 3.364 |
+
+**Condiciones (46 probadas).** Solo cinco mueven el acierto ≥ 2 puntos en los tres bloques, y son las mismas cinco que
+salen al elegirlas con dos bloques y probarlas en el tercero:
+
+| Condición | 20 d | bloques | n |
+|---|---|---|---|
+| + el sesgo ha crecido en 20 sesiones (≥ 0,5) | 60,8 % | 67,4 / 54,5 / 60,9 | 7.864 |
+| + el bono a 2 años va en contra del sesgo (pilar «expectativas») | 61,3 % | 64,7 / 58,0 / 62,0 | 6.675 |
+| − precio ≥ 1,5 ATR más allá de su media de 20 días, a favor | 53,3 % | 59,9 / 43,2 / 54,6 | 3.826 |
+| − precio en extremos de 20 días a favor | 52,8 % | 59,4 / 44,4 / 53,4 | 1.568 |
+| − mercado en tendencia limpia (eficiencia 20 d ≥ 0,4) | 53,3 % | 60,0 / 49,9 / 50,4 | 2.882 |
+
+No pasaron (mejoran en dos bloques y no en el tercero): fuerza ≥ 4 (66,4 / 51,4 / 62,8), ≥ 5 de 6 pilares a favor,
+VIX > 25 (68,8 / 46,5 / 73,1), COT extremo a favor, materias primas a favor, retroceso de 5 días. Empeoran casi siempre:
+tendencia de 20 días fuerte a favor, RSI extremo a favor, vela de ayer a favor (3 de 16 años mejor).
+
+**Niveles** (puntuación = condiciones a favor − en contra):
+
+| Claridad | n | 20 d | bloques | 10 d | 5 d | recorrido |
+|---|---|---|---|---|---|---|
+| ALTA (+2) | 2.174 | 66,4 % | 67,3 / 63,0 / 69,6 | 63,0 % | 59,2 % | 1,12 ATR |
+| MEDIA (+1) | 6.646 | 59,5 % | 66,0 / 54,7 / 59,2 | 56,8 % | 55,1 % | 0,50 ATR |
+| NORMAL (0) | 5.784 | 55,2 % | 59,2 / 48,8 / 57,5 | 54,7 % | 54,7 % | 0,36 ATR |
+| BAJA (< 0) | 3.143 | 51,3 % | — | 52,9 % | 53,3 % | 0,19 ATR |
+
+Sin solapes (una señal por par cada 20 sesiones): ALTA **62,3 %** (67,0 / 57,8 / 62,7; n 332, ≈ 22 al año) frente a
+56,6 % de cualquier sesgo (59,3 / 53,0 / 57,8); BAJA 54,1 %. ALTA por años: 13 de 16 por encima del 57 % (2013 52 %,
+2019 54 %, 2022 37 % con n 43). Por par, ALTA funciona en AUDJPY, EURJPY, EURUSD, USDJPY, EURGBP y USDCAD; no en GBPUSD
+(55 %) ni en USDCHF (48 %).
+
+**Validación sin trampa** (condiciones elegidas en dos bloques, probadas en el tercero, incluyendo las que solo pasan en
+esos dos): ALTA 63,6 % frente a 62,2 % (2011–15), 53,5 % frente a 52,4 % (2016–20) y 63,6 % frente a 58,4 % (2021–26).
+Modelo logístico entrenado con el pasado: nivel A 55,2 % frente a 52,4 % (2016–20) y 65,2 % frente a 58,4 % (2021–26).
+La mejora real esperable es de +3 a +6 puntos sobre el sesgo sin filtrar, no los +9 de la tabla.
+
+**Lectura.** El sesgo rinde cuando se está formando y el precio todavía no lo ha corrido (y el bono a 2 años aún no lo
+ha descontado); rinde poco cuando el precio ya se ha ido. Coincide con lo que el modelo de 3 años ya había aprendido
+(tendencia de 20 días a favor resta, precio extendido resta).
+
+**Qué se hizo en el radar.** `clarityFor()` calcula las cinco condiciones en vivo y devuelve `clarity` en cada par
+(alta / media / normal / baja, razones, acierto medido y evidencia del par). La tarjeta del par abre con un bloque
+«Veredicto»; «Sesgo de hoy», «Qué operar» y Comparativa llevan la etiqueta «claridad …». No cambia la puntuación del
+sesgo ni el modelo de convicción (nivel A/B/C a 5 días): es evidencia aparte, a 20 días. Límites: el radar histórico no
+tiene tono ni sorpresas (coincide en signo con el real el 84 %); medido solo en 8 pares.

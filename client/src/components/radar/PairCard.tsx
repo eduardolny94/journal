@@ -68,6 +68,7 @@ export default function PairCard({ pair, compact = false, className, favorite, o
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={biasVariant(pair)} size="md">{biasLabel(pair)}</Badge>
+          {pair.clarity && <Badge variant={pair.clarity.tier === 'alta' ? 'profit' : pair.clarity.tier === 'baja' ? 'warn' : 'default'}>claridad {pair.clarity.tier}</Badge>}
           <span className="text-xs text-gray-400" title={STRENGTH_HELP}>
             fuerza <span className={cn('tnum font-semibold', pair.diff > 0 ? 'text-profit' : pair.diff < 0 ? 'text-loss' : 'text-gray-300')}>{n}/5</span> · {strengthWord(n).toLowerCase()}
           </span>
@@ -84,6 +85,36 @@ export default function PairCard({ pair, compact = false, className, favorite, o
 
       <div className="grid gap-4 p-4 lg:grid-cols-[1.1fr_1fr]">
         <div className="space-y-3">
+          {pair.clarity && (
+            <div className={cn('rounded-md border p-3 text-sm', pair.clarity.tier === 'alta' ? 'border-profit/40 bg-profit/5 text-gray-100' : pair.clarity.tier === 'baja' ? 'border-warn/40 bg-warn/5 text-gray-200' : 'border-border bg-bg/40 text-gray-200')}>
+              <p className="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+                Veredicto
+                <Badge variant={pair.clarity.tier === 'alta' ? 'profit' : pair.clarity.tier === 'baja' ? 'warn' : 'default'} size="sm">claridad {pair.clarity.tier}</Badge>
+              </p>
+              <p>{pair.clarity.text}</p>
+              {(pair.clarity.pros.length > 0 || pair.clarity.cons.length > 0) && (
+                <p className="mt-1 text-[11px] text-gray-400">
+                  {pair.clarity.pros.length > 0 && <span className="text-gray-300">+ {pair.clarity.pros.join(' · ')}</span>}
+                  {pair.clarity.pros.length > 0 && pair.clarity.cons.length > 0 && ' '}
+                  {pair.clarity.cons.length > 0 && <span className="text-amber-300/80">− {pair.clarity.cons.join(' · ')}</span>}
+                </p>
+              )}
+              {pair.clarity.pair && (
+                <p className="mt-1 text-[11px] text-gray-500">
+                  {pair.clarity.pair.weak
+                    ? `Ojo: en ${pair.symbol} el sesgo no ha tenido ventaja estable (${pair.clarity.pair.hit.toFixed(0)} % a 20 días en 15 años).`
+                    : `En ${pair.symbol} el sesgo acertó el ${pair.clarity.pair.hit.toFixed(0)} % a 20 días en 15 años.`}
+                  {' '}Horizonte: 2–4 semanas, no el día.
+                </p>
+              )}
+            </div>
+          )}
+          {!pair.clarity && pair.base && pair.strength === 'sin sesgo' && (
+            <div className="rounded-md border border-border bg-bg/40 p-3 text-sm text-gray-300">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Veredicto</p>
+              Sin sesgo: las dos divisas están parejas. No hay ventaja medida en operar este par ahora.
+            </div>
+          )}
           <p className="text-sm text-gray-200">{biasSentence(pair)}</p>
           {pair.conviction && Math.abs(pair.diff) >= 2 && (
             <p className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">

@@ -17,6 +17,7 @@ import { crossConfirm, crossConfirmText, yieldMove1d } from './cross-confirm.js'
 import { fundamentalsFor, termsOfTrade } from './fundamentals.js';
 import { cyclePhaseFor } from './cycle-phase.js';
 import { PAIR_LIQUIDITY, pairPip } from './constants.js';
+import { clarityFor } from './clarity.js';
 
 const fmt = (n, k = 2) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -537,6 +538,15 @@ function finishRadar(db, input, ctx) {
     if (s.spread_pips !== null && s.spread_pips > 3) warnings.push({ kind: 'spread_alto', text: `Spread alto (${fmt(s.spread_pips, 1)} pips).` });
     const reasons = [...reasonsFor(byCode[base], input.cot.byCurrency[base], market), ...reasonsFor(byCode[quote], input.cot.byCurrency[quote], market)];
     const conviction = convictionFor(db, input, { sym, base, quote, diff, byCode, market, nextEv, lastEv, recent: recentPublished, closesAsOf: input.closesAsOf });
+    // Claridad del sesgo (clarity.js): evidencia de 15 años sobre cuándo el sesgo rinde más o menos. No toca la puntuación.
+    let clarity = null;
+    try {
+      let prevDiff20 = null;
+      try { const row = db.prepare('SELECT diff FROM radar_daily_bias WHERE symbol = ? AND date < ? ORDER BY date DESC LIMIT 1 OFFSET 19').get(sym, new Date(now).toISOString().slice(0, 10)); prevDiff20 = row ? row.diff : null; } catch { /* sin historial */ }
+      const eb = byCode[base].pillars.expectativas, eq = byCode[quote].pillars.expectativas;
+      const expectDiff = eb && eq && !eb.missing && !eq.missing ? (eb.value || 0) - (eq.value || 0) : null;
+      clarity = clarityFor({ symbol: sym, diff, prevDiff20, expectDiff, bars: typeof input.closesAsOf === 'function' ? (input.closesAsOf(sym) || []).slice(-60) : [] });
+    } catch { clarity = null; }
     if (risk.spRet !== null) reasons.push(`Riesgo global: S&P ${risk.spRet >= 0 ? '+' : ''}${fmt(risk.spRet, 1)} % en 20 días, VIX ${fmt(risk.vix, 1)}: ${risk.riskOn > 0.3 ? 'apoya AUD/NZD/CAD y pesa sobre JPY/CHF' : risk.riskOn < -0.3 ? 'apoya USD/JPY/CHF y pesa sobre AUD/NZD' : 'sin sesgo de riesgo claro'}`);
     return {
       symbol: sym, base, quote, main: MAIN_PAIRS.includes(sym),
@@ -553,6 +563,7 @@ function finishRadar(db, input, ctx) {
       bias_change: biasChange,
       prob_favor: probFavorList,
       conviction,
+      clarity,
     };
   });
 

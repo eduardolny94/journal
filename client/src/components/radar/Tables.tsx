@@ -67,7 +67,7 @@ export function ComparativeTable({ pairs }: { pairs: RadarPair[] }) {
               return (
                 <tr key={p.symbol} className="border-t border-border/60 text-gray-200 hover:bg-gray-800/30">
                   <td className="px-3 py-2 font-semibold"><Link to={`/radar/${p.symbol}`} className="hover:text-accent-soft">{assetIcon(p)} {assetLabel(p)}{p.base ? '' : <span className="ml-1 font-normal text-gray-500">{p.symbol}</span>}</Link></td>
-                  <td className="px-3 py-2"><Badge variant={biasVariant(p)}>{biasLabel(p)}</Badge></td>
+                  <td className="px-3 py-2"><span className="flex flex-wrap items-center gap-1"><Badge variant={biasVariant(p)}>{biasLabel(p)}</Badge>{p.clarity && <Badge variant={p.clarity.tier === 'alta' ? 'profit' : p.clarity.tier === 'baja' ? 'warn' : 'default'}>claridad {p.clarity.tier}</Badge>}</span></td>
                   <td className={cn('px-3 py-2 text-right tnum font-semibold', p.diff > 0 ? 'text-profit' : p.diff < 0 ? 'text-loss' : 'text-gray-400')}>{fmtScore(p.diff, 1)}</td>
                   <td className={cn('px-3 py-2 text-right tnum', p.diff > 0 ? 'text-profit' : p.diff < 0 ? 'text-loss' : 'text-gray-400')}>{n}/5 <span className="font-normal text-gray-400">{strengthWord(n).toLowerCase()}</span></td>
                   <td className="px-3 py-2 text-right"><Badge variant={confidenceVariant(p.confidence)}>{dataWord(p.confidence)}</Badge></td>

@@ -401,6 +401,8 @@ export interface RadarPair {
   prob_favor?: Array<{ horizon_d: number; p: number; n: number; per_pair: boolean }>;
   /** Capa de convicción (modelo con todas las condiciones, validado fuera de muestra). */
   conviction?: PairConviction | null;
+  /** Claridad del sesgo (15 años, 8 pares): cuándo el sesgo rinde más o menos. No cambia la puntuación. */
+  clarity?: { tier: 'alta' | 'media' | 'normal' | 'baja'; score: number; pros: string[]; cons: string[]; hit: number; hit_indep: number | null; base: number; horizon_d: number; n: number; text: string; pair: { hit: number; n: number; weak: boolean } | null } | null;
   /** Cruce calculado a partir de sus patas con dólar. */
   synthetic?: boolean;
 }
