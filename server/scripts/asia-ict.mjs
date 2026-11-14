@@ -60,12 +60,12 @@ const PH = Math.round(60 / barMin);
 const pct = (a, b) => (b ? `${((100 * a) / b).toFixed(0)} %` : '—');
 const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const med = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
-const TARGETS = ['r1', 'r2', 'r3', 'opp'];
+const TARGETS = ['r1', 'r15', 'r2', 'r3', 'opp']; // r15 = objetivo 1:1,5
 
 /** Posición abierta en `entry` desde la vela `from` (inclusive) con `stop`. R por objetivo. */
 function sim(seq, from, dir, entry, stop, opp, risk0) { // risk0: riesgo en puntos cuando el stop fijo se adelanta por el spread
   const risk = risk0 || Math.abs(entry - stop); if (!(risk > 0)) return null;
-  const tg = { r1: entry + dir * risk, r2: entry + dir * 2 * risk, r3: entry + dir * 3 * risk, opp };
+  const tg = { r1: entry + dir * risk, r15: entry + dir * 1.5 * risk, r2: entry + dir * 2 * risk, r3: entry + dir * 3 * risk, opp };
   const out = { risk };
   for (const k of TARGETS) if (!(dir > 0 ? tg[k] > entry : tg[k] < entry)) out[k] = NaN; // objetivo ya superado: no cuenta
   for (let j = from; j < seq.length; j++) {
@@ -84,7 +84,7 @@ function limit(seq, ref, dir, level, stop, opp, risk0) {
   for (let j = ref + 1; j < Math.min(seq.length, ref + 1 + 2 * PH); j++) {
     const b = seq[j];
     if (dir > 0 ? b.l <= level : b.h >= level) {
-      if (dir > 0 ? b.l <= stop : b.h >= stop) return { risk: risk0 || Math.abs(level - stop), r1: -1, r2: -1, r3: -1, opp: -1 };
+      if (dir > 0 ? b.l <= stop : b.h >= stop) return { risk: risk0 || Math.abs(level - stop), r1: -1, r15: -1, r2: -1, r3: -1, opp: -1 };
       return sim(seq, j + 1, dir, level, stop, opp, risk0);
     }
   }

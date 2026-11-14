@@ -380,3 +380,27 @@ de lo que daba 2024–2026.
 **Conclusión de la serie:** ninguna de las dos ideas da, con siete años, una ventaja suficiente para confiar en un
 45–52 % a 1:2. La vuelta a favor de ayer funciona en el mercado de 2025–2026 y no antes; la rotura al alza del Nasdaq es
 lo más constante y rinde poco.
+
+## Objetivo 1:1,5 en vez de 1:2, siete años (14-11-2026)
+
+Pedido del usuario. `asia-ict.mjs` añade el objetivo `r15`; `asia-ict-resumen.mjs --objetivo r15`. A 1:1,5 hace falta
+ganar el **40 %** (a 1:2 era el 33 %).
+
+| Londres, a favor de la vela de ayer, 1:1,5 | n | gana | medio | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Nasdaq, OTE, stop tras la barrida | 165 | 41 % | +0,02R | 47 % | 38 % | 39 % | 36 % | 27 % | 65 % | 47 % |
+| Nasdaq, OTE, stop 0,11 % | 165 | 34 % | −0,14R | 27 % | 34 % | 39 % | 25 % | 19 % | 53 % | 53 % |
+| Nasdaq, vela de rechazo | 134 | 38 % | −0,05R | 31 % | 38 % | 45 % | 24 % | 32 % | 46 % | 64 % |
+| S&P 500, OTE, stop tras la barrida | 165 | 42 % | +0,06R | 33 % | 52 % | 36 % | 29 % | 42 % | 53 % | 65 % |
+| Dow, OTE, stop tras la barrida | 146 | 38 % | −0,04R | 60 % | 28 % | 30 % | 48 % | 33 % | 47 % | 33 % |
+| Nasdaq, en contra de ayer, OTE | 127 | 40 % | 0,00R | 45 % | 20 % | 47 % | 39 % | 29 % | 54 % | 38 % |
+
+Entrada a mercado al cierre del cambio de estructura (sin esperar retroceso), todas las de Londres: Nasdaq 42 %
+(+0,06R, n 595, 5 de 7 años), Dow 43 % (+0,08R, n 621), S&P 39 % (−0,01R).
+
+Continuación (rotura al alza que cierra fuera) a 1,5R: Nasdaq retest 42 % (+0,08R, n 262; por años +0,11 · −0,05 ·
++0,04 · +0,15 · +0,25 · +0,05 · +0,04), a mercado 38 % (+0,02R); S&P 36–38 % (≈ 0); Dow 35 % (−0,05 / −0,11R).
+
+**Lectura:** bajar el objetivo sube el acierto (de 30 % a 41 % en el Nasdaq) pero también sube lo que hace falta para
+empatar (de 33 % a 40 %): el resultado sigue en cero. Cuando no hay ventaja en la entrada, cambiar la relación
+riesgo/beneficio solo reparte el mismo cero entre más aciertos pequeños o menos aciertos grandes.

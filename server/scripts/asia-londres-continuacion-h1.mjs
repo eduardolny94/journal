@@ -15,7 +15,7 @@ for (const l of readFileSync(FILE, 'utf8').trim().split(/\r?\n/)) {
 }
 const D = [...days.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, bars]) => ({ date, bars }));
 const avg = (x) => (x.length ? x.reduce((a, b) => a + b, 0) / x.length : NaN); const f2 = (v) => (Number.isNaN(v) ? ' — ' : (v >= 0 ? '+' : '') + v.toFixed(2));
-function sim(seq, from, dir, entry, stop) { const risk = Math.abs(entry - stop); const out = {}; for (let j = from; j < seq.length; j++) { const b = seq[j]; const s = dir > 0 ? b.l <= stop : b.h >= stop; for (const k of [1, 2, 3]) { if (out[k] !== undefined) continue; const t = entry + dir * k * risk; if (s) out[k] = -1; else if (dir > 0 ? b.h >= t + SPREAD : b.l <= t - SPREAD) out[k] = k; } if (s) break; } for (const k of [1, 2, 3]) if (out[k] === undefined) out[k] = Math.max(-1, (dir * (seq.at(-1).c - entry)) / risk); return out; }
+function sim(seq, from, dir, entry, stop) { const risk = Math.abs(entry - stop); const out = {}; for (let j = from; j < seq.length; j++) { const b = seq[j]; const s = dir > 0 ? b.l <= stop : b.h >= stop; for (const k of [1, 1.5, 2, 3]) { if (out[k] !== undefined) continue; const t = entry + dir * k * risk; if (s) out[k] = -1; else if (dir > 0 ? b.h >= t + SPREAD : b.l <= t - SPREAD) out[k] = k; } if (s) break; } for (const k of [1, 1.5, 2, 3]) if (out[k] === undefined) out[k] = Math.max(-1, (dir * (seq.at(-1).c - entry)) / risk); return out; }
 const EV = [], CT = [];
 for (const d of D) {
   const seq = d.bars.filter((b) => b.hour >= 2); const i0 = seq.findIndex((b) => b.hour >= 9); if (i0 < 5 || seq.length - i0 < 8) continue;
@@ -27,11 +27,11 @@ for (const d of D) {
     if (done || !(b.h > aH || b.l < aL)) continue; done = true;
     const dir = b.c > aH ? 1 : b.c < aL ? -1 : 0; if (!dir) continue;
     const level = dir > 0 ? aH : aL; const row = { date: d.date, dir, v: { M: sim(seq, j + 1, dir, b.c, mid) } };
-    for (let q = j + 1; q < Math.min(seq.length, j + 4); q++) { const x = seq[q]; if (dir > 0 ? x.l <= level : x.h >= level) { row.v.R = (dir > 0 ? x.l <= mid : x.h >= mid) ? { 1: -1, 2: -1, 3: -1 } : sim(seq, q + 1, dir, level, mid); break; } }
+    for (let q = j + 1; q < Math.min(seq.length, j + 4); q++) { const x = seq[q]; if (dir > 0 ? x.l <= level : x.h >= level) { row.v.R = (dir > 0 ? x.l <= mid : x.h >= mid) ? { 1: -1, 1.5: -1, 2: -1, 3: -1 } : sim(seq, q + 1, dir, level, mid); break; } }
     EV.push(row);
   }
 }
-const rep = (lab, S, key) => { const v = S.map((e) => (key ? e.v[key] : e.v)).filter(Boolean); console.log(`${lab.padEnd(58)} n ${String(v.length).padStart(4)} | 1R ${String(Math.round(100 * v.filter((r) => r[1] >= 1).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[1])))} | 2R ${String(Math.round(100 * v.filter((r) => r[2] >= 2).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[2])))} | 3R ${f2(avg(v.map((r) => r[3])))}`); };
+const rep = (lab, S, key) => { const v = S.map((e) => (key ? e.v[key] : e.v)).filter(Boolean); console.log(`${lab.padEnd(58)} n ${String(v.length).padStart(4)} | 1R ${String(Math.round(100 * v.filter((r) => r[1] >= 1).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[1])))} | 1,5R ${String(Math.round(100 * v.filter((r) => r[1.5] >= 1.5).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[1.5])))} | 2R ${String(Math.round(100 * v.filter((r) => r[2] >= 2).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[2])))} | 3R ${f2(avg(v.map((r) => r[3])))}`); };
 const years = [...new Set(EV.map((e) => e.date.slice(0, 4)))];
 console.log(`\n######## ${FILE} · ${D[0].date} → ${D.at(-1).date} · ${D.length} días · spread ${SPREAD}`);
 for (const [lab, fn] of [['TODO', () => true], ...years.map((y) => [y, (e) => e.date.startsWith(y)])]) {
