@@ -41,7 +41,22 @@ const VIX = yahoo('VIX');
 const vixAt = (date) => { const i = lastBefore(VIX, date); if (i < 252) return null; const w = VIX.slice(i - 252, i); return w.filter((r) => r.value < VIX[i].value).length / w.length; };
 const fred = (id) => JSON.parse(readFileSync(path.join(ROOT, 'data/historico/fred', `${id}.json`), 'utf8')).observations.filter((o) => o.value !== '.').map((o) => ({ date: o.date, value: Number(o.value) }));
 const DGS10 = fred('DGS10'); const PIL = JSON.parse(readFileSync(path.join(ROOT, 'data/historico/radar_hist_pilares.json'), 'utf8')).map(([date, cc]) => ({ date, usd: cc.USD }));
+const RADAR = arg('--radar', 'indice'); // 'oro' usa los pilares de metales: 2 años 20, dólar 15, VIX 15, macro 10, Fed 5
+const DGS2 = fred('DGS2'); const DXY = yahoo('DXY');
+const radarOro = (date) => {
+  const bp = (rows, days) => { const i = lastBefore(rows, shift(date, -1)); if (i < 0) return null; const j = lastBefore(rows, shift(rows[i].date, -days + 1)); return j < 0 ? null : (rows[i].value - rows[j].value) * 100; };
+  const u = lastBefore(PIL, date); const usd = u >= 0 && (new Date(date) - new Date(PIL[u].date)) / 864e5 <= 7 ? PIL[u].usd : null; if (!usd) return null;
+  const t = bp(DGS2, 28); const k = lastBefore(DXY, shift(date, -1)); const v = lastBefore(VIX, date); // DXY de Yahoo: un día más de retraso (su etiqueta diaria va desfasada) if (t === null || k < 21 || v < 0) return null;
+  const P = { tasas: clamp(-t / 15, -2, 2), dolar: clamp(-((DXY[k].value / DXY[k - 20].value - 1) * 100) / 1.5, -2, 2), riesgo: clamp((VIX[v].value - 18) / 4, -2, 2), macro: clamp(-usd.crecimiento * 0.8, -2, 2), fed: clamp(-usd.expectativas, -2, 2) };
+  return (5 * (20 * P.tasas + 15 * P.dolar + 15 * P.riesgo + 10 * P.macro + 5 * P.fed)) / 65;
+};
+// Dólar con datos propios (EURUSD H1, servidor NY + 7): ayer = día de servidor anterior completo; Asia = desde el cierre
+// de ayer hasta las 09:00 de hoy. +1 = el dólar subió. (El DXY diario de Yahoo no vale aquí: su fecha va desfasada.)
+const EUR = (() => { const m = new Map(); const f0 = path.join(ROOT, 'data/mt5-fxcm/EURUSD_PERIOD_H1.csv'); if (!existsSync(f0)) return m; for (const l of readFileSync(f0, 'utf8').trim().split(/\r?\n/).slice(1)) { const [t, o, , , c] = l.split(','); const d = t.slice(0, 10).replace(/\./g, '-'); const hr = +t.slice(11, 13); const x = m.get(d) || m.set(d, { c: +c, o9: null }).get(d); x.c = +c; if (hr === 9 && x.o9 === null) x.o9 = +o; } return m; })();
+const EUR_DATES = [...EUR.keys()].sort();
+const usdAt = (date) => { let lo = 0, hi = EUR_DATES.length - 1, i = -1; while (lo <= hi) { const mid = (lo + hi) >> 1; if (EUR_DATES[mid] < date) { i = mid; lo = mid + 1; } else hi = mid - 1; } if (i < 1) return { ayer: 0, asia: 0 }; const y = EUR.get(EUR_DATES[i]), y2 = EUR.get(EUR_DATES[i - 1]), tdy = EUR.get(date); return { ayer: -Math.sign(y.c - y2.c), asia: tdy && tdy.o9 ? -Math.sign(tdy.o9 - y.c) : 0 }; };
 const radarAt = (date) => { // sesgo de índices del radar: tipos 20 + Fed 20 (lo medido el 13-11-2026)
+  if (RADAR === 'oro') return radarOro(date);
   const i = lastBefore(DGS10, shift(date, -1)); if (i < 0) return null; const j = lastBefore(DGS10, shift(DGS10[i].date, -83)); if (j < 0) return null;
   const tasas = clamp(-((DGS10[i].value - DGS10[j].value) * 100) / 30, -2, 2);
   const u = lastBefore(PIL, date); if (u < 0 || (new Date(date) - new Date(PIL[u].date)) / 864e5 > 7) return null;
@@ -76,6 +91,7 @@ for (let di = 2; di < days.length; di++) {
   const feat = {
     prev: Math.sign(p1.c - p1.o), bias: p1.c > p2.h ? 1 : p1.c < p2.l ? -1 : 0, asia: Math.sign(asia.at(-1).c - asia[0].o), trend: sma20 === null ? 0 : Math.sign(p1.c - sma20),
     gex: gexAt(d.date), vix: vixP === null ? null : vixP >= 2 / 3 ? 'alto' : vixP <= 1 / 3 ? 'bajo' : 'medio', radar, dow: new Date(`${d.date}T12:00:00Z`).getUTCDay(),
+    usd: usdAt(d.date),
     asiaSize: medR ? (aH - aL >= 1.3 * medR ? 'ancha' : aH - aL <= 0.7 * medR ? 'estrecha' : 'normal') : null,
     prevBig: (p1.h - p1.l) / p1.c >= 0.015, year: d.date.slice(0, 4),
   };
@@ -127,6 +143,7 @@ const FILTROS = [
   ['radar a favor (≥ 2)', (t) => t.feat.radar !== null && t.feat.radar * t.dir >= 2], ['radar en contra (≤ −2)', (t) => t.feat.radar !== null && t.feat.radar * t.dir <= -2], ['radar sin sesgo', (t) => t.feat.radar !== null && Math.abs(t.feat.radar) < 2],
   ['GEX alto', (t) => t.feat.gex === 'alto'], ['GEX medio', (t) => t.feat.gex === 'medio'], ['GEX bajo', (t) => t.feat.gex === 'bajo'], ['GEX negativo', (t) => t.feat.gex === 'negativo'], ['GEX bajo o negativo', (t) => t.feat.gex === 'bajo' || t.feat.gex === 'negativo'],
   ['VIX alto', (t) => t.feat.vix === 'alto'], ['VIX bajo', (t) => t.feat.vix === 'bajo'],
+  ['dólar de ayer a favor', (t) => t.feat.usd.ayer === -t.dir], ['dólar de ayer en contra', (t) => t.feat.usd.ayer === t.dir], ['dólar en Asia a favor', (t) => t.feat.usd.asia === -t.dir], ['dólar en Asia en contra', (t) => t.feat.usd.asia === t.dir],
   ['Asia estrecha', (t) => t.feat.asiaSize === 'estrecha'], ['Asia ancha', (t) => t.feat.asiaSize === 'ancha'],
   ['ayer día grande (≥ 1,5 %)', (t) => t.feat.prevBig], ['compras', (t) => t.dir > 0], ['ventas', (t) => t.dir < 0],
   ['lunes', (t) => t.feat.dow === 1], ['martes', (t) => t.feat.dow === 2], ['miércoles', (t) => t.feat.dow === 3], ['jueves', (t) => t.feat.dow === 4], ['viernes', (t) => t.feat.dow === 5],

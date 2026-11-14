@@ -152,3 +152,31 @@ Método: descubrir en 2020–2023, validar en 2024–2026 y mirar Dow y S&P.
   sin cambio de estructura: −0,07R. Las ventas, negativas en todos los niveles.
 - **Rango de Londres** (59 % del ATR de media): 47 % tras un día estrecho, 71 % tras un día amplio o con GEX negativo;
   53 % los lunes, 64 % los viernes.
+
+## SMT con el S&P y el Dow (14-11-2026, `server/scripts/smt-nasdaq.mjs`)
+
+Pregunta del usuario: «a veces el Nasdaq no toma el bajo de Asia pero el S&P sí; ¿ese SMT añade ventaja?».
+
+**Dentro de las 262 compras de la estrategia** (gestión: mitad en 1,5R y el resto corre):
+
+| | n | R̄ | años positivos |
+|---|---|---|---|
+| el S&P también había barrido su bajo | 224 | +0,25 | 7/7 |
+| el S&P no lo había barrido (divergencia) | 38 | +0,38 | 1/5 (lo sostiene 2021) |
+| el Dow también lo había barrido | 184 | +0,23 | 7/7 |
+| el Dow no lo había barrido | 78 | +0,36 | 3/6 |
+
+La divergencia no mejora de forma fiable la operación normal; la versión regular es la confirmada.
+
+**Operación nueva** (el otro índice barre su bajo de Asia, el Nasdaq aguanta el suyo; compra del Nasdaq tras su cambio de
+estructura, stop bajo su mínimo de Londres):
+
+| | n | gana 1:1,5 | R̄ 1:1,5 | R̄ 1:2 | mitad + corre | años positivos |
+|---|---|---|---|---|---|---|
+| barre el S&P, aguanta el Nasdaq | 66 | 44 % | +0,10 | +0,09 | +0,14 | 5/7 |
+| barre el Dow, aguanta el Nasdaq | 172 | 45 % | +0,15 | +0,16 | +0,24 | 5/7 |
+| estrategia + SMT con el S&P (días distintos) | 328 | 45 % | +0,15 | +0,17 | +0,24 | 7/7 |
+| lo mismo, solo con GEX alto | 157 | 47 % | +0,22 | +0,25 | +0,30 | 7/7 |
+
+El SMT es positivo pero más flojo e irregular que la entrada normal. Sirve para añadir días (≈ 9 al año con el S&P,
+≈ 25 con el Dow), no para subir el acierto.
