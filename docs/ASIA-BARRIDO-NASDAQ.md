@@ -1,5 +1,10 @@
 # Barridas del alto/bajo de Asia en el Nasdaq (NAS100)
 
+> **CORRECCIÓN (14-11-2026): hora del historial.** Los datos de `data/mt5-largo/` usados aquí no estaban en «Nueva York + 7»
+> (el historial del MetaTrader cambia de reloj según la época), así que las ventanas de Asia y Londres de este documento
+> estaban desplazadas entre 1 y 3 horas. Cifras remedidas con la hora corregida y explicación en
+> `docs/EURUSD-LONDRES-QUANT.md` («Corrección de hora del historial»). La compra tras barrer el bajo de Asia queda en +0,10R a 1:1,5 (n 355, 6 de 7 años); el resto de cifras de este documento no se ha remedido y debe leerse con esa reserva.
+
 Pedido del usuario (13-11-2026): «cuántas veces el Nasdaq, luego de llevarse el bajo o el alto de Asia, se devuelve».
 Script: `node server/scripts/asia-barrido.mjs --pares NAS100F` (el mismo del oro, `docs/ASIA-BARRIDO-ORO.md`).
 Datos: velas H1 de MT5 (`data/mt5/NAS100F_PERIOD_H1.csv`, servidor = NY + 7), **2024-05-21 → 2026-10-09, 571 días**.

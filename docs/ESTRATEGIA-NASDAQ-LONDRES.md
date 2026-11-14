@@ -1,5 +1,10 @@
 # Estrategia de Londres en el Nasdaq: compra tras la barrida del bajo de Asia (14-11-2026)
 
+> **CORRECCIÓN (14-11-2026): hora del historial.** Los datos de `data/mt5-largo/` usados aquí no estaban en «Nueva York + 7»
+> (el historial del MetaTrader cambia de reloj según la época), así que las ventanas de Asia y Londres de este documento
+> estaban desplazadas entre 1 y 3 horas. Cifras remedidas con la hora corregida y explicación en
+> `docs/EURUSD-LONDRES-QUANT.md` («Corrección de hora del historial»). Titular corregido: compra tras barrer el bajo de Asia en Londres, todas: 43 % a 1:1,5, +0,10R (1:2 +0,14R), n 355, 6 de 7 años; con GEX alto +0,16R pero 4 de 7 años (el GEX ya no separa); mitad en 2R y el resto corre +0,20R; Dow +0,08R, 4 de 7 años.
+
 Encargo del usuario: «dime qué me da una ventaja estadística y construyamos una estrategia; quiero operar el Nasdaq con
 ventaja en Londres». Medido con 7 años de velas de 5 minutos de su bróker (2020-01 → 2026-11, 1.772 días;
 `data/mt5-largo/US100_M5_largo.csv`). Scripts: `server/scripts/nasdaq-londres-ventaja.mjs` (cuatro estrategias × todos

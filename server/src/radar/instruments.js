@@ -188,12 +188,13 @@ export function computeInstruments(db, input) {
       gex: gexInfo,
       // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.
       london_setup: (() => {
-        const t = LONDON_BUY_SETUP[ins.symbol]; if (!t || !gex) return null;
-        const [w, r15, r2, n, yrs, stop, runner] = t[gex.regime];
-        const on = r15 >= 0.1;
-        return { active: on, regime: gex.regime, win_15: w, r_15: r15, r_2: r2, n, years_positive: yrs, stop_points: stop, text: on
-          ? `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} llegó a 1:1,5 el ${w} % (${r15 >= 0 ? '+' : ''}${fmt(r15, 2)}R; a 1:2 ${r2 >= 0 ? '+' : ''}${fmt(r2, 2)}R; n ${n}, ${yrs} de 7 años positivos; stop típico ${stop} puntos).${runner ? ` Cerrando la mitad en 2R y dejando correr el resto: +${fmt(runner, 2)}R.` : ''} Solo compras.`
-          : `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} no hay ventaja medida (${w} % a 1:1,5, ${fmt(r15, 2)}R, n ${n}). Mejor no operarla hoy.` };
+        const t = LONDON_BUY_SETUP[ins.symbol]; if (!t) return null;
+        const [w, r15, r2, n, yrs, stop, runner] = t;
+        const on = r15 >= 0.1 && yrs >= 5;
+        const sg = (v) => `${v >= 0 ? '+' : ''}${fmt(v, 2)}R`;
+        return { active: on, regime: gex ? gex.regime : null, win_15: w, r_15: r15, r_2: r2, n, years_positive: yrs, stop_points: stop, text: on
+          ? `Compra de Londres tras barrer el bajo de Asia (08:00–11:00 España): ventaja pequeña. Llegó a 1:1,5 el ${w} % (${sg(r15)}; a 1:2 ${sg(r2)}; n ${n}, ${yrs} de 7 años positivos; stop típico ${stop} puntos).${runner ? ` Cerrando la mitad en 2R y dejando correr el resto: ${sg(runner)}.` : ''} Solo compras; el GEX no cambia el resultado.`
+          : `Compra de Londres tras barrer el bajo de Asia: sin ventaja estable (${w} % a 1:1,5, ${sg(r15)}, n ${n}, ${yrs} de 7 años positivos).` };
       })(),
       reasons,
       warnings,

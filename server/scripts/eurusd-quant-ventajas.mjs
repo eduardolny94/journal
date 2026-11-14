@@ -1,0 +1,46 @@
+// EURUSD · candidatos a ventaja que salieron de eurusd-quant-analisis.mjs, medidos como operaciones con costes y por años:
+//   1) «el euro cae en horario europeo» (Breedon y Ranaldo): vender 08:00 → 17:00 España;
+//   2) caída del euro (subida del dólar) antes de las 13:00 y las 14:00 España (fijaciones: Krohn, Mueller y Whelan, JF 2024);
+//   3) la primera hora europea da la vuelta a la última hora de Asia;
+//   4) rotura del rango de Asia según el tamaño de Asia.
+// M5 en hora de servidor NY + 7 (España + 1). Se vende al precio de venta y se recompra al de compra; coste total 0,8 pips.
+// Uso: node --max-old-space-size=7000 server/scripts/eurusd-quant-ventajas.mjs [--par EURUSD] [--coste 0.8]
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url)); const ROOT = path.resolve(__dirname, '..', '..');
+const arg = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; }; const PAR = arg('--par', 'EURUSD'); const COST = Number(arg('--coste', '0.8')); const PIP = 1e-4;
+const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN); const sd = (a) => { const m = mean(a); return Math.sqrt(mean(a.map((x) => (x - m) ** 2))); }; const ts = (a) => (a.length > 10 ? mean(a) / (sd(a) / Math.sqrt(a.length)) : NaN);
+const f = (v, d = 2) => (Number.isNaN(v) || v === undefined ? '  — ' : (v >= 0 ? '+' : '') + v.toFixed(d)); const T = (h, m = 0) => h * 60 + m; const dowOf = (d) => new Date(`${d}T12:00:00Z`).getUTCDay();
+const nth = (y, m, n) => { const d = new Date(Date.UTC(y, m, 1)); d.setUTCDate(1 + ((7 - d.getUTCDay()) % 7) + 7 * (n - 1)); return d.toISOString().slice(0, 10); }; const lastSun = (y, m) => { const d = new Date(Date.UTC(y, m + 1, 0)); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d.toISOString().slice(0, 10); };
+const season = (date) => { const y = +date.slice(0, 4); const us = date >= nth(y, 2, 2) && date < nth(y, 10, 1), eu = date >= lastSun(y, 2) && date < lastSun(y, 9); return us !== eu ? 'desfase' : us ? 'verano' : 'invierno'; };
+const m = new Map(); for (const line of readFileSync(path.join(ROOT, `data/mt5-largo/fx-largo/${PAR}_M5.csv`), 'utf8').split(/\r?\n/)) { if (!line || line[0] === '<') continue; const x = line.split('\t'); const date = x[0].replace(/\./g, '-'); if (date < '2009-01-01') continue; const t = +x[1].slice(0, 2) * 60 + +x[1].slice(3, 5); if (t < T(7) || t > T(19)) continue; (m.get(date) || m.set(date, new Map()).get(date)).set(t, { o: +x[2], h: +x[3], l: +x[4], c: +x[5] }); }
+const days = [...m.entries()].filter(([d, b]) => dowOf(d) >= 1 && dowOf(d) <= 5 && b.size > 120).sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, bars]) => ({ date, bars, y: date.slice(0, 4), s: season(date) }));
+const YEARS = [...new Set(days.map((d) => d.y))]; const esp = (t) => `${String(Math.floor((t - 60) / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+const move = (d, t0, t1) => { const a = d.bars.get(t0), b = d.bars.get(t1); return a && b ? (b.o - a.o) / PIP : null; };
+function report(lab, vals, dts) { // vals: pips netos por operación
+  const by = YEARS.map((y) => mean(vals.filter((_, i) => dts[i].y === y))); let eq = 0, pk = 0, dd = 0; vals.forEach((v) => { eq += v; pk = Math.max(pk, eq); dd = Math.max(dd, pk - eq); }); const w = vals.filter((v) => v > 0), l = vals.filter((v) => v <= 0);
+  console.log(`  ${lab.padEnd(58)} n ${String(vals.length).padStart(4)} · gana ${((100 * w.length) / vals.length).toFixed(0)} % · ${f(mean(vals))} pips/op · PF ${(w.reduce((s, v) => s + v, 0) / Math.abs(l.reduce((s, v) => s + v, 0))).toFixed(2)} · t ${f(ts(vals), 1)} · caída ${dd.toFixed(0)} pips · años + ${by.filter((v) => v > 0).length}/${by.length}\n      por años ${YEARS[0]} → ${YEARS.at(-1)}: ${by.map((v) => f(v, 1)).join(' ')}`); }
+console.log(`${PAR} · ${days.length} días (${days[0].date} → ${days.at(-1).date}) · coste ${COST} pips por operación · horas de España\n`);
+// ---------- 1 ----------
+console.log('1) VENDER TODA LA SESIÓN EUROPEA'); for (const [a, b] of [[T(9), T(18)], [T(9), T(15)], [T(10), T(18)]]) { const S = days.filter((d) => move(d, a, b) !== null); report(`vender ${esp(a)} → ${esp(b)}`, S.map((d) => -move(d, a, b) - COST), S); }
+// ---------- 2 ----------
+console.log('\n2) CAÍDA ANTES DE LAS 13:00 Y LAS 14:00 · perfil de 5 min por estación (pips; * = |t| ≥ 3)');
+for (const s of ['invierno', 'verano', 'desfase']) { const S = days.filter((d) => d.s === s); const out = []; for (let t = T(13, 30); t < T(15, 30); t += 5) { const v = S.map((d) => move(d, t, t + 5)).filter((x) => x !== null); const tt = ts(v); out.push(`${esp(t)} ${f(mean(v))}${Math.abs(tt) >= 3 ? '*' : ''}`); } console.log(`  ${s.padEnd(9)} (n ${S.length}): ${out.join(' ')}`); }
+console.log('  Como operación (venta):');
+for (const [a, b] of [[T(13, 30), T(15)], [T(13, 30), T(14)], [T(14, 30), T(15)], [T(13, 50), T(14)], [T(14, 45), T(15)], [T(14, 50), T(15)]]) { const S = days.filter((d) => move(d, a, b) !== null); report(`vender ${esp(a)} → ${esp(b)}`, S.map((d) => -move(d, a, b) - COST), S); }
+{ const S = days.filter((d) => move(d, T(13, 30), T(15)) !== null); const raw = S.map((d) => -move(d, T(13, 30), T(15))); console.log(`  vender 12:30 → 14:00 SIN costes: ${f(mean(raw))} pips (t ${f(ts(raw), 1)}) · por día de la semana: ${[1, 2, 3, 4, 5].map((k) => `${['', 'L', 'M', 'X', 'J', 'V'][k]} ${f(mean(raw.filter((_, i) => dowOf(S[i].date) === k)), 1)}`).join(' · ')} · últimos 3 años ${f(mean(raw.filter((_, i) => S[i].y >= '2024')))} · desviación por operación ${sd(raw).toFixed(1)} pips`);
+  console.log(`  después de las 14:00 (compra 14:00 → 14:30, sin costes): ${f(mean(days.map((d) => move(d, T(15), T(15, 30))).filter((x) => x !== null)))} pips · por años ${YEARS.map((y) => f(mean(days.filter((d) => d.y === y).map((d) => move(d, T(15), T(15, 30))).filter((x) => x !== null)), 1)).join(' ')}`); }
+// ---------- 3 ----------
+console.log('\n3) LA PRIMERA HORA EUROPEA (08:00–09:00) CONTRA LA ÚLTIMA HORA DE ASIA (07:00–08:00)');
+{ const S = days.map((d) => ({ d, pre: move(d, T(8), T(9)), post: move(d, T(9), T(10)) })).filter((o) => o.pre !== null && o.post !== null && o.pre !== 0); const cut = (q) => { const s = S.map((o) => Math.abs(o.pre)).sort((a, b) => a - b); return s[Math.floor(q * s.length)]; };
+  for (const [lab, q] of [['todas', 0], ['última hora de Asia grande (tercio alto)', 0.667], ['muy grande (10 % más alto)', 0.9]]) { const c = q ? cut(q) : 0; const X = S.filter((o) => Math.abs(o.pre) >= c); report(`contra la última hora de Asia · ${lab}${q ? ` ≥ ${c.toFixed(1)} pips` : ''}`, X.map((o) => -Math.sign(o.pre) * o.post - COST), X.map((o) => o.d)); } }
+// ---------- 4 · las dos ventas con stop (en R) y por régimen ----------
+if (PAR === 'EURUSD') {
+  const DS = JSON.parse(readFileSync(path.join(ROOT, 'data/eurusd-quant/dataset.json'), 'utf8')); const ix = (n) => DS.features.indexOf(n); const ctx = new Map(DS.rows.map((r) => [r.date, { vix: r.x[ix('vix')], adx: r.x[ix('adx14')], atr: r.y.atr, dow: dowOf(r.date) }]));
+  console.log('\n4) LAS DOS VENTAS CON STOP (R por operación, costes incluidos) Y POR RÉGIMEN');
+  const sim = (d, t0, t1, stopPips) => { const a = d.bars.get(t0); if (!a || !d.bars.get(t1)) return null; const entry = a.o, stop = entry + stopPips * PIP; for (let t = t0; t < t1; t += 5) { const b = d.bars.get(t); if (b && b.h + 0.00008 >= stop) return -1 - COST / stopPips; } return (entry - d.bars.get(t1).o) / PIP / stopPips - COST / stopPips; };
+  for (const [a, b, lab] of [[T(9), T(15), 'vender 08:00 → 14:00'], [T(13, 30), T(15), 'vender 12:30 → 14:00']]) for (const sp of [15, 25, 40]) { const S = days.map((d) => ({ d, r: sim(d, a, b, sp) })).filter((o) => o.r !== null); const v = S.map((o) => o.r); const by = YEARS.map((y) => mean(S.filter((o) => o.d.y === y).map((o) => o.r))); let eq = 0, pk = 0, dd = 0; v.forEach((x) => { eq += x; pk = Math.max(pk, eq); dd = Math.max(dd, pk - eq); }); const w = v.filter((x) => x > 0), l = v.filter((x) => x <= 0);
+    const reg = (fn) => f(mean(S.filter((o) => { const c = ctx.get(o.d.date); return c && fn(c); }).map((o) => o.r)), 3);
+    console.log(`  ${lab} · stop ${sp} pips: n ${v.length} · gana ${((100 * w.length) / v.length).toFixed(0)} % · ${f(mean(v), 3)}R · PF ${(w.reduce((s, x) => s + x, 0) / Math.abs(l.reduce((s, x) => s + x, 0))).toFixed(2)} · t ${f(ts(v), 1)} · caída ${dd.toFixed(0)}R · años + ${by.filter((x) => x > 0).length}/${by.length} · suma anual media ${f(mean(by) * (v.length / YEARS.length), 0)}R · últimos 3 años ${f(mean(S.filter((o) => o.d.y >= '2024').map((o) => o.r)), 3)}R\n      VIX ≥ 20 ${reg((c) => c.vix >= 20)} / VIX < 20 ${reg((c) => c.vix !== null && c.vix < 20)} · tendencia (ADX ≥ 25) ${reg((c) => c.adx >= 25)} / lateral ${reg((c) => c.adx < 25)} · L ${reg((c) => c.dow === 1)} M ${reg((c) => c.dow === 2)} X ${reg((c) => c.dow === 3)} J ${reg((c) => c.dow === 4)} V ${reg((c) => c.dow === 5)} · 2009–14 ${f(mean(S.filter((o) => o.d.y < '2015').map((o) => o.r)), 3)} / 2015–20 ${f(mean(S.filter((o) => o.d.y >= '2015' && o.d.y < '2021').map((o) => o.r)), 3)} / 2021–26 ${f(mean(S.filter((o) => o.d.y >= '2021').map((o) => o.r)), 3)}`); }
+}

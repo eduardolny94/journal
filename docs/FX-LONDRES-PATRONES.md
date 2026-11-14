@@ -1,5 +1,10 @@
 # Divisas en la sesión europea: ¿qué par tiene un patrón claro? (14-11-2026)
 
+> **CORRECCIÓN (14-11-2026): hora del historial.** Los datos de `data/mt5-largo/` usados aquí no estaban en «Nueva York + 7»
+> (el historial del MetaTrader cambia de reloj según la época), así que las ventanas de Asia y Londres de este documento
+> estaban desplazadas entre 1 y 3 horas. Cifras remedidas con la hora corregida y explicación en
+> `docs/EURUSD-LONDRES-QUANT.md` («Corrección de hora del historial»). Lunes del yen (2020–2026): se mantiene (AUDJPY +10,3 pb, t 4,1, 7 de 7 años; GBPJPY +7,9 pb) y sigue sin existir antes de 2020. La rotura de Asia en USDJPY baja a +2,0 pb (t 1,4): deja de ser significativa.
+
 Pedido del usuario: «¿qué par sí tiene un patrón claro en Londres? Es imposible que todo forex se resuma en Nueva York;
 busca en la literatura, prueba con todo y verifica». Método de la casa: literatura → reglas fijadas → prueba por muestras.
 

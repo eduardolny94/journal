@@ -1,5 +1,10 @@
 # Oro en Londres: búsqueda de patrones con 7 años (14-11-2026)
 
+> **CORRECCIÓN (14-11-2026): hora del historial.** Los datos de `data/mt5-largo/` usados aquí no estaban en «Nueva York + 7»
+> (el historial del MetaTrader cambia de reloj según la época), así que las ventanas de Asia y Londres de este documento
+> estaban desplazadas entre 1 y 3 horas. Cifras remedidas con la hora corregida y explicación en
+> `docs/EURUSD-LONDRES-QUANT.md` («Corrección de hora del historial»). La conclusión no cambia: la vuelta tras la barrida de Asia en el oro da −0,11R (1 de 7 años).
+
 Pedido del usuario: «haz el mismo análisis en el oro, que ahí debe haber más patrones porque se mueve más en Londres».
 Datos: XAUUSD y XAGUSD en M5 desde 2020-01-02 (≈ 478.000 velas cada uno), exportados con `GTFX_ExportarBarras` desde su
 MetaTrader → `data/mt5-largo/XAUUSD_M5_largo.csv`, `XAGUSD_M5_largo.csv`. Mismos scripts que el Nasdaq

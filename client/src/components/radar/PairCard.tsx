@@ -144,7 +144,7 @@ export default function PairCard({ pair, compact = false, className, favorite, o
           </div>
           {pair.london_setup && (
             <div className={cn('rounded-md border p-3 text-sm', pair.london_setup.active ? 'border-accent/40 bg-accent/5 text-gray-100' : 'border-border bg-bg/40 text-gray-400')}>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Estrategia de Londres · {pair.london_setup.active ? 'hoy con ventaja medida' : 'hoy sin ventaja'}</p>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Estrategia de Londres · {pair.london_setup.active ? 'ventaja pequeña medida' : 'sin ventaja estable'}</p>
               {pair.london_setup.text}
             </div>
           )}
