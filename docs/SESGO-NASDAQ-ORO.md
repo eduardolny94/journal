@@ -157,3 +157,9 @@ alto y 0,66 % con GEX bajo; con VIX medio 0,50 / 0,74 %; con VIX alto 0,79 / 1,2
 Candidato: dato de volatilidad para índices (tamaño de stop y objetivo del día), no un pilar de sesgo. Del resto de la
 lista: el perfil de volumen y los niveles clave ya están medidos (`docs/ZONAS-REACCION.md`); el flujo de órdenes exige
 datos de pago de futuros y no existe para divisas.
+
+**Aplicado (14-11-2026):** fuente nueva `server/src/radar/sources/gex.js` (CSV diario de SqueezeMetrics, cada 6 h, series
+`SQZ_GEX` y `SQZ_DIX`) y fila «Gamma de dealers (GEX)» en la ficha de Nasdaq, S&P y Dow, con peso 0: régimen frente a su
+último año y recorrido típico de la próxima sesión (`INSTRUMENT_GEX_MOVE`; rango máximo–mínimo medido 2012–2026 por
+tres cortes: Nasdaq 1,01 % con GEX alto, 1,28 % medio, 1,90 % bajo, 2,66 % negativo; S&P 0,75 / 0,98 / 1,56 / 2,24 %;
+Dow 0,78 / 0,97 / 1,53 / 2,14 %). Campo `gex` del activo con los puntos equivalentes. No toca la puntuación.

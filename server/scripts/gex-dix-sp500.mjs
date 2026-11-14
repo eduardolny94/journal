@@ -35,3 +35,18 @@ show('DIX ALTO (tercio superior) frente a DIX BAJO (tercio inferior)', (r) => r.
   for (const [lab, fn] of [['VIX bajo', (r) => r.vixP <= 1 / 3], ['VIX medio', (r) => r.vixP > 1 / 3 && r.vixP < 2 / 3], ['VIX alto', (r) => r.vixP >= 2 / 3]]) { const A = S.filter(fn); const hi = A.filter((r) => r.gexP >= 2 / 3), lo = A.filter((r) => r.gexP <= 1 / 3); console.log(`   ${lab.padEnd(10)} todos ${f(mean(A.map((r) => r.a1)), 2)} % (n ${A.length}) · GEX alto ${f(mean(hi.map((r) => r.a1)), 2)} % (n ${hi.length}) · GEX bajo ${f(mean(lo.map((r) => r.a1)), 2)} % (n ${lo.length})`); }
   const hiV = S.filter((r) => r.vixP >= 2 / 3), loV = S.filter((r) => r.vixP <= 1 / 3); console.log(`   solo VIX: alto ${f(mean(hiV.map((r) => r.a1)), 2)} % frente a bajo ${f(mean(loV.map((r) => r.a1)), 2)} %`);
 }
+
+// Movimiento medio del día siguiente (% del precio, |cierre a cierre|) por régimen de GEX, para cada índice del radar.
+// Son las cifras que enseña la ficha del activo (INSTRUMENT_GEX_MOVE en constants.js).
+{
+  const yahoo = (n) => { const r = JSON.parse(readFileSync(`data/yahoo/${n}_1d_largo.json`, 'utf8')).chart.result[0]; const q = r.indicators.quote[0]; const off = r.meta.gmtoffset || 0; return r.timestamp.map((t, i) => ({ date: new Date((t + off) * 1000).toISOString().slice(0, 10), close: q.close[i], high: q.high[i], low: q.low[i] })).filter((b) => b.close != null); };
+  const G = new Map(); for (let i = 252; i < rows.length; i++) { const win = rows.slice(i - 252, i); G.set(rows[i].date, { p: win.filter((r) => r.gex < rows[i].gex).length / win.length, neg: rows[i].gex < 0 }); }
+  console.log('\nMovimiento del día siguiente por régimen de GEX (cierre a cierre · rango máximo–mínimo), por cortes:');
+  for (const [sym, file] of [['US500', 'GSPC'], ['NAS100', 'NDX'], ['US30', 'DJI']]) {
+    const px = yahoo(file); const S = [];
+    for (let i = 0; i < px.length - 1; i++) { const g = G.get(px[i].date); if (!g) continue; const n = px[i + 1]; S.push({ date: px[i].date, ...g, a: Math.abs(n.close / px[i].close - 1) * 100, rg: ((n.high - n.low) / px[i].close) * 100 }); }
+    const n3 = Math.ceil(S.length / 3); const cut = (A, i) => A.filter((r) => r.date >= S[i * n3].date && r.date <= S[Math.min(S.length - 1, (i + 1) * n3 - 1)].date);
+    const line = (lab, fn) => { const A = S.filter(fn); return `${lab} ${f(mean(A.map((r) => r.a)), 2)} % · rango ${f(mean(A.map((r) => r.rg)), 2)} % (${[0, 1, 2].map((i) => f(mean(cut(A, i).map((r) => r.rg)), 2)).join(' / ')}; n ${A.length})`; };
+    console.log(`  ${sym}: ${line('ALTO', (r) => r.p >= 2 / 3)} | ${line('MEDIO', (r) => r.p > 1 / 3 && r.p < 2 / 3)} | ${line('BAJO', (r) => r.p <= 1 / 3)} | ${line('NEGATIVO', (r) => r.neg)}`);
+  }
+}

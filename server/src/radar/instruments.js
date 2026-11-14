@@ -1,12 +1,13 @@
 // Sesgo de índices y metales. Pilares: momentum propio, tipos reales (metales) o bono a 10 años (índices),
 // dólar (metales) o crédito de alto riesgo (índices), riesgo (VIX), sorpresas macro de EE. UU., expectativas de la
 // Fed y COT (dinero gestionado / fondos apalancados). Misma forma de salida que un par FX (base/quote = null).
-import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
+import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
 import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
 import { pairComputations, rank01 } from './score.js';
 import { usdScenario } from './cycle-phase.js';
+import { gexRegime, gexSeries } from './sources/gex.js';
 
 const fmt = (n, k = 1) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -86,6 +87,10 @@ export function computeInstruments(db, input) {
   const nextEv = usNext.map((e) => ({ title: e.title, currency: e.country, at_utc: e.at_utc, impact: e.impact, minutes: Math.round((new Date(e.at_utc).getTime() - now) / 60000), forecast: e.forecast, previous: e.previous }));
   const lastEv = usLast.map((e) => ({ title: e.title, currency: e.country, at_utc: e.at_utc, impact: e.impact, actual: e.actual, forecast: e.forecast, previous: e.previous, surprise: surpriseOf(e).norm, favors: e.favors }));
 
+  let gex = null;
+  try { gex = gexRegime(gexSeries(db), now); } catch { gex = null; }
+  const GEX_LABEL = { alto: 'alto: día de rango corto', medio: 'medio', bajo: 'bajo: día de movimiento amplio', negativo: 'negativo: movimiento muy amplio' };
+
   const list = [];
   for (const ins of INSTRUMENTS) {
     const s = symbols[ins.symbol];
@@ -123,6 +128,19 @@ export function computeInstruments(db, input) {
       if (!w || pillars[k].missing) continue;
       num += w * pillars[k].value;
       den += w;
+    }
+    // GEX: cuánto se moverá el índice mañana (no hacia dónde). Solo en los índices medidos; nunca puntúa.
+    const gm = INSTRUMENT_GEX_MOVE[ins.symbol] || null;
+    let gexInfo = null;
+    if (gm) {
+      if (gex) {
+        const [cc, rg] = gm[gex.regime];
+        const pts = s.bid ? Math.round((s.bid * rg) / 100) : null;
+        gexInfo = { date: gex.date, regime: gex.regime, percentile: gex.percentile, close_move_pct: cc, range_pct: rg, range_points: pts };
+        pillars.gex = { value: 0, raw: gex.value, missing: false, weight: 0, regime: gex.regime, percentile: gex.percentile, text: `GEX ${GEX_LABEL[gex.regime]} (percentil ${gex.percentile} de su último año, dato del ${gex.date}): en la próxima sesión ${ins.label} suele recorrer un ${fmt(rg, 2)} % de máximo a mínimo${pts ? ` (≈ ${pts} puntos)` : ''}; con GEX alto ${fmt(gm.alto[1], 2)} % y con GEX bajo ${fmt(gm.bajo[1], 2)} % · mide cuánto se mueve, no hacia dónde` };
+      } else {
+        pillars.gex = { value: 0, raw: null, missing: true, weight: 0, text: 'sin dato de GEX reciente' };
+      }
     }
     for (const k of ['momentum', 'macro', 'riesgo']) if (!W[k]) pillars[k].text += ' · no puntúa: a 5 días no acierta el sentido (medido 2011–2026)';
     const score = den ? round((5 * num) / den) : 0;
@@ -167,6 +185,7 @@ export function computeInstruments(db, input) {
       structure,
       plan: planForInstrument(ins, bias, strength, score, s.digits, structure),
       evidence: ev,
+      gex: gexInfo,
       reasons,
       warnings,
       next_events: nextEv,

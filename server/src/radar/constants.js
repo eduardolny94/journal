@@ -155,6 +155,7 @@ export const REFRESH_MS = {
   yields: 24 * 3600_000,
   yields_tv: 6 * 3600_000,
   cot: 6 * 3600_000,
+  gex: 6 * 3600_000, // GEX diario (SqueezeMetrics): se publica una vez al día
   news: 10 * 60_000,
 };
 
@@ -412,6 +413,16 @@ export const INSTRUMENT_PILLAR_WEIGHTS_BY_KIND = {
   metal: { momentum: 0, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 },
 };
 /**
+ * Movimiento medio del día siguiente por régimen de GEX, en % del precio: [cierre a cierre, rango máximo–mínimo].
+ * Medido 2012–2026 (3.656 días, estable en tres cortes) en server/scripts/gex-dix-sp500.mjs. El GEX se compara con su
+ * último año: alto = tercio superior, bajo = tercio inferior; negativo = por debajo de cero. No indica dirección.
+ */
+export const INSTRUMENT_GEX_MOVE = {
+  US500: { alto: [0.45, 0.75], medio: [0.65, 0.98], bajo: [1.06, 1.56], negativo: [1.51, 2.24] },
+  NAS100: { alto: [0.61, 1.01], medio: [0.89, 1.28], bajo: [1.33, 1.9], negativo: [1.79, 2.66] },
+  US30: { alto: [0.45, 0.78], medio: [0.61, 0.97], bajo: [1.0, 1.53], negativo: [1.43, 2.14] },
+};
+/**
  * Pesos anteriores al 13-11-2026. Siguen valiendo para los índices no medidos (DAX, FTSE, Nikkei): los pesos nuevos solo
  * se aplican a los activos de INSTRUMENT_EVIDENCE, que son los que tienen 15 años de comprobación.
  */
@@ -429,7 +440,7 @@ export const INSTRUMENT_EVIDENCE = {
   XAUUSD: { bull: 64, bear: 53, base: 54, n_bull: 632, n_bear: 1382 },
   XAGUSD: { bull: 60, bear: 49, base: 51, n_bull: 631, n_bear: 1382 },
 };
-export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años' };
+export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */
 export function normalizeInstrumentSymbol(raw) {

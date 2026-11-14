@@ -17,6 +17,7 @@ import { refreshYieldsOfficial, refreshYieldsLive } from './sources/yields.js';
 import { runBacktest, lastBacktest } from './backtest.js';
 import { FEATURE_VERSION } from './conviction.js';
 import { refreshCot, cotRows } from './sources/cot.js';
+import { refreshGex } from './sources/gex.js';
 import { refreshNews, listNews } from './sources/news.js';
 import { refreshTono } from './sources/tono.js';
 import { clienteApi } from '../mesa/agentes.js';
@@ -125,6 +126,7 @@ export function refreshSources({ force = false } = {}) {
         return { ok: r.ok, events_week: r.count };
       }, { force, now }),
       runSource(db, 'cot', REFRESH_MS.cot, () => refreshCot(db), { force, now }),
+      runSource(db, 'gex', REFRESH_MS.gex, () => refreshGex(db), { force: false, now }),
       runSource(db, 'news', REFRESH_MS.news, () => refreshNews(db), { force, now }),
     ]);
     // El tono va después de calendario y noticias (los necesita) y usa Claude si hay clave; si no, la regla simple.
