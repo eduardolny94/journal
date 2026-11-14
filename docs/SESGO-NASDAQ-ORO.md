@@ -139,3 +139,21 @@ se etiqueta «fuerte» en estos activos y (2) lleva el aviso «sirve para no com
   Sin señal estable: no entra.
 - Lectura del 13-11-2026 con los pesos nuevos: Nasdaq −5,5, S&P −5,7 y Dow −5,2 (bajista moderado, con el aviso); oro
   −1,4 y plata −1,5 (sin sesgo).
+
+## GEX y DIX (posicionamiento de dealers y compra opaca) frente al S&P 500 (14-11-2026)
+
+Pregunta del usuario a raíz de una publicación («volumen, GEX, order flow y niveles clave»): ¿ayudarían al radar?
+`server/scripts/gex-dix-sp500.mjs`, datos públicos diarios de SqueezeMetrics (`data/historico/gex/DIX.csv`), 3.637 días
+(2012–2026), cada lectura frente a su propio último año, tres cortes.
+
+| | día siguiente se mueve | sube a 5 días | sube a 20 días |
+|---|---|---|---|
+| GEX alto frente a bajo | **0,45 % frente a 1,06 %** (cortes 0,40/0,85 · 0,44/1,28 · 0,52/1,07) | 59 % / 63 % (−12 · −2 · 0) | 66 % / 70 % |
+| GEX negativo frente a positivo | **1,51 % frente a 0,62 %** | 63 % / 60 % | 69 % / 68 % |
+| DIX alto frente a bajo | 0,81 % / 0,61 % | 61 % / 61 % | 69 % / 66 % (+7 · +12 · −10) |
+
+El GEX **no dice la dirección** pero sí **cuánto se va a mover** el índice, y añade al VIX: con VIX bajo, 0,40 % con GEX
+alto y 0,66 % con GEX bajo; con VIX medio 0,50 / 0,74 %; con VIX alto 0,79 / 1,21 %. El DIX no da nada estable.
+Candidato: dato de volatilidad para índices (tamaño de stop y objetivo del día), no un pilar de sesgo. Del resto de la
+lista: el perfil de volumen y los niveles clave ya están medidos (`docs/ZONAS-REACCION.md`); el flujo de órdenes exige
+datos de pago de futuros y no existe para divisas.

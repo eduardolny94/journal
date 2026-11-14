@@ -34,6 +34,10 @@ const CORTES = Number(arg('--cortes', '3'));
 const STOPS = arg('--stops', '').split(',').map(Number).filter((x) => x > 0);
 // --stop-min 0,10,15: entradas «con la vela» (claves Ov, Or, Fv, Fr y Ov>=10…) con ese stop mínimo en puntos.
 const MINS = arg('--stop-min', '').split(',').filter((x) => x !== '').map(Number);
+// Con varios años el índice cambia mucho de precio (8.800 → 27.900): los stops se dan también en % del precio.
+// --stops-pct 0.09,0.11 → claves O%0.11, F%0.11, M%0.11 · --stop-min-pct 0.07 → claves Ov%0.07, Or%0.07 (stop mínimo).
+const STOPS_PCT = arg('--stops-pct', '').split(',').map(Number).filter((x) => x > 0);
+const MINS_PCT = arg('--stop-min-pct', '').split(',').map(Number).filter((x) => x > 0);
 const FROM = arg('--desde', '2000-01-01'), TO = arg('--hasta', '2100-01-01');
 
 function load() {
@@ -141,6 +145,7 @@ for (let di = 2; di < days.length; di++) {
       const leg = seq.slice(e, mss + 1); const legEnd = side === 'high' ? Math.min(...leg.map((b) => b.l)) : Math.max(...leg.map((b) => b.h));
       row.v.M = sim(seq, mss + 1, dir, mb.c, stop, opp);
       for (const n of STOPS) row.v[`M@${n}`] = sim(seq, mss + 1, dir, mb.c, mb.c - dir * (n - SPREAD), opp, n);
+      for (const pc of STOPS_PCT) { const n = (mb.c * pc) / 100; row.v[`M%${pc}`] = sim(seq, mss + 1, dir, mb.c, mb.c - dir * (n - SPREAD), opp, n); }
       // FVG de la pierna (primer hueco tras el extremo; puede completarse en la vela siguiente al MSS)
       let g = null;
       for (let i = e + 2; i <= Math.min(seq.length - 1, mss + 1); i++) {
@@ -153,6 +158,8 @@ for (let di = 2; di < days.length; di++) {
         const ref = Math.max(mss, g.i);
         row.v.F = limit(seq, ref, dir, g.near, stop, opp);
         for (const n of STOPS) row.v[`F@${n}`] = limit(seq, ref, dir, g.near, g.near - dir * (n - SPREAD), opp, n);
+        for (const pc of STOPS_PCT) { const n = (g.near * pc) / 100; row.v[`F%${pc}`] = limit(seq, ref, dir, g.near, g.near - dir * (n - SPREAD), opp, n); }
+        for (const pc of MINS_PCT) { row.v[`Fr%${pc}`] = candleEntry(seq, ref, dir, g.near, opp, true, (g.near * pc) / 100); }
         row.v.Fc = limit(seq, ref, dir, (g.near + g.far) / 2, stop, opp);
         row.v.Fs = limit(seq, ref, dir, g.near, g.guard - dir * SPREAD, opp);
         for (const m of MINS) { row.v[m ? `Fv>=${m}` : 'Fv'] = candleEntry(seq, ref, dir, g.near, opp, false, m); row.v[m ? `Fr>=${m}` : 'Fr'] = candleEntry(seq, ref, dir, g.near, opp, true, m); }
@@ -160,6 +167,9 @@ for (let di = 2; di < days.length; di++) {
       const ote = legEnd + (ext - legEnd) * 0.705;
       row.v.O = limit(seq, mss, dir, ote, stop, opp);
       for (const n of STOPS) row.v[`O@${n}`] = limit(seq, mss, dir, ote, ote - dir * (n - SPREAD), opp, n);
+      for (const pc of STOPS_PCT) { const n = (ote * pc) / 100; row.v[`O%${pc}`] = limit(seq, mss, dir, ote, ote - dir * (n - SPREAD), opp, n); }
+      for (const pc of MINS_PCT) { row.v[`Ov%${pc}`] = candleEntry(seq, mss, dir, ote, opp, false, (ote * pc) / 100); row.v[`Or%${pc}`] = candleEntry(seq, mss, dir, ote, opp, true, (ote * pc) / 100); }
+      row.price = ote;
       row.oteRisk = Math.abs(ote - stop);
       for (const m of MINS) { row.v[m ? `Ov>=${m}` : 'Ov'] = candleEntry(seq, mss, dir, ote, opp, false, m); row.v[m ? `Or>=${m}` : 'Or'] = candleEntry(seq, mss, dir, ote, opp, true, m); }
       let ob = null; for (let q = e; q >= Math.max(0, e - 12); q--) { const b = seq[q]; if (dir < 0 ? b.c > b.o : b.c < b.o) { ob = b; break; } }

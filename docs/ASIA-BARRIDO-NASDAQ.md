@@ -337,3 +337,46 @@ Londres, a favor de la vela de ayer, OTE, 1:2:
 
 Para más historial hay que quitar el tope de velas (Herramientas → Opciones → Gráficos → «Máx. barras en el gráfico» sin
 límite y reiniciar) o exportar en M15 (100.000 velas ≈ 4 años) y M10 (≈ 2,8 años).
+
+## Siete años en 5 minutos (2020–2026), exportados con script propio (14-11-2026)
+
+El usuario pidió que exportara yo. `client/public/descargas/GTFX_ExportarBarras.mq5` (script de solo lectura) corre dentro
+del segundo MetaTrader (ForTraders, servidor FTTrading-Server, tope de velas quitado) lanzado con
+`/config:C:\gtfx_export.ini` ([StartUp] Script=…): descarga el historial del servidor y lo deja en `Common\Files`.
+Resultado: US100, US30 y US500 en M5, M15 y H1 desde 2020-01-02 (≈ 480.000 velas de M5 por índice) →
+`data/mt5-largo/*_largo.csv`. Con tantos años el índice cambia de precio (Nasdaq 8.800 → 27.900), así que el stop fijo
+se da en % del precio: 0,11 % ≈ 30 puntos de hoy (`asia-ict.mjs --stops-pct`); resumen por años con
+`asia-ict-resumen.mjs`.
+
+**La entrada del usuario (vuelta en Londres a favor de la vela de ayer, OTE, 1:2):**
+
+| | n | gana 1:2 | medio | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Nasdaq, stop tras la barrida | 165 | 30 % | −0,09R | 33 % | 28 % | 30 % | 22 % | 19 % | **53 %** | **42 %** |
+| Nasdaq, stop 0,11 % | 165 | 29 % | −0,11R | 20 % | 28 % | 35 % | 19 % | 15 % | **47 %** | **53 %** |
+| Nasdaq, vela de rechazo | 134 | 33 % | +0,01R | 23 % | 31 % | 45 % | 21 % | 26 % | 38 % | 57 % |
+| Nasdaq, EN CONTRA de ayer, stop tras la barrida | 127 | 31 % | −0,06R | 45 % | 20 % | 41 % | 28 % | 25 % | 31 % | 33 % |
+| S&P 500, stop tras la barrida | 165 | 36 % | +0,09R | 33 % | 36 % | 32 % | 24 % | 35 % | **53 %** | **59 %** |
+| S&P 500, en contra de ayer | 134 | 22 % | −0,35R | 43 % | 8 % | 25 % | 29 % | 6 % | 24 % | 26 % |
+| Dow, stop tras la barrida | 146 | 32 % | −0,03R | 60 % | 17 % | 26 % | 30 % | 33 % | 41 % | 33 % |
+
+A 1:2 hacen falta 33 %. **Con siete años la entrada queda en empate** (29–33 % en el Nasdaq, 32 % en el Dow, 36 % en
+el S&P). Lo que se veía con 17 meses es real pero es de 2025 y 2026: en los tres índices esos dos años dan 42–59 % y
+los cinco anteriores 15–36 %. En el Nasdaq, a favor de ayer no es mejor que en contra en el conjunto (30 % frente a
+31 %); en el S&P sí (36 % frente a 22 %, mejor en 6 de 7 años).
+
+**Continuación (vela H1 de Londres rompe el alto de Asia y cierra fuera → compra al cierre, stop medio de Asia, 2R):**
+
+| | n | R̄ 2R | por años 2020 → 2026 | control |
+|---|---|---|---|---|
+| Nasdaq | 368 | **+0,11** | +0,12 · +0,03 · −0,07 · +0,04 · +0,36 · +0,05 · +0,28 | −0,02 |
+| Nasdaq, entrada en el retest | 262 | +0,13 | — | |
+| S&P 500 | 382 | +0,07 | +0,04 · +0,19 · −0,15 · −0,05 · +0,43 · −0,24 · +0,28 | −0,01 |
+| Dow | 386 | −0,07 | +0,04 · +0,02 · +0,01 · −0,14 · −0,13 · −0,12 · −0,17 | +0,01 |
+
+En el Nasdaq es positiva en 6 de 7 años (solo falla 2022, año bajista), pero pequeña: +0,11R por operación, la mitad
+de lo que daba 2024–2026.
+
+**Conclusión de la serie:** ninguna de las dos ideas da, con siete años, una ventaja suficiente para confiar en un
+45–52 % a 1:2. La vuelta a favor de ayer funciona en el mercado de 2025–2026 y no antes; la rotura al alza del Nasdaq es
+lo más constante y rinde poco.
