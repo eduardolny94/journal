@@ -32,6 +32,8 @@ const GROUP = Number(arg('--agrupar', '0'));
 const CORTES = Number(arg('--cortes', '3'));
 // --stops 25,30: además del stop tras la barrida, prueba stops fijos en puntos desde la entrada (claves O@25, F@30, M@25…).
 const STOPS = arg('--stops', '').split(',').map(Number).filter((x) => x > 0);
+// --stop-min 0,10,15: entradas «con la vela» (claves Ov, Or, Fv, Fr y Ov>=10…) con ese stop mínimo en puntos.
+const MINS = arg('--stop-min', '').split(',').filter((x) => x !== '').map(Number);
 const FROM = arg('--desde', '2000-01-01'), TO = arg('--hasta', '2100-01-01');
 
 function load() {
@@ -84,6 +86,29 @@ function limit(seq, ref, dir, level, stop, opp, risk0) {
   }
   return null;
 }
+/**
+ * Entrada «con la vela»: se espera a que una vela toque el nivel (2 h) y se entra AL CIERRE de esa vela, con el stop
+ * detrás de su extremo (el bajo en compras, el alto en ventas) + spread. Con `reject`, se espera (hasta 3 velas) a la
+ * primera que cierre a favor de la operación y el stop va detrás del extremo de todas las velas desde el toque.
+ * `minStop`: si la vela es muy pequeña, el stop se aleja hasta ese mínimo de puntos.
+ */
+function candleEntry(seq, ref, dir, level, opp, reject, minStop = 0) {
+  for (let j = ref + 1; j < Math.min(seq.length, ref + 1 + 2 * PH); j++) {
+    const b = seq[j];
+    if (!(dir > 0 ? b.l <= level : b.h >= level)) continue;
+    let extreme = dir > 0 ? b.l : b.h;
+    for (let q = j; q < Math.min(seq.length - 1, j + (reject ? 3 : 1)); q++) {
+      const c = seq[q]; extreme = dir > 0 ? Math.min(extreme, c.l) : Math.max(extreme, c.h);
+      if (reject && !(dir > 0 ? c.c > c.o : c.c < c.o)) continue;
+      const entry = c.c; let stop = extreme - dir * SPREAD;
+      if (Math.abs(entry - stop) < minStop) stop = entry - dir * minStop;
+      if (!(dir > 0 ? entry > stop : entry < stop)) return null;
+      return sim(seq, q + 1, dir, entry, stop, opp);
+    }
+    return null;
+  }
+  return null;
+}
 
 const EV = []; let nDays = 0;
 for (let di = 2; di < days.length; di++) {
@@ -130,11 +155,13 @@ for (let di = 2; di < days.length; di++) {
         for (const n of STOPS) row.v[`F@${n}`] = limit(seq, ref, dir, g.near, g.near - dir * (n - SPREAD), opp, n);
         row.v.Fc = limit(seq, ref, dir, (g.near + g.far) / 2, stop, opp);
         row.v.Fs = limit(seq, ref, dir, g.near, g.guard - dir * SPREAD, opp);
+        for (const m of MINS) { row.v[m ? `Fv>=${m}` : 'Fv'] = candleEntry(seq, ref, dir, g.near, opp, false, m); row.v[m ? `Fr>=${m}` : 'Fr'] = candleEntry(seq, ref, dir, g.near, opp, true, m); }
       }
       const ote = legEnd + (ext - legEnd) * 0.705;
       row.v.O = limit(seq, mss, dir, ote, stop, opp);
       for (const n of STOPS) row.v[`O@${n}`] = limit(seq, mss, dir, ote, ote - dir * (n - SPREAD), opp, n);
       row.oteRisk = Math.abs(ote - stop);
+      for (const m of MINS) { row.v[m ? `Ov>=${m}` : 'Ov'] = candleEntry(seq, mss, dir, ote, opp, false, m); row.v[m ? `Or>=${m}` : 'Or'] = candleEntry(seq, mss, dir, ote, opp, true, m); }
       let ob = null; for (let q = e; q >= Math.max(0, e - 12); q--) { const b = seq[q]; if (dir < 0 ? b.c > b.o : b.c < b.o) { ob = b; break; } }
       if (ob) row.v.B = limit(seq, mss, dir, ob.o, stop, opp);
     }

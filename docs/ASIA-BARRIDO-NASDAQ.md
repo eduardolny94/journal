@@ -277,3 +277,35 @@ detrás de la barrida. Con el spread real de su bróker (1–2 puntos) queda en 
 **Lectura:** en el Nasdaq la entrada aguanta con stop fijo: 25 puntos da 44 % y 30 puntos 52 % a 1:2, positivo en los
 tres bloques y poco sensible al spread. Son 27 operaciones en 17 meses (1,6 al mes): con 52 % el margen real va de ≈ 33 %
 a ≈ 71 %. En el Dow no sale con esos stops.
+
+## Stop detrás de la vela de 5 minutos (14-11-2026)
+
+Pedido del usuario: ajustar el stop «según el bajo de la vela de 5». `asia-ict.mjs --stop-min 0,10,15,20`: se espera a que
+una vela M5 toque el OTE, se entra **al cierre de esa vela** y el stop va detrás de su extremo + spread (claves `Ov`);
+con rechazo (`Or`) se espera hasta 3 velas a la primera que cierra a favor y el stop va detrás del extremo de todas.
+`>=N` = stop mínimo de N puntos cuando la vela es muy pequeña. Londres, a favor de la vela de ayer, 1:2.
+
+| Nasdaq | n | stop mediano | gana 1:2 | medio | por bloques |
+|---|---|---|---|---|---|
+| vela del toque, sin mínimo | 27 | 8 pts | 30 % | −0,11R | +0,13 · −0,63 · +0,09 |
+| vela del toque, mínimo 10 | 27 | 10 | 41 % | +0,22R | +0,88 · −0,25 · +0,09 |
+| vela del toque, mínimo 15 | 27 | 15 | 52 % | +0,56R | +0,88 · −0,25 · +0,91 |
+| vela del toque, mínimo 20 | 27 | 20 | 52 % | +0,56R | +0,88 · −0,25 · +0,91 |
+| **vela de rechazo** (cierra a favor) | 19 | 15 | 53 % | +0,58R | +0,80 · 0,00 · +0,88 |
+| **vela de rechazo, mínimo 20** | 19 | 20 | 53 % | **+0,58R** | +0,20 · +0,50 · +0,88 |
+| referencia: límite en el OTE, stop fijo 30 | 27 | 30 | 52 % | +0,56R | +0,50 · +0,50 · +0,64 |
+
+| Dow | n | stop mediano | gana 1:2 | medio | por bloques |
+|---|---|---|---|---|---|
+| vela del toque, sin mínimo | 32 | 9 pts | 25 % | −0,25R | −0,33 · −0,10 · −0,31 |
+| vela del toque, mínimo 15 / 25 / 35 | 32 | 15 / 25 / 35 | 38 / 34 / 41 % | +0,13 / +0,03 / +0,22R | inestable |
+| vela de rechazo | 27 | 26 | 37 % | +0,11R | +0,33 · +0,88 · −0,70 |
+
+**Lectura:** el bajo de la vela de 5 minutos «a pelo» queda a 8–9 puntos y lo saca el ruido (30 % y 25 %). Con un mínimo
+de 15–20 puntos, o esperando la vela de rechazo, el Nasdaq vuelve al 52–53 % a 1:2 (+0,56 / +0,58R), igual que con el
+stop fijo de 30. El Dow sigue sin dar un resultado estable.
+
+**Por qué solo 27 operaciones:** 365 días de M5 (MT5 corta la exportación en 100.000 velas ≈ 17 meses) → 541 barridas
+→ 306 con cambio de estructura → 132 en Londres → 60 con el OTE tocado → 27 a favor de la vela de ayer. El H1 tiene 4
+años pero no sirve para una entrada de 5 minutos. Para tener ≈ 75: exportar el US100 en M5 por tramos de fechas
+(2022-10-19 → 2024-01-31 y 2024-02-01 → 2025-06-13).
