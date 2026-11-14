@@ -191,3 +191,52 @@ sin ventaja. Oro M15 (4 años, 345 eventos): −0,01 / +0,03, tampoco.
 tramo anterior independiente y frente a un control sin condición (el mercado alcista no lo explica: comprar a ciegas da
 ≈ 0). Tamaño modesto (+0,2R por operación, ~55 al año, t ≈ 2 con n 144) y solo al alza y solo en el Nasdaq. Candidata
 para seguimiento en papel; pendiente repetirla con más años (M15 desde 2020) y en US500/US30.
+
+## Nasdaq frente a S&P 500 y Dow (14-11-2026)
+
+Pregunta del usuario: «entre el SP500, el US30 y el Nasdaq, ¿quién tiene mejor data en lo que analizamos?». Exportaciones
+nuevas de su MT5: US30 y US500 en H1 (2022-10-19 → 2026-11-13, 1.246 días), US30 en M5 (2025-06 →) y M1; del US500 solo
+M1 (3 meses): el archivo «US500_M5» es una copia del H1. Mismos scripts y reglas, sin tocar nada.
+
+**Barrida de Asia (H1, 2024-05 → 2026-10, 571 días cada uno):**
+
+| | Nasdaq | S&P 500 | Dow |
+|---|---|---|---|
+| vuelve al medio del rango | 64 % | 69 % | **71 %** |
+| si la vela H1 cierra dentro | 79 % | 83 % | **84 %** |
+| llega al otro lado de Asia | 58 % | 60 % | **67 %** |
+| entrada mecánica al cierre de vuelta dentro, R̄ 2R | −0,07 | −0,10 | +0,03 |
+
+Con 4 años (S&P y Dow): vuelve al medio 71 % y 72 %; entrada mecánica −0,04R y −0,08R. El Dow es el que más respeta el
+rango, pero la entrada mecánica sigue sin ganar en ninguno.
+
+**Continuación (rotura al alza que cierra fuera en Londres → compra al cierre, stop medio de Asia, 2R):**
+
+| | n | R̄ 2R | por años |
+|---|---|---|---|
+| Nasdaq, 2024-05 → 2026-10 | 144 | **+0,22** | +0,21 · +0,20 · +0,25 |
+| S&P 500, mismo periodo | 143 | +0,15 | +0,32 · 0,00 · +0,21 |
+| Dow, mismo periodo | 142 | +0,02 | −0,03 · −0,08 · +0,19 |
+| S&P 500, 4 años (su bróker) | 227 | +0,10 | 2022 +0,09 · 2023 −0,05 · 2024 +0,43 · 2025 −0,24 · 2026 +0,28 |
+| Dow, 4 años (su bróker) | 235 | −0,09 | +0,84 (n 14) · −0,14 · −0,16 · −0,12 · −0,17 |
+
+Solo el Nasdaq es estable; en el S&P alterna y en el Dow no funciona. **Rebaja la confianza en la continuación**: falta
+el Nasdaq de 2022–2023 (exportar US100 en H1 desde 2022) para saber si aguanta fuera de 2024–2026.
+
+**Vuelta ICT en Londres, a favor de la vela de ayer (M5, 2025-06 → 2026-11, objetivo 2R):**
+
+| | OTE | FVG |
+|---|---|---|
+| Nasdaq | n 27 · 48 % · **+0,44** (bloques +0,88 · −0,25 · +0,64) | n 25 · 44 % · +0,32 (+0,50 · +0,29 · +0,13) |
+| Dow | n 32 · 41 % · **+0,22** (+0,33 · +0,20 · +0,15) | n 39 · 38 % · +0,15 (+0,29 · +0,15 · 0,00) |
+| Nasdaq, en contra de ayer | n 33 · 24 % · −0,27 | n 37 · 30 % · −0,11 |
+| Dow, en contra de ayer | n 31 · 23 % · −0,32 | n 34 · 26 % · −0,21 |
+| Dow, sesgo diario a favor | n 20 · 50 % · +0,50 (+0,29 · +0,50 · +0,71) | n 24 · 38 % · +0,13 |
+
+El filtro «a favor de la vela de ayer» **se repite en el Dow** con el mismo signo y positivo en los tres bloques; en
+contra de ayer pierde en los dos. Juntos, OTE a favor de ayer: n 59, ≈ 44 % a 2R, ≈ +0,32R. S&P en M5: solo 3 meses
+(5 operaciones), sin conclusión.
+
+**Lectura:** el Nasdaq da el mejor resultado medio en las dos ideas; el Dow es el segundo y el más regular en la vuelta a
+favor de ayer; el S&P es el más flojo en la continuación y no tiene datos de 5 minutos. Que la vuelta a favor de ayer
+salga igual en dos índices es la mejor confirmación de esta serie, aunque siguen siendo 59 operaciones.

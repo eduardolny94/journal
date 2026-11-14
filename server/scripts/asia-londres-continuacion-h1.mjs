@@ -1,8 +1,18 @@
 // Misma regla de continuación con velas H1 (2024-05 → 2026-10) para tener un tramo ANTERIOR e independiente (antes de 2025-06-13),
 // y control: comprar todos los días al cierre de la vela de las 09/10/11 con el mismo stop (medio rango de Asia), sin condición.
 import { readFileSync } from 'node:fs';
-const SPREAD = 1.5; const days = new Map();
-for (const l of readFileSync('data/mt5/NAS100F_PERIOD_H1.csv', 'utf8').trim().split(/\r?\n/).slice(1)) { const [t, o, h, lo, c] = l.split(','); if (t.slice(14, 16) !== '00') continue; const d = t.slice(0, 10).replace(/\./g, '-'); (days.get(d) || days.set(d, []).get(d)).push({ hour: +t.slice(11, 13), o: +o, h: +h, l: +lo, c: +c }); }
+// Uso: node server/scripts/asia-londres-continuacion-h1.mjs [--archivo data/mt5-largo/US30_H1.csv --spread 3 --desde 2022-10-19]
+// Acepta el CSV propio (time,open,high,low,close) y la exportación de MT5 con tabuladores.
+const arg = (k, d) => { const x = process.argv.indexOf(k); return x >= 0 ? process.argv[x + 1] : d; };
+const FILE = arg('--archivo', 'data/mt5/NAS100F_PERIOD_H1.csv'); const SPREAD = Number(arg('--spread', '1.5')); const FROM = arg('--desde', '2000-01-01'), TO = arg('--hasta', '2100-01-01');
+const days = new Map();
+for (const l of readFileSync(FILE, 'utf8').trim().split(/\r?\n/)) {
+  if (/^[<a-z]/i.test(l)) continue; let d, hour, mm, o, h, lo, c;
+  if (l.includes('\t')) { const f = l.split('\t'); d = f[0].replace(/\./g, '-'); hour = +f[1].slice(0, 2); mm = f[1].slice(3, 5); [o, h, lo, c] = f.slice(2, 6).map(Number); }
+  else { const f = l.split(','); d = f[0].slice(0, 10).replace(/\./g, '-'); hour = +f[0].slice(11, 13); mm = f[0].slice(14, 16); [o, h, lo, c] = f.slice(1, 5).map(Number); }
+  if (mm !== '00' || d < FROM || d > TO) continue;
+  (days.get(d) || days.set(d, []).get(d)).push({ hour, o, h, l: lo, c });
+}
 const D = [...days.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, bars]) => ({ date, bars }));
 const avg = (x) => (x.length ? x.reduce((a, b) => a + b, 0) / x.length : NaN); const f2 = (v) => (Number.isNaN(v) ? ' — ' : (v >= 0 ? '+' : '') + v.toFixed(2));
 function sim(seq, from, dir, entry, stop) { const risk = Math.abs(entry - stop); const out = {}; for (let j = from; j < seq.length; j++) { const b = seq[j]; const s = dir > 0 ? b.l <= stop : b.h >= stop; for (const k of [1, 2, 3]) { if (out[k] !== undefined) continue; const t = entry + dir * k * risk; if (s) out[k] = -1; else if (dir > 0 ? b.h >= t + SPREAD : b.l <= t - SPREAD) out[k] = k; } if (s) break; } for (const k of [1, 2, 3]) if (out[k] === undefined) out[k] = Math.max(-1, (dir * (seq.at(-1).c - entry)) / risk); return out; }
@@ -22,12 +32,12 @@ for (const d of D) {
   }
 }
 const rep = (lab, S, key) => { const v = S.map((e) => (key ? e.v[key] : e.v)).filter(Boolean); console.log(`${lab.padEnd(58)} n ${String(v.length).padStart(4)} | 1R ${String(Math.round(100 * v.filter((r) => r[1] >= 1).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[1])))} | 2R ${String(Math.round(100 * v.filter((r) => r[2] >= 2).length / v.length)).padStart(3)} % ${f2(avg(v.map((r) => r[2])))} | 3R ${f2(avg(v.map((r) => r[3])))}`); };
-for (const [lab, fn] of [['ANTES de 2025-06-13 (tramo independiente)', (e) => e.date < '2025-06-13'], ['DESDE 2025-06-13 (mismo periodo que el M5)', (e) => e.date >= '2025-06-13'], ['2024', (e) => e.date < '2025-01-01'], ['2025', (e) => e.date >= '2025-01-01' && e.date < '2026-01-01'], ['2026', (e) => e.date >= '2026-01-01']]) {
-  console.log(`\n== ${lab} ==`);
+const years = [...new Set(EV.map((e) => e.date.slice(0, 4)))];
+console.log(`\n######## ${FILE} · ${D[0].date} → ${D.at(-1).date} · ${D.length} días · spread ${SPREAD}`);
+for (const [lab, fn] of [['TODO', () => true], ...years.map((y) => [y, (e) => e.date.startsWith(y)])]) {
+  console.log(`== ${lab} ==`);
   rep('rotura al ALZA cierra fuera · retest del alto, stop medio', EV.filter((e) => fn(e) && e.dir > 0), 'R');
   rep('rotura al ALZA cierra fuera · mercado al cierre', EV.filter((e) => fn(e) && e.dir > 0), 'M');
-  rep('rotura a la BAJA cierra fuera · retest', EV.filter((e) => fn(e) && e.dir < 0), 'R');
-  rep('rotura a la BAJA cierra fuera · mercado', EV.filter((e) => fn(e) && e.dir < 0), 'M');
+  if (lab === 'TODO') { rep('rotura a la BAJA cierra fuera · retest', EV.filter((e) => fn(e) && e.dir < 0), 'R'); rep('rotura a la BAJA cierra fuera · mercado', EV.filter((e) => fn(e) && e.dir < 0), 'M'); }
   rep('CONTROL comprar sin condición (09–11 h), mismo riesgo', CT.filter((e) => fn(e) && e.dir > 0));
-  rep('CONTROL vender sin condición', CT.filter((e) => fn(e) && e.dir < 0));
 }
