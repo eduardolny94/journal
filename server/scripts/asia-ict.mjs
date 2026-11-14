@@ -30,6 +30,8 @@ const FILE = path.resolve(ROOT, arg('--archivo', 'data/mt5-largo/US100_M5.csv'))
 const SPREAD = Number(arg('--spread', '1'));
 const GROUP = Number(arg('--agrupar', '0'));
 const CORTES = Number(arg('--cortes', '3'));
+// --stops 25,30: además del stop tras la barrida, prueba stops fijos en puntos desde la entrada (claves O@25, F@30, M@25…).
+const STOPS = arg('--stops', '').split(',').map(Number).filter((x) => x > 0);
 const FROM = arg('--desde', '2000-01-01'), TO = arg('--hasta', '2100-01-01');
 
 function load() {
@@ -55,8 +57,8 @@ const med = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ?
 const TARGETS = ['r1', 'r2', 'r3', 'opp'];
 
 /** Posición abierta en `entry` desde la vela `from` (inclusive) con `stop`. R por objetivo. */
-function sim(seq, from, dir, entry, stop, opp) {
-  const risk = Math.abs(entry - stop); if (!(risk > 0)) return null;
+function sim(seq, from, dir, entry, stop, opp, risk0) { // risk0: riesgo en puntos cuando el stop fijo se adelanta por el spread
+  const risk = risk0 || Math.abs(entry - stop); if (!(risk > 0)) return null;
   const tg = { r1: entry + dir * risk, r2: entry + dir * 2 * risk, r3: entry + dir * 3 * risk, opp };
   const out = { risk };
   for (const k of TARGETS) if (!(dir > 0 ? tg[k] > entry : tg[k] < entry)) out[k] = NaN; // objetivo ya superado: no cuenta
@@ -70,14 +72,14 @@ function sim(seq, from, dir, entry, stop, opp) {
   return out;
 }
 /** Orden límite en `level` desde la vela `ref` (válida 2 h). Devuelve null si no se llena. */
-function limit(seq, ref, dir, level, stop, opp) {
+function limit(seq, ref, dir, level, stop, opp, risk0) {
   if (!(dir > 0 ? level > stop : level < stop)) return null;
-  if (dir > 0 ? seq[ref].c <= level : seq[ref].c >= level) return sim(seq, ref + 1, dir, seq[ref].c, stop, opp); // ya está en el nivel: a mercado
+  if (dir > 0 ? seq[ref].c <= level : seq[ref].c >= level) return sim(seq, ref + 1, dir, seq[ref].c, risk0 ? seq[ref].c - dir * (risk0 - SPREAD) : stop, opp, risk0); // ya está en el nivel: a mercado
   for (let j = ref + 1; j < Math.min(seq.length, ref + 1 + 2 * PH); j++) {
     const b = seq[j];
     if (dir > 0 ? b.l <= level : b.h >= level) {
-      if (dir > 0 ? b.l <= stop : b.h >= stop) return { risk: Math.abs(level - stop), r1: -1, r2: -1, r3: -1, opp: -1 };
-      return sim(seq, j + 1, dir, level, stop, opp);
+      if (dir > 0 ? b.l <= stop : b.h >= stop) return { risk: risk0 || Math.abs(level - stop), r1: -1, r2: -1, r3: -1, opp: -1 };
+      return sim(seq, j + 1, dir, level, stop, opp, risk0);
     }
   }
   return null;
@@ -113,6 +115,7 @@ for (let di = 2; di < days.length; di++) {
       const stop = ext - dir * SPREAD;
       const leg = seq.slice(e, mss + 1); const legEnd = side === 'high' ? Math.min(...leg.map((b) => b.l)) : Math.max(...leg.map((b) => b.h));
       row.v.M = sim(seq, mss + 1, dir, mb.c, stop, opp);
+      for (const n of STOPS) row.v[`M@${n}`] = sim(seq, mss + 1, dir, mb.c, mb.c - dir * (n - SPREAD), opp, n);
       // FVG de la pierna (primer hueco tras el extremo; puede completarse en la vela siguiente al MSS)
       let g = null;
       for (let i = e + 2; i <= Math.min(seq.length - 1, mss + 1); i++) {
@@ -124,10 +127,14 @@ for (let di = 2; di < days.length; di++) {
       if (g) {
         const ref = Math.max(mss, g.i);
         row.v.F = limit(seq, ref, dir, g.near, stop, opp);
+        for (const n of STOPS) row.v[`F@${n}`] = limit(seq, ref, dir, g.near, g.near - dir * (n - SPREAD), opp, n);
         row.v.Fc = limit(seq, ref, dir, (g.near + g.far) / 2, stop, opp);
         row.v.Fs = limit(seq, ref, dir, g.near, g.guard - dir * SPREAD, opp);
       }
-      row.v.O = limit(seq, mss, dir, legEnd + (ext - legEnd) * 0.705, stop, opp);
+      const ote = legEnd + (ext - legEnd) * 0.705;
+      row.v.O = limit(seq, mss, dir, ote, stop, opp);
+      for (const n of STOPS) row.v[`O@${n}`] = limit(seq, mss, dir, ote, ote - dir * (n - SPREAD), opp, n);
+      row.oteRisk = Math.abs(ote - stop);
       let ob = null; for (let q = e; q >= Math.max(0, e - 12); q--) { const b = seq[q]; if (dir < 0 ? b.c > b.o : b.c < b.o) { ob = b; break; } }
       if (ob) row.v.B = limit(seq, mss, dir, ob.o, stop, opp);
     }

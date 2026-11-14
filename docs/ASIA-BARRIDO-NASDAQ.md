@@ -240,3 +240,40 @@ contra de ayer pierde en los dos. Juntos, OTE a favor de ayer: n 59, ≈ 44 % a 
 **Lectura:** el Nasdaq da el mejor resultado medio en las dos ideas; el Dow es el segundo y el más regular en la vuelta a
 favor de ayer; el S&P es el más flojo en la continuación y no tiene datos de 5 minutos. Que la vuelta a favor de ayer
 salga igual en dos índices es la mejor confirmación de esta serie, aunque siguen siendo 59 operaciones.
+
+## Stop fijo de 25 y 30 puntos con objetivo 1:2 (14-11-2026)
+
+Pedido del usuario: probar su entrada (vuelta en Londres a favor de la vela de ayer, OTE) con stop fijo de 25 y de 30
+puntos y objetivo 1:2 en el Nasdaq y el Dow. `asia-ict.mjs --stops 25,30`: el stop se mide desde la entrada, salta un
+spread antes y el objetivo exige un spread más; en la vela de la entrada solo cuenta el stop (pesimista). M5 de su
+bróker, 2025-06 → 2026-11. Todas las operaciones se resuelven en el día (gana o stop).
+
+| Nasdaq · a favor de la vela de ayer · OTE (n 27) | gana 1:2 | medio | por bloques |
+|---|---|---|---|
+| stop tras la barrida (mediana 18 puntos) | 48 % | +0,44R | +0,88 · −0,25 · +0,64 |
+| stop fijo 20 | 44 % | +0,33R | +0,88 · −0,25 · +0,36 |
+| **stop fijo 25 (objetivo 50)** | 44 % | **+0,33R** | +0,50 · +0,13 · +0,36 |
+| **stop fijo 30 (objetivo 60)** | 52 % | **+0,56R** | +0,50 · +0,50 · +0,64 |
+| stop fijo 40 | 52 % | +0,56R | +0,50 · +0,88 · +0,36 |
+| entrada FVG, stop 25 / 30 (n 25) | 52 % / 44 % | +0,56R / +0,32R | 25: +0,80 · +1,14 · −0,25 |
+| en contra de la vela de ayer, stop 25 / 30 (n 33) | 21 % / 18 % | −0,36R / −0,45R | negativo en los tres |
+
+Sensibilidad al spread supuesto (0,5 a 3 puntos): stop 30 entre +0,33R y +0,56R; stop tras la barrida entre +0,22R y
++0,44R. Estable.
+
+| Dow · a favor de la vela de ayer · OTE (n 32) | gana 1:2 | medio |
+|---|---|---|
+| stop tras la barrida (mediana 27 puntos), spread 1–2 | 31–34 % | −0,06R a +0,03R |
+| stop fijo 25 | 25 % | −0,25R |
+| stop fijo 30 | 31–34 % | −0,06R a +0,03R |
+| stop fijo 40 / 50 | 38 % | +0,13R |
+| entrada FVG, stop 25 / 30 (n 39) | 15 % / 18 % | −0,54R / −0,46R |
+
+**Corrección:** el +0,22R del Dow anotado arriba salió con un spread supuesto de 3 puntos, que deja el stop 3 puntos
+detrás de la barrida. Con el spread real de su bróker (1–2 puntos) queda en −0,06R / +0,03R, y con 4 puntos sube a
++0,31R: el resultado del Dow depende de un punto de stop, así que **no vale como confirmación** de la idea. En el Dow
+25–30 puntos es demasiado ajustado (0,05 % del precio); necesita 40–50.
+
+**Lectura:** en el Nasdaq la entrada aguanta con stop fijo: 25 puntos da 44 % y 30 puntos 52 % a 1:2, positivo en los
+tres bloques y poco sensible al spread. Son 27 operaciones en 17 meses (1,6 al mes): con 52 % el margen real va de ≈ 33 %
+a ≈ 71 %. En el Dow no sale con esos stops.
