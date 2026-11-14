@@ -189,10 +189,10 @@ export function computeInstruments(db, input) {
       // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.
       london_setup: (() => {
         const t = LONDON_BUY_SETUP[ins.symbol]; if (!t || !gex) return null;
-        const [w, r15, r2, n, yrs, stop] = t[gex.regime];
+        const [w, r15, r2, n, yrs, stop, runner] = t[gex.regime];
         const on = r15 >= 0.1;
         return { active: on, regime: gex.regime, win_15: w, r_15: r15, r_2: r2, n, years_positive: yrs, stop_points: stop, text: on
-          ? `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} llegó a 1:1,5 el ${w} % (${r15 >= 0 ? '+' : ''}${fmt(r15, 2)}R; a 1:2 ${r2 >= 0 ? '+' : ''}${fmt(r2, 2)}R; n ${n}, ${yrs} de 7 años positivos; stop típico ${stop} puntos). Solo compras.`
+          ? `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} llegó a 1:1,5 el ${w} % (${r15 >= 0 ? '+' : ''}${fmt(r15, 2)}R; a 1:2 ${r2 >= 0 ? '+' : ''}${fmt(r2, 2)}R; n ${n}, ${yrs} de 7 años positivos; stop típico ${stop} puntos).${runner ? ` Cerrando la mitad en 2R y dejando correr el resto: +${fmt(runner, 2)}R.` : ''} Solo compras.`
           : `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} no hay ventaja medida (${w} % a 1:1,5, ${fmt(r15, 2)}R, n ${n}). Mejor no operarla hoy.` };
       })(),
       reasons,

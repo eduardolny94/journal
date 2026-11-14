@@ -94,3 +94,61 @@ Horas de España (servidor − 1 h; con el cambio de hora de EE. UU. puede varia
 
 `LONDON_BUY_SETUP` (constants.js) y campo `london_setup` del Nasdaq y del Dow: cada día dice, según el GEX, si la
 estrategia tiene ventaja medida y con qué cifras. Se ve en la tarjeta del activo bajo el plan.
+
+## Embudo y recorrido de las operaciones (14-11-2026, `server/scripts/compra-asia-recorrido.mjs`)
+
+Pregunta del usuario: «con 7 años solo salen 300 operaciones, ¿qué pasó con los otros días? ¿Cuántas siguen de largo sin
+volver al stop?».
+
+| Embudo (Nasdaq, 1.747 días) | días |
+|---|---|
+| Londres (08:00–10:59 España) barre algún lado de Asia | 1.313 (75 %) |
+| barre el **bajo** | 623 (36 %) |
+| … y hay cambio de estructura alcista antes de las 11:00 → **operación** | **262** (42 % de las barridas del bajo; 15 % de los días) |
+| … y no lo hay (sigue cayendo o se queda parado) | 361 |
+
+El resto de días se barre el alto (no se vende) o no se barre nada en esa ventana.
+
+| Recorrido de las compras | todas (262) | GEX alto (118) |
+|---|---|---|
+| no vuelven al stop en toda la sesión (hasta las 20:55 España) | **29 %** | **32 %** |
+| no vuelven al stop durante Londres (hasta las 14:25) | 44 % | 47 % |
+| llegan a 1R / 1,5R / 2R | 53 / 45 / 37 % | 55 / 47 / 39 % |
+| llegan a 3R / 4R / 5R / 8R | 26 / 18 / 13 / 4 % | 31 / 22 / 16 / 6 % |
+| las que no tocan el stop cierran la sesión en | +3,66R de media (mediana +2,68R) | +3,90R (mediana +2,82R) |
+
+| Gestión (R por operación · años positivos de 7) | todas | GEX alto |
+|---|---|---|
+| objetivo 1:1,5 | +0,16 · 6 | +0,24 · 6 |
+| objetivo 1:2 | +0,19 · 7 | +0,29 · 6 |
+| objetivo 1:3 | +0,25 · 6 | +0,44 · 7 |
+| objetivo 1:5 | +0,34 · 6 | +0,61 · 7 |
+| sin objetivo, cierre a las 20:55 | +0,35 · 6 | +0,58 · 6 |
+| sin objetivo, stop a la entrada al llegar a 2R | +0,38 · 7 | +0,59 · 6 |
+| **mitad en 1,5R y el resto corre (stop a la entrada)** | **+0,27 · 7** (47 % de operaciones en positivo) | **+0,39 · 7** (50 %) |
+| **mitad en 2R y el resto corre (stop a la entrada)** | +0,28 · 7 (41 %) | +0,44 · 7 (45 %) |
+| sin objetivo, cierre al final de Londres (14:25) | +0,16 · 5 | +0,32 · 5 |
+
+Una de cada cuatro compras llega a 3R y una de cada ocho a 5R: cortar todo en 1:1,5 o 1:2 deja sobre la mesa la mitad del
+resultado. Lo más regular es cerrar la mitad en 1,5R–2R, llevar el stop a la entrada y dejar el resto hasta las 20:55.
+En el Dow el objetivo fijo 1:2 es más regular (+0,20R, 7 de 7 años; GEX alto +0,29R, 7 de 7) que dejar correr (+0,14R, 3
+de 7); en el S&P dejar correr da +0,19R (5 de 7).
+
+## Otros patrones buscados en Londres (`londres-patrones.mjs`, `londres-compra-caidas.mjs`)
+
+Método: descubrir en 2020–2023, validar en 2024–2026 y mirar Dow y S&P.
+
+- **Dirección de Londres: nada sobrevive.** 25 señales (vela de ayer, sesión de NY de ayer, Asia, hueco, tendencia de 20
+  días, rachas, VIX, primeros 30 min y primera hora → resto, mañana → tarde, Londres → NY…): todas entre 46 % y 53 % de
+  acierto, sin |t| ≥ 2 en los dos tramos. Ningún tramo de 30 minutos tiene deriva propia.
+- **Día de la semana:** los lunes Londres sube (Nasdaq +1,8 y +8,3 % del ATR en los dos tramos; Dow t 2,8; S&P t 3,1); los
+  viernes de vencimiento de opciones baja en las cuatro muestras (−7 a −8 % del ATR, n 79, t −1,1 a −1,7). Son efectos
+  de unos 20–30 puntos, no operables por sí solos con stop corto (comprar a las 09:00 con stop del 0,15 %: 0,00R).
+- **Extremos:** el máximo o el mínimo de Londres se hace en la primera hora el 42 % de los días; si la primera hora sube
+  con fuerza (≥ 0,15 ATR), el mínimo ya está hecho el 53 %.
+- **Familia barrida + cambio de estructura:** solo funciona el bajo de Asia (compras +0,16R, n 377 con la ventana hasta
+  las 15:00, 6 de 7 años). Barrer el bajo de ayer, el de la sesión de NY de ayer o el de 5 días: 29–38 % de acierto, sin
+  ventaja; el bajo de la primera hora de Londres +0,11R (4 de 7). Entrar en el primer cierre de vuelta sobre el nivel,
+  sin cambio de estructura: −0,07R. Las ventas, negativas en todos los niveles.
+- **Rango de Londres** (59 % del ATR de media): 47 % tras un día estrecho, 71 % tras un día amplio o con GEX negativo;
+  53 % los lunes, 64 % los viernes.

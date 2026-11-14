@@ -429,7 +429,8 @@ export const INSTRUMENT_GEX_MOVE = {
  * Las ventas tras barrer el alto no tienen ventaja (−0,02R). Solo se enseña en los índices donde se midió.
  */
 export const LONDON_BUY_SETUP = {
-  NAS100: { alto: [47, 0.24, 0.29, 118, 7, 32], medio: [38, -0.03, -0.1, 76, 2, 48], bajo: [49, 0.27, 0.36, 68, 5, 58], negativo: [49, 0.27, 0.36, 68, 5, 58] },
+  // 7.º valor: R medio cerrando la mitad en 2R y dejando correr el resto con el stop en la entrada hasta las 20:55 (compra-asia-recorrido.mjs).
+  NAS100: { alto: [47, 0.24, 0.29, 118, 7, 32, 0.44], medio: [38, -0.03, -0.1, 76, 2, 48, 0.03], bajo: [49, 0.27, 0.36, 68, 5, 58, 0.3], negativo: [49, 0.27, 0.36, 68, 5, 58, 0.3] },
   US30: { alto: [46, 0.16, 0.28, 128, 5, 59], medio: [41, 0.03, 0.06, 93, 3, 70], bajo: [49, 0.23, 0.21, 80, 5, 101], negativo: [49, 0.23, 0.21, 80, 5, 101] },
 };
 /**
