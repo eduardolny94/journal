@@ -309,3 +309,31 @@ stop fijo de 30. El Dow sigue sin dar un resultado estable.
 → 306 con cambio de estructura → 132 en Londres → 60 con el OTE tocado → 27 a favor de la vela de ayer. El H1 tiene 4
 años pero no sirve para una entrada de 5 minutos. Para tener ≈ 75: exportar el US100 en M5 por tramos de fechas
 (2022-10-19 → 2024-01-31 y 2024-02-01 → 2025-06-13).
+
+## Con el archivo de 6 minutos (14-11-2026): 3,5 meses más y prueba de robustez
+
+El usuario exportó «dos tramos», pero MetaTrader volvió a dar solo las últimas 100.000 velas: un archivo US100 en **M6**
+(velas de 6 minutos) de 2025-02-25 → 2026-11-13 y otro que es un trozo del mismo. No hay 2022–2024. Sirve para dos cosas:
+añade febrero–junio de 2025 y permite repetir la medida con otro tamaño de vela (`data/mt5-largo/US100_M6.csv`).
+
+Londres, a favor de la vela de ayer, OTE, 1:2:
+
+| | M5, 2025-06 → (n 27) | M6, mismos meses (n 23) | M6, todo 2025-02 → (n 29) | solo feb–jun 2025 (n 6) |
+|---|---|---|---|---|
+| stop fijo 30 | 52 % · +0,56R | 52 % · +0,57R | **45 % · +0,34R** (bloques +0,36 · +0,33 · +0,33) | 17 % · −0,50R |
+| stop fijo 25 | 44 % · +0,33R | 39 % · +0,17R | 34 % · +0,03R | 17 % · −0,50R |
+| stop tras la barrida | 48 % · +0,44R | 39 % · +0,17R | 38 % · +0,14R | 33 % · 0,00R |
+| vela del toque, mínimo 20 | 52 % · +0,56R | 35 % · +0,04R | 34 % · +0,03R | 33 % · 0,00R |
+| vela de rechazo, mínimo 20 | 53 % · +0,58R (n 19) | 44 % · +0,33R (n 18) | **43 % · +0,30R** (n 23; +0,33 · +0,13 · +0,50) | 40 % · +0,20R (n 5) |
+| en contra de la vela de ayer, stop 30 | 18 % · −0,45R | 14 % · −0,59R | 24 % · −0,28R | 57 % · +0,71R (n 7) |
+
+- **Aguanta el cambio de vela:** el stop fijo de 30 (52 % en M5 y en M6 sobre los mismos meses) y, con menos fuerza, la
+  vela de rechazo. **No aguanta:** el stop detrás de la vela del toque (de +0,56R a +0,04R) y pierde la mitad el stop
+  tras la barrida y el de 25.
+- **Los meses nuevos (febrero–junio de 2025, con la caída de abril) van al revés:** a favor de ayer 1 de 6, en contra 4
+  de 7. Con todo junto el stop de 30 baja de 52 % a 45 % (+0,34R) y la vela de rechazo de 53 % a 43 % (+0,30R).
+- Sigue siendo positivo a 1:2 (hace falta 33 %) y a favor de ayer sigue mejor que en contra (+0,34R frente a −0,28R),
+  pero la cifra honesta es **43–45 %, no 52 %**, con 23–29 operaciones.
+
+Para más historial hay que quitar el tope de velas (Herramientas → Opciones → Gráficos → «Máx. barras en el gráfico» sin
+límite y reiniciar) o exportar en M15 (100.000 velas ≈ 4 años) y M10 (≈ 2,8 años).
