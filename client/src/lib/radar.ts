@@ -402,7 +402,7 @@ export interface RadarPair {
   /** Capa de convicción (modelo con todas las condiciones, validado fuera de muestra). */
   conviction?: PairConviction | null;
   /** Claridad del sesgo (15 años, 8 pares): cuándo el sesgo rinde más o menos. No cambia la puntuación. */
-  clarity?: { tier: 'alta' | 'media' | 'normal' | 'baja'; score: number; pros: string[]; cons: string[]; hit: number; hit_indep: number | null; base: number; horizon_d: number; n: number; text: string; pair: { hit: number; n: number; weak: boolean } | null } | null;
+  clarity?: { tier: 'alta' | 'media' | 'normal' | 'baja'; score: number; pros: string[]; cons: string[]; hit: number; hit_indep: number | null; base: number; horizon_d: number; n: number; text: string; pair: { hit: number; n: number; weak: boolean } | null; timing?: { state: 'buen' | 'normal' | 'sin' | 'esperar'; label: string; pros: string[]; cons: string[]; h1: number; h3: number; h5: number; n: number; better_05: number; better_price: number | null; horizon_d: number; text: string } } | null;
   /** Cruce calculado a partir de sus patas con dólar. */
   synthetic?: boolean;
 }

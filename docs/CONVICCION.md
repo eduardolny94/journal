@@ -197,3 +197,34 @@ ha descontado); rinde poco cuando el precio ya se ha ido. Coincide con lo que el
 «Veredicto»; «Sesgo de hoy», «Qué operar» y Comparativa llevan la etiqueta «claridad …». No cambia la puntuación del
 sesgo ni el modelo de convicción (nivel A/B/C a 5 días): es evidencia aparte, a 20 días. Límites: el radar histórico no
 tiene tono ni sorpresas (coincide en signo con el real el 84 %); medido solo en 8 pares.
+
+## Momento a 3 días: ¿hoy es buen momento o espero mejor precio? (14-11-2026)
+
+Pedido de César: algo más diario, al lado del sesgo. Mismos datos y reglas (`radar-sesgo-15a.mjs --h 3`, apartado 6).
+La dirección a corto plazo es la misma del sesgo, más floja: 1 d 53,0 % · 3 d **54,4 %** (55,6 / 52,1 / 55,4) · 5 d 55,2 %.
+No existe un «sesgo a 3 días» distinto; lo que cambia es el momento. Tres condiciones suben el acierto a 3 días ≥ 2
+puntos en los tres bloques:
+
+| Condición | 3 d | bloques | años mejor |
+|---|---|---|---|
+| precio sobrevendido contra el sesgo (RSI 14 < 30 con sesgo alcista, > 70 con bajista) | 58,9 % | 58,3 / 58,9 / 59,4 | 12 de 15 |
+| materias primas a favor (pilar «tot») | 57,7 % | 60,4 / 55,7 / 58,0 | 16 de 16 |
+| 20 sesiones fuertes en contra del sesgo (≤ −2 ATR) | 57,2 % | 59,0 / 54,9 / 58,6 | 12 de 16 |
+
+Estados (a favor = las tres de arriba; «precio ya corrido» = extendido, en extremos de 20 días o en tendencia limpia):
+
+| Estado | regla | % de señales | 1 d | 3 d | bloques 3 d | 5 d | entrada ≥ 0,5 ATR mejor en 5 sesiones |
+|---|---|---|---|---|---|---|---|
+| Buen momento | ≥ 2 a favor | 10 % (n 1.789) | 57,0 % | **60,8 %** | 62,0 / 58,7 / 62,5 | 62,0 % | 63 % |
+| Normal | 1 a favor | 38 % (n 6.737) | 53,6 % | 55,8 % | 58,4 / 53,7 / 56,1 | 57,0 % | 67 % |
+| Sin ventaja hoy | ninguna, precio sin correr | 38 % (n 6.676) | 52,2 % | 52,1 % | 51,2 / 49,2 / 55,1 | 53,1 % | 70 % |
+| Esperar | ninguna a favor y precio ya corrido | 15 % (n 2.593) | 51,1 % | 52,3 % | 57,2 / 47,1 / 50,8 | 51,3 % | 71 % (≥ 1 ATR: 48 %) |
+
+A 10 días, entrar en «buen momento» deja +0,46 ATR de media; en «sin ventaja» +0,17; en «esperar» +0,03. El precio da
+una entrada medio ATR mejor en la semana en casi 7 de cada 10 casos en cualquier estado (68 %): la diferencia entre
+estados no está en eso sino en lo que rinde entrar ya. Validación con dos bloques → tercero: +2 a +3 puntos sobre el
+sesgo sin filtrar (58,8 frente a 55,6; 53,9 frente a 52,1; 57,2 frente a 55,4). Por par el «buen momento» funciona en
+USDJPY (65 %), EURGBP, EURUSD, USDCAD, USDCHF y AUDJPY (61–62 %); no en GBPUSD (52 %).
+
+En el radar: `clarity.timing` (estado, razones, acierto a 1/3/5 días y precio orientativo medio ATR mejor cuando toca
+esperar); bloque «Hoy · a 3 días» dentro del veredicto y etiqueta «hoy: buen momento / esperar» en las listas.

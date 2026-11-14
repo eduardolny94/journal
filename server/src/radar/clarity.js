@@ -26,6 +26,25 @@ export const PAIR_BIAS_EVIDENCE = {
   GBPUSD: [58.1, 1641, [54.5, 60.6, 60.6]], EURGBP: [55.7, 1731, [55.8, 47.0, 62.4]], USDCAD: [54.7, 2295, [63.3, 51.9, 50.9]], USDCHF: [51.2, 3364, [59.8, 47.3, 49.9]],
 };
 export const CLARITY_HORIZON_D = 20;
+/**
+ * MOMENTO A 3 DÍAS (14-11-2026, apartado 6 de radar-sesgo-15a.mjs): ¿hoy es buen día para entrar a favor del sesgo o
+ * conviene esperar mejor precio? Mismos 8 pares y 15 años. Tres condiciones suben el acierto a 3 días ≥ 2 puntos en los
+ * tres bloques (precio sobrevendido contra el sesgo, 20 días fuertes en contra, materias primas a favor); las tres de
+ * «precio ya corrido» son las de la claridad. Acierto a 1/3/5 días, bloques a 3 días, % de señales y % de veces que en
+ * las 5 sesiones siguientes el precio dio una entrada ≥ 0,5 ATR (y ≥ 1 ATR) mejor.
+ */
+export const TIMING_EVIDENCE = {
+  buen: { h1: 57.0, h3: 60.8, h5: 62.0, blocks3: [62.0, 58.7, 62.5], n: 1789, share: 10, better05: 63, better1: 39 },
+  normal: { h1: 53.6, h3: 55.8, h5: 57.0, blocks3: [58.4, 53.7, 56.1], n: 6737, share: 38, better05: 67, better1: 41 },
+  sin: { h1: 52.2, h3: 52.1, h5: 53.1, blocks3: [51.2, 49.2, 55.1], n: 6676, share: 38, better05: 70, better1: 45 },
+  esperar: { h1: 51.1, h3: 52.3, h5: 51.3, blocks3: [57.2, 47.1, 50.8], n: 2593, share: 15, better05: 71, better1: 48 },
+};
+const TIMING_LABEL = { buen: 'buen momento', normal: 'momento normal', sin: 'sin ventaja hoy', esperar: 'esperar' };
+const TIMING_TEXT = {
+  sobrevendido: 'el precio está sobrevendido en contra del sesgo',
+  retroceso: 'el precio lleva un mes yendo fuerte en contra del sesgo',
+  materias: 'las materias primas acompañan',
+};
 const TEXT = {
   creciendo: 'el sesgo ha crecido en el último mes',
   bono: 'el bono a 2 años aún no lo acompaña (queda por descontar)',
@@ -47,7 +66,7 @@ function atr14(bars) {
 
 /**
  * Condiciones de claridad de un par. Todo lo que recibe es conocido hoy.
- * @param {{ symbol: string, diff: number, prevDiff20: number|null, expectDiff: number|null, bars: Array<{open?:number, high?:number, low?:number, close:number}> }} ctx
+ * @param {{ symbol: string, diff: number, prevDiff20: number|null, expectDiff: number|null, totDiff?: number|null, digits?: number, bars: Array<{open?:number, high?:number, low?:number, close:number}> }} ctx
  *   prevDiff20 = sesgo del par hace 20 sesiones; expectDiff = pilar «expectativas» (bono a 2 años) de la base menos el de la cotizada.
  * @returns {null | { tier: 'alta'|'media'|'normal'|'baja', score: number, pros: string[], cons: string[], hit: number, hit_indep: number|null, base: number, horizon_d: number, n: number, text: string, pair: null | { hit: number, n: number, weak: boolean } }}
  */
@@ -69,6 +88,15 @@ export function clarityFor(ctx) {
     let path = 0; for (let i = bars.length - 20; i < bars.length; i++) path += Math.abs(bars[i].close - bars[i - 1].close);
     flags.tendencia = path > 0 && Math.abs(last - bars[bars.length - 21].close) / path >= 0.4;
   }
+  // Momento a 3 días: retroceso contra el sesgo (RSI 14 extremo en contra, 20 sesiones ≤ −2 ATR) y materias primas a favor.
+  const tf = { sobrevendido: false, retroceso: false, materias: false };
+  if (atr && bars.length >= 21) {
+    let g = 0, l = 0; for (let i = bars.length - 14; i < bars.length; i++) { const d = bars[i].close - bars[i - 1].close; if (d > 0) g += d; else l -= d; }
+    const rsi = g + l ? (100 * g) / (g + l) : 50;
+    tf.sobrevendido = s > 0 ? rsi < 30 : rsi > 70;
+    tf.retroceso = (s * (bars[bars.length - 1].close - bars[bars.length - 21].close)) / atr <= -2;
+  }
+  if (ctx.totDiff !== null && ctx.totDiff !== undefined && Number.isFinite(ctx.totDiff)) tf.materias = s * ctx.totDiff > 0.25;
   const pros = ['creciendo', 'bono'].filter((k) => flags[k]); const cons = ['extendido', 'maximos', 'tendencia'].filter((k) => flags[k]);
   const score = clamp(pros.length - cons.length, -3, 2);
   const tier = score >= 2 ? 'alta' : score === 1 ? 'media' : score === 0 ? 'normal' : 'baja';
@@ -81,7 +109,23 @@ export function clarityFor(ctx) {
       : tier === 'normal'
         ? `Sesgo ${dir} sin nada que lo refuerce: así fue a favor el ${Math.round(ev.hit)} % de las veces a 20 días.`
         : `Sesgo ${dir}, pero mal momento para seguirlo: así fue a favor solo el ${Math.round(ev.hit)}–${Math.round(ev.indep)} % de las veces a 20 días. Mejor esperar un retroceso.`;
+  const tPros = Object.keys(tf).filter((k) => tf[k]);
+  const state = tPros.length >= 2 ? 'buen' : cons.length >= 1 && tPros.length === 0 ? 'esperar' : tPros.length === 1 ? 'normal' : 'sin';
+  const te = TIMING_EVIDENCE[state]; const lastClose = bars.length ? bars[bars.length - 1].close : null;
+  const digits = Number.isInteger(ctx.digits) ? ctx.digits : 5;
+  const better = atr && lastClose ? Number((lastClose - s * 0.5 * atr).toFixed(digits)) : null;
+  const r0 = (v) => Math.round(v);
+  const betterTxt = better === null ? '' : ` (hoy sería hacia ${better.toFixed(digits).replace('.', ',')})`;
+  const timingText = state === 'buen'
+    ? `Hoy es buen momento: el precio ha retrocedido contra el sesgo. Así fue a favor el ${r0(te.h3)} % de las veces a 3 días y el ${r0(te.h5)} % a 5.`
+    : state === 'normal'
+      ? `Momento normal: así fue a favor el ${r0(te.h3)} % de las veces a 3 días.`
+      : state === 'sin'
+        ? `Hoy no hay ventaja en entrar (${r0(te.h3)} % a 3 días). Sin prisa: en ${r0(te.better05 / 10)} de cada 10 casos el precio dio una entrada medio ATR mejor esa misma semana${betterTxt}.`
+        : `Espera: el precio ya ha corrido a favor del sesgo. Entrar así acertó solo el ${r0(te.h3)} % a 3 días; en ${r0(te.better05 / 10)} de cada 10 casos dio una entrada al menos medio ATR mejor en la semana${betterTxt}, y en casi la mitad un ATR entero.`;
+  const timing = { state, label: TIMING_LABEL[state], pros: tPros.map((k) => TIMING_TEXT[k]), cons: state === 'esperar' ? cons.map((k) => TEXT[k]) : [], h1: te.h1, h3: te.h3, h5: te.h5, n: te.n, better_05: te.better05, better_price: state === 'sin' || state === 'esperar' ? better : null, horizon_d: 3, text: timingText };
   return {
+    timing,
     tier, score, pros: pros.map((k) => TEXT[k]), cons: cons.map((k) => TEXT[k]),
     hit: ev.hit, hit_indep: ev.indep ?? null, base: CLARITY_EVIDENCE.base.hit, horizon_d: CLARITY_HORIZON_D, n: ev.n, text,
     pair: pe ? { hit: pe[0], n: pe[1], weak: pe[0] < 55 } : null,

@@ -39,6 +39,7 @@ export default function QueOperarCard({ data, pairs, favorites }: { data: QueOpe
                   <span className="text-sm font-semibold text-gray-100">{p ? `${flagOf(p.base)}${flagOf(p.quote)} ` : ''}{b.symbol}{mine.has(b.symbol) && <span className="ml-1 text-warn">★</span>}</span>
                   <TierBadge tier={b.tier} p5={b.p5} />
                   {p && p.clarity && <Badge variant={p.clarity.tier === 'alta' ? 'profit' : p.clarity.tier === 'baja' ? 'warn' : 'default'}>claridad {p.clarity.tier}</Badge>}
+                  {p && p.clarity && p.clarity.timing && (p.clarity.timing.state === 'buen' || p.clarity.timing.state === 'esperar') && <Badge variant={p.clarity.timing.state === 'buen' ? 'profit' : 'warn'}>hoy: {p.clarity.timing.label}</Badge>}
                 </span>
                 <span className={cn('block text-xs font-semibold uppercase tracking-wide', b.bias === 'alcista' ? 'text-profit' : 'text-loss')}>{b.bias} · fuerza {Math.min(5, Math.round(Math.abs(b.diff) / 2))}/5{b.p20 !== null ? ` · a 20 d ${b.p20} %` : ''}{b.synthetic ? ' · cruce calculado' : ''}</span>
               </button>

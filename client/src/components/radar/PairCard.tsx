@@ -69,6 +69,7 @@ export default function PairCard({ pair, compact = false, className, favorite, o
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={biasVariant(pair)} size="md">{biasLabel(pair)}</Badge>
           {pair.clarity && <Badge variant={pair.clarity.tier === 'alta' ? 'profit' : pair.clarity.tier === 'baja' ? 'warn' : 'default'}>claridad {pair.clarity.tier}</Badge>}
+          {pair.clarity && pair.clarity.timing && (pair.clarity.timing.state === 'buen' || pair.clarity.timing.state === 'esperar') && <Badge variant={pair.clarity.timing.state === 'buen' ? 'profit' : 'warn'}>hoy: {pair.clarity.timing.label}</Badge>}
           <span className="text-xs text-gray-400" title={STRENGTH_HELP}>
             fuerza <span className={cn('tnum font-semibold', pair.diff > 0 ? 'text-profit' : pair.diff < 0 ? 'text-loss' : 'text-gray-300')}>{n}/5</span> · {strengthWord(n).toLowerCase()}
           </span>
@@ -98,6 +99,22 @@ export default function PairCard({ pair, compact = false, className, favorite, o
                   {pair.clarity.pros.length > 0 && pair.clarity.cons.length > 0 && ' '}
                   {pair.clarity.cons.length > 0 && <span className="text-amber-300/80">− {pair.clarity.cons.join(' · ')}</span>}
                 </p>
+              )}
+              {pair.clarity.timing && (
+                <div className="mt-2 border-t border-border/60 pt-2">
+                  <p className="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+                    Hoy · a 3 días
+                    <Badge variant={pair.clarity.timing.state === 'buen' ? 'profit' : pair.clarity.timing.state === 'esperar' ? 'warn' : 'default'} size="sm">{pair.clarity.timing.label}</Badge>
+                  </p>
+                  <p>{pair.clarity.timing.text}</p>
+                  {(pair.clarity.timing.pros.length > 0 || pair.clarity.timing.cons.length > 0) && (
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      {pair.clarity.timing.pros.length > 0 && <span className="text-gray-300">+ {pair.clarity.timing.pros.join(' · ')}</span>}
+                      {pair.clarity.timing.pros.length > 0 && pair.clarity.timing.cons.length > 0 && ' '}
+                      {pair.clarity.timing.cons.length > 0 && <span className="text-amber-300/80">− {pair.clarity.timing.cons.join(' · ')}</span>}
+                    </p>
+                  )}
+                </div>
               )}
               {pair.clarity.pair && (
                 <p className="mt-1 text-[11px] text-gray-500">

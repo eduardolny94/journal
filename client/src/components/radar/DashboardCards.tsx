@@ -46,6 +46,7 @@ export function RadarDashboardCards({ accountId, currency }: { accountId: number
                     <div className="flex items-center gap-2">
                       <Badge variant={biasVariant(p)}>{biasLabel(p)}</Badge>
                       {p.clarity && <Badge variant={p.clarity.tier === 'alta' ? 'profit' : p.clarity.tier === 'baja' ? 'warn' : 'default'}>claridad {p.clarity.tier}</Badge>}
+                      {p.clarity && p.clarity.timing && (p.clarity.timing.state === 'buen' || p.clarity.timing.state === 'esperar') && <Badge variant={p.clarity.timing.state === 'buen' ? 'profit' : 'warn'}>hoy: {p.clarity.timing.label}</Badge>}
                       <span className={cn('text-xs tnum', p.diff > 0 ? 'text-profit' : p.diff < 0 ? 'text-loss' : 'text-gray-400')}>fuerza {n}/5 · {strengthWord(n).toLowerCase()}</span>
                     </div>
                     <p className="mt-0.5 truncate text-xs text-gray-400" title={p.plan}>{planSummary(p.plan)}</p>

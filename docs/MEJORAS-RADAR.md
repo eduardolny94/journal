@@ -48,6 +48,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 
 27. **Claridad del sesgo con 15 años (14-11-2026).** En los 8 pares fijos, 2011–2026, el sesgo acierta el 57,5 % a 20 días; cinco condiciones lo mueven ≥ 2 puntos en los tres bloques (a favor: sesgo creciendo en 20 sesiones, bono a 2 años aún en contra; en contra: precio extendido, en extremos de 20 días, en tendencia limpia). Claridad ALTA 62–66 % (≈ 22 señales independientes al año), BAJA 51–54 %. Por par: EURUSD 63 %, EURJPY 63 %, USDJPY 61 %; USDCHF 51 % y USDCAD 55 % sin ventaja estable. Veredicto en la tarjeta del par y etiqueta en las listas; no toca la puntuación ni el modelo. Detalle en [CONVICCION.md](CONVICCION.md).
 
+28. **Momento a 3 días (14-11-2026).** Al lado del veredicto, «Hoy · a 3 días»: buen momento (61 % a 3 días, 10 % de las señales), normal (56 %), sin ventaja hoy (52 %) o esperar (52 %, precio ya corrido; en 7 de cada 10 casos hubo una entrada medio ATR mejor esa semana). No es un segundo sesgo: la dirección a 3 días es la misma (54 %), lo que cambia es el momento de entrada. Detalle en [CONVICCION.md](CONVICCION.md).
+
 ## Lo que se descarta (medido, sin ventaja)
 
 - La reacción de la primera hora tras una noticia como señal de continuación (48 %).
