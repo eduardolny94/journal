@@ -1,7 +1,7 @@
 // Sesgo de índices y metales. Pilares: momentum propio, tipos reales (metales) o bono a 10 años (índices),
 // dólar (metales) o crédito de alto riesgo (índices), riesgo (VIX), sorpresas macro de EE. UU., expectativas de la
 // Fed y COT (dinero gestionado / fondos apalancados). Misma forma de salida que un par FX (base/quote = null).
-import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
+import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
 import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
@@ -186,6 +186,15 @@ export function computeInstruments(db, input) {
       plan: planForInstrument(ins, bias, strength, score, s.digits, structure),
       evidence: ev,
       gex: gexInfo,
+      // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.
+      london_setup: (() => {
+        const t = LONDON_BUY_SETUP[ins.symbol]; if (!t || !gex) return null;
+        const [w, r15, r2, n, yrs, stop] = t[gex.regime];
+        const on = r15 >= 0.1;
+        return { active: on, regime: gex.regime, win_15: w, r_15: r15, r_2: r2, n, years_positive: yrs, stop_points: stop, text: on
+          ? `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} llegó a 1:1,5 el ${w} % (${r15 >= 0 ? '+' : ''}${fmt(r15, 2)}R; a 1:2 ${r2 >= 0 ? '+' : ''}${fmt(r2, 2)}R; n ${n}, ${yrs} de 7 años positivos; stop típico ${stop} puntos). Solo compras.`
+          : `Compra de Londres tras barrer el bajo de Asia: con GEX ${gex.regime} no hay ventaja medida (${w} % a 1:1,5, ${fmt(r15, 2)}R, n ${n}). Mejor no operarla hoy.` };
+      })(),
       reasons,
       warnings,
       next_events: nextEv,

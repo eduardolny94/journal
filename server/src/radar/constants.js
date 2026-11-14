@@ -423,6 +423,16 @@ export const INSTRUMENT_GEX_MOVE = {
   US30: { alto: [0.45, 0.78], medio: [0.61, 0.97], bajo: [1.0, 1.53], negativo: [1.43, 2.14] },
 };
 /**
+ * Compra de Londres tras la barrida del bajo de Asia (cambio de estructura alcista en M5, entrada a mercado, stop bajo
+ * la barrida), medida con 7 años de M5 (2020–2026) en server/scripts/nasdaq-londres-ventaja.mjs y asia-compra-gex.mjs.
+ * Por régimen de GEX: [% que llega a 1:1,5, R medio a 1:1,5, R medio a 1:2, n, años positivos de 7, stop mediano en puntos].
+ * Las ventas tras barrer el alto no tienen ventaja (−0,02R). Solo se enseña en los índices donde se midió.
+ */
+export const LONDON_BUY_SETUP = {
+  NAS100: { alto: [47, 0.24, 0.29, 118, 7, 32], medio: [38, -0.03, -0.1, 76, 2, 48], bajo: [49, 0.27, 0.36, 68, 5, 58], negativo: [49, 0.27, 0.36, 68, 5, 58] },
+  US30: { alto: [46, 0.16, 0.28, 128, 5, 59], medio: [41, 0.03, 0.06, 93, 3, 70], bajo: [49, 0.23, 0.21, 80, 5, 101], negativo: [49, 0.23, 0.21, 80, 5, 101] },
+};
+/**
  * Pesos anteriores al 13-11-2026. Siguen valiendo para los índices no medidos (DAX, FTSE, Nikkei): los pesos nuevos solo
  * se aplican a los activos de INSTRUMENT_EVIDENCE, que son los que tienen 15 años de comprobación.
  */
