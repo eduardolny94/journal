@@ -165,3 +165,54 @@ mueve con el oro, pero menos que el 2 años.
 oro la curva mejora el total y dos de tres tercios, pero no los tres. La curva entra como **pilar candidato con peso 0**
 («Curva 30 − 2 años», `instruments.js`): se calcula, se enseña en la ficha del activo y se guarda cada día en
 `radar_instrument_bias`. Lectura del 13-11-2026: −47 pb en 3 meses (se aplana: en contra del oro).
+
+## Oro: bonos, dólar y «el dinero que sale de un lado a otro», 2010–2026 (15-11-2026)
+
+Pedido de César: pulir el sesgo del oro con la relación con los bonos. Script `server/scripts/oro-bonos-flujos.mjs`. Oro,
+dólar (DXY), S&P 500, VIX y plata diarios de Yahoo (2010 → 2026, 4.243 sesiones); tipos de FRED (2, 10 y 30 años, real a
+10 años, inflación esperada a 10 años). Bloques 2010–15 / 2016–21 / 2022–26.
+
+**A. En el mismo mes (ventanas de 20 sesiones): con qué se mueve el oro.** Correlación · % de meses en que el oro va en
+el sentido de manual · movimiento del oro.
+
+| Factor | Todo | 2010–15 | 2016–21 | 2022–26 | 2024–26 |
+|---|---|---|---|---|---|
+| Dólar (sube → oro baja), por +1 % | −0,44 · 68 % · −1,1 % | 67 % | 65 % | 72 % | 70 % |
+| Tipo real a 10 años, por +10 pb | −0,46 · 66 % · −1,0 % | 62 % | 72 % | 64 % | 58 % |
+| Bono a 2 años, por +10 pb | −0,31 · 65 % · −0,7 % | 62 % | 64 % | 68 % | 67 % |
+| Bono a 10 años | −0,33 · 62 % | 61 % | 63 % | 61 % | 58 % |
+| Bono a 30 años | −0,23 · 58 % | 58 % | 61 % | 56 % | 54 % |
+| Inflación esperada (sube → oro sube) | +0,14 · 52 % | 52 % | 50 % | 54 % | 52 % |
+| Bolsa (cae → oro sube) | +0,07 · 47 % | 51 % | 50 % | 41 % | 43 % |
+| VIX (sube → oro sube) | −0,02 · 50 % | 49 % | 53 % | 48 % | 55 % |
+
+La relación se ha vuelto asimétrica. Cuando el tipo real **sube** más de 5 pb en el mes, el oro caía el 75 % (2010–15) y
+el 79 % (2016–21) de las veces; en 2022–26 el 60 % y en 2024–26 el **48 %** (media +0,4 %). Cuando el tipo real **baja**,
+el oro sube el 62 % → 77 % → 83 % → 79 % (media +3,6 % en 2024–26). El oro no es un refugio fiable mes a mes: frente a la
+bolsa y el VIX queda en 47–50 %.
+
+**B. Predicción: con lo que se sabe hoy, ¿sube el oro en las 20 sesiones siguientes?** (base 53,4 %). Separación = % de
+subidas con la señal a favor − % con la señal en contra.
+
+| Señal | a favor / en contra | separación | bloques |
+|---|---|---|---|
+| Dólar bajando (20 s) | 58,5 % / 51,1 % | +7,5 | +4,6 / +3,4 / +13,2 |
+| Bono a 2 años bajando (20 s), pilar actual | 62,4 % / 51,7 % | +10,7 | −5,1 / +9,8 / +21,6 |
+| Curva 30 − 2 años empinándose (60 s) | 61,6 % / 47,7 % | +13,9 | −3,8 / +17,3 / +25,5 |
+| Bono a 10 años bajando (20 s) | 57,2 % / 48,8 % | +8,4 | −2,0 / +16,7 / +13,9 |
+| Tipo real a 10 años bajando (20 s) | 54,9 % / 51,6 % | +3,3 | +0,2 / −2,2 / +15,3 |
+| Oro subiendo (20, 60, 120 s) | — | +1 a +2 | signo distinto en cada bloque |
+| **Inflación esperada subiendo (60 s)** | 50,6 % / 58,8 % | **−8,2** | −4,7 / −12,2 / −8,6 |
+| **Plata mejor que el oro (20 s)** | 48,7 % / 57,5 % | **−8,8** | −6,9 / −18,2 / −4,1 |
+| Bolsa subiendo (60 s) | 53,1 % / 60,4 % | −7,3 | −8,3 / −9,2 / −3,8 |
+
+Ninguna señal alcista separa ≥ 4 puntos en los tres bloques. Los bonos anticipan bien el oro desde 2016 y fallaron en
+2010–15; el dólar es lo más parejo (se queda a 0,6 puntos de pasar). Dos señales van **al revés en los tres bloques**:
+tras tres meses de inflación esperada al alza y tras un mes en que la plata lo hace mejor que el oro (euforia en los
+metales), el oro rinde peor. Validación eligiendo con dos bloques y probando en el tercero: 45 % frente a 47 % (2010–15),
+68 % frente a 44 % (2016–21), 59 % frente a 61 % (2022–26): la combinación no es estable.
+
+**Conclusión.** (1) Lo que mueve al oro en el mismo mes es el dólar y el tipo real, no el bono a 30 años. (2) Desde 2022,
+tipos subiendo ya no lo tumban y tipos bajando lo siguen empujando. (3) Como predicción no hay nada que aguante los 16
+años; el pilar de tipos (2 años, 20 s) se mantiene porque separa +10 y +22 puntos desde 2016. (4) Candidatas a aviso en
+la tarjeta del oro, con peso 0: «plata por delante del oro» e «inflación esperada al alza 3 meses».
