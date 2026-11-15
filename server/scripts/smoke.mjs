@@ -765,7 +765,9 @@ try {
     const stSuelo = await api('GET', `/accounts/${id}/status`);
     assert(stSuelo.status === 200 && stSuelo.data.events.some((e) => e.kind === 'daily_loss' && /Guardián de MetaTrader/.test(e.message)), `evento del suelo registrado: ${JSON.stringify(stSuelo.data.events).slice(0, 300)}`);
     const sem = await api('POST', '/sync/mt5/bloquear', { login: '777001', server: 'Demo', kind: 'weekly_loss', loss: 1300, limit: 1200 }, as);
-    assert(sem.status === 200 && sem.data.locked === true && sem.data.lock_reason === 'weekly_loss', `bloqueo semanal del guardián ${JSON.stringify(sem.data)}`);
+    // El último día de la semana el reinicio semanal y el diario coinciden: el bloqueo no se alarga y el motivo sigue siendo el diario.
+    const mismoReinicio = sem.data.lock_until === suelo.data.lock_until;
+    assert(sem.status === 200 && sem.data.locked === true && (sem.data.lock_reason === 'weekly_loss' || (mismoReinicio && sem.data.lock_reason === 'daily_loss')), `bloqueo semanal del guardián ${JSON.stringify(sem.data)}`);
     // Operación que llega por sincronización abierta en pleno bloqueo (tras el bloqueo): se guarda y queda marcada como violación.
     await new Promise((r) => setTimeout(r, 3000));
     const nowSec = Math.floor(Date.now() / 1000);
