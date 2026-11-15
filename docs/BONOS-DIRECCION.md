@@ -216,3 +216,29 @@ metales), el oro rinde peor. Validación eligiendo con dos bloques y probando en
 tipos subiendo ya no lo tumban y tipos bajando lo siguen empujando. (3) Como predicción no hay nada que aguante los 16
 años; el pilar de tipos (2 años, 20 s) se mantiene porque separa +10 y +22 puntos desde 2016. (4) Candidatas a aviso en
 la tarjeta del oro, con peso 0: «plata por delante del oro» e «inflación esperada al alza 3 meses».
+
+### COT del oro y estacionalidad (15-11-2026, `server/scripts/oro-cot.mjs`)
+
+COT desagregado de la CFTC (COMEX, 910 informes semanales 2009–2026, en `data/historico/cot-metales/`), usado desde el
+lunes siguiente a cada informe; percentil de la posición neta de los fondos frente a sus 3 años anteriores. 3.573
+sesiones con señal (2012–2026). Separación a 20 y 60 sesiones por bloques 2010–15 / 2016–21 / 2022–26.
+
+| Señal | 20 s: bloques | 60 s: bloques |
+|---|---|---|
+| Fondos muy cortos frente a muy largos (lectura contraria) | +42,6 / +15,4 / **−4,7** | +29,7 / +34,6 / **−13,3** |
+| Fondos en extremo largo (≥ 90) → ¿techo? | +41,6 / +8,0 / **−11,9** | +37,2 / +23,7 / **−23,1** |
+| Fondos comprando en 4 semanas | −2,2 / +5,0 / +3,9 | −14,1 / −4,0 / +6,6 |
+| Fondos comprando en 13 semanas | −30,3 / −5,8 / +2,0 | −21,4 / −14,2 / −1,4 |
+| Comerciales poco cortos | +37,2 / +11,2 / −17,7 | +38,5 / +26,6 / −21,7 |
+| Pequeños muy cortos frente a muy largos (contraria) | +20,6 / +30,5 / +1,1 | +40,2 / +44,3 / +0,5 |
+
+Ninguna señal del COT separa en los tres bloques. La lectura contraria («los fondos están muy largos, toca techo»)
+funcionó hasta 2021 y se dio la vuelta en 2022–26: en el mercado alcista actual, fondos muy largos fue continuación
+(a 60 sesiones el oro subió el 68 % de las veces con los fondos en extremo largo). Lo más parejo es la posición de los
+pequeños especuladores, pero en 2022–26 queda en +1. El COT sirve de contexto (cuánta gente va ya en el mismo lado), no
+como señal; su peso de 5 en el sesgo del oro es razonable. Última lectura (03-11-2026): fondos netos 26 % del interés
+abierto, percentil 32, vendiendo 2,1 puntos en 4 semanas.
+
+Estacionalidad (17 años, meses naturales): septiembre sube el 29 % de los años (−1,4 % de media), junio el 35 % (−1,1 %),
+noviembre el 38 %; enero el 65 % (+2,8 %), julio y agosto el 71 % (+1,7 % y +2,8 %). Son 5–6 años por bloque: indicio,
+no regla.
