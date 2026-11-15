@@ -82,3 +82,28 @@ Orden de instalación, con los comandos exactos:
 
 Si el respaldo no está a mano, lo mínimo para seguir trabajando es: clonar el repo, restaurar la memoria de Claude y
 el `.env`; lo demás se regenera.
+
+## En el Mac (15-11-2026)
+
+Desde octubre de 2026 el proyecto vive en el Mac (`~/Desktop/journal`). El equivalente de `respaldo-pc.ps1` es:
+
+```bash
+zsh scripts/respaldo-mac.sh                    # → ~/Respaldos/RESPALDO-JOURNAL-<fecha> (≈ 400 MB)
+zsh scripts/respaldo-mac.sh /Volumes/MiDisco   # en un disco externo
+zsh scripts/respaldo-mac.sh --con-datos        # añade las velas exportadas (3 GB) y las conversaciones de Claude
+```
+
+Guarda: `journal.bundle` (todo el código con historial; `git clone journal.bundle journal`), `.env`, la skill del radar y
+`launch.json`, la base de datos local, lo que hay sin subir (marketing, salidas de la mesa, imágenes), los datos de mercado
+pequeños, la **memoria de Claude**, ajustes y plugins de Claude, las claves de `~/.config/gtfx` y `~/.config/watch`, el
+lanzador `mt5-b`, los programas GTFX de los dos MetaTrader y el token común. La carpeta lleva claves: disco propio, no
+sitios compartidos. Dentro va un `LEEME.txt` con dónde va cada cosa.
+
+**Cambio de cuenta de Claude.** Nada del proyecto depende de la cuenta: el código está en GitHub, la web en Railway y la
+memoria, las reglas y las conversaciones son archivos de este Mac (`~/.claude/…`). Con otra cuenta en el mismo Mac siguen
+ahí; en otro ordenador se restauran desde el respaldo. Lo que sí va con la cuenta de Claude y hay que rehacer: los
+conectores (Drive, Gmail, Canva, Figma), los artefactos publicados y las tareas programadas en la nube, si las hubiera.
+
+**Lo que no entra en el respaldo** (vive en internet con sus cuentas): la base de datos de producción (Railway; el dueño
+la descarga en Administración → Diagnóstico, o en `/api/admin/backup`), GitHub (`eduardolny94/journal`), los indicadores
+de TradingView y las contraseñas (GitHub, Railway, dominio, brókers).
