@@ -191,6 +191,7 @@ export const FRED_MARKET = {
   hy_spread: 'BAMLH0A0HYM2',
   real_yield_10y: 'DFII10',
   breakeven_10y: 'T10YIE',
+  gvz: 'GVZCLS', // volatilidad implícita del oro: anticipa el tamaño del movimiento, no la dirección
   core_cpi_us: 'CPILFESL',
 };
 
@@ -452,7 +453,23 @@ export const INSTRUMENT_EVIDENCE = {
   XAUUSD: { bull: 64, bear: 53, base: 54, n_bull: 632, n_bear: 1382 },
   XAGUSD: { bull: 60, bear: 49, base: 51, n_bull: 631, n_bear: 1382 },
 };
-export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)' };
+/**
+ * Oro: movimiento diario medio (% de cierre a cierre en los 5 días siguientes) según el nivel del GVZ, 2010–2026
+ * (server/scripts/oro-bonos-flujos.mjs, apartado D): correlación 0,58 (0,48 / 0,60 / 0,57 por épocas), mejor que el
+ * movimiento de los 20 días anteriores (0,50). No anticipa la dirección. [GVZ hasta, % al día].
+ */
+export const GOLD_GVZ_MOVE = [[13.3, 0.47], [15.8, 0.6], [17.7, 0.65], [21, 0.72], [Infinity, 1.06]];
+/**
+ * Avisos del oro y la plata (docs/BONOS-DIRECCION.md, 2010–2026, mismo signo en las tres épocas): % de veces que el activo
+ * sube a 20 sesiones con el aviso frente a la situación contraria. No cambian la puntuación.
+ *   plata_delante: la plata rinde ≥ 1 punto más que el oro en 20 sesiones (euforia en los metales).
+ *   inflacion_esperada: la inflación esperada a 10 años sube ≥ 5 pb en 60 sesiones (solo oro; en la plata no es estable).
+ */
+export const METAL_WARNINGS = {
+  plata_delante: { min_pp: 1, XAUUSD: [49, 57], XAGUSD: [44, 54] },
+  inflacion_esperada: { min_bp: 5, XAUUSD: [51, 59] },
+};
+export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */
 export function normalizeInstrumentSymbol(raw) {

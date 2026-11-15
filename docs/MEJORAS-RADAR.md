@@ -50,6 +50,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 
 28. **Momento a 3 días (14-11-2026).** Al lado del veredicto, «Hoy · a 3 días»: buen momento (61 % a 3 días, 10 % de las señales), normal (56 %), sin ventaja hoy (52 %) o esperar (52 %, precio ya corrido; en 7 de cada 10 casos hubo una entrada medio ATR mejor esa semana). No es un segundo sesgo: la dirección a 3 días es la misma (54 %), lo que cambia es el momento de entrada. Detalle en [CONVICCION.md](CONVICCION.md).
 
+29. **Oro: avisos y tamaño esperado (15-11-2026).** Dos avisos que no puntúan, estables en tres épocas: «plata por delante del oro» (oro 49 % frente a 57 % a 20 sesiones) e «inflación esperada al alza» (51 % frente a 59 %). Fila del GVZ con el movimiento diario esperado del oro (correlación 0,58 con el tamaño; no anticipa dirección). El COT del oro no da señal estable. Detalle en [BONOS-DIRECCION.md](BONOS-DIRECCION.md).
+
 ## Lo que se descarta (medido, sin ventaja)
 
 - La reacción de la primera hora tras una noticia como señal de continuación (48 %).

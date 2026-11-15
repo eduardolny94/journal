@@ -1,7 +1,7 @@
 // Sesgo de índices y metales. Pilares: momentum propio, tipos reales (metales) o bono a 10 años (índices),
 // dólar (metales) o crédito de alto riesgo (índices), riesgo (VIX), sorpresas macro de EE. UU., expectativas de la
 // Fed y COT (dinero gestionado / fondos apalancados). Misma forma de salida que un par FX (base/quote = null).
-import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
+import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, GOLD_GVZ_MOVE, METAL_WARNINGS, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
 import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
@@ -89,6 +89,13 @@ export function computeInstruments(db, input) {
 
   let gex = null;
   try { gex = gexRegime(gexSeries(db), now); } catch { gex = null; }
+  // Avisos de los metales y tamaño esperado del oro (15-11-2026, docs/BONOS-DIRECCION.md). No puntúan.
+  const beCh60 = bpChange(db, FRED_MARKET.breakeven_10y, 84);
+  const ret20 = (sym) => { const d = symbols[sym] && symbols[sym].d1; if (!Array.isArray(d) || d.length < 22) return null; const a = d[d.length - 1].close, b = d[d.length - 21].close; return a > 0 && b > 0 ? 100 * (a / b - 1) : null; };
+  const rs = ret20('XAGUSD'), rg = ret20('XAUUSD');
+  const silverLead = rs === null || rg === null ? null : rs - rg;
+  const gvzRow = latest(db, FRED_MARKET.gvz);
+  const gvz = gvzRow && (now - new Date(`${gvzRow.date}T00:00:00Z`).getTime()) / 86400000 <= 7 ? gvzRow : null;
   const GEX_LABEL = { alto: 'alto: día de rango corto', medio: 'medio', bajo: 'bajo: día de movimiento amplio', negativo: 'negativo: movimiento muy amplio' };
 
   const list = [];
@@ -142,6 +149,17 @@ export function computeInstruments(db, input) {
         pillars.gex = { value: 0, raw: null, missing: true, weight: 0, text: 'sin dato de GEX reciente' };
       }
     }
+    let volMove = null;
+    if (ins.symbol === 'XAUUSD') {
+      if (gvz) {
+        const pct = GOLD_GVZ_MOVE.find(([max]) => gvz.value <= max)[1];
+        const pts = s.bid ? round((s.bid * pct) / 100, 1) : null;
+        volMove = { gvz: gvz.value, date: gvz.date, daily_pct: pct, daily_points: pts };
+        pillars.gvz = { value: 0, raw: gvz.value, missing: false, weight: 0, text: `GVZ ${fmt(gvz.value)} (dato del ${gvz.date}): con este nivel el oro se movió de media un ${fmt(pct, 2)} % al día${pts ? ` (≈ ${fmt(pts, 0)} $)` : ''} en los días siguientes (2010–2026). Mide cuánto, no hacia dónde; no puntúa.` };
+      } else {
+        pillars.gvz = { value: 0, raw: null, missing: true, weight: 0, text: 'sin dato reciente de volatilidad del oro' };
+      }
+    }
     for (const k of ['momentum', 'macro', 'riesgo']) if (!W[k]) pillars[k].text += ' · no puntúa: a 5 días no acierta el sentido (medido 2011–2026)';
     const score = den ? round((5 * num) / den) : 0;
     const bias = score >= 0 ? 'alcista' : 'bajista';
@@ -154,6 +172,12 @@ export function computeInstruments(db, input) {
     const structure = { yesterday: p.yesterday, trend: p.trend, levels: p.levels, pos_pd: p.pos_pd, expected: p.expected };
     const warnings = [];
     if (nextEv.some((e) => e.at_utc <= in2h)) warnings.push({ kind: 'noticia_en_2h', text: `Dato de alto impacto de EE. UU. en menos de 2 h (${nextEv.find((e) => e.at_utc <= in2h).title}): no abrir posiciones nuevas.` });
+    if (isMetal) {
+      const wp = METAL_WARNINGS.plata_delante[ins.symbol];
+      if (wp && silverLead !== null && silverLead >= METAL_WARNINGS.plata_delante.min_pp) warnings.push({ kind: 'plata_delante', text: `La plata lleva un mes por delante del oro (+${fmt(silverLead)} puntos): tras eso, ${ins.label === 'Oro' ? 'el oro' : 'la plata'} subió el ${wp[0]} % de las veces a 20 sesiones, frente al ${wp[1]} % cuando la plata va por detrás (2010–2026, igual en las tres épocas).` });
+      const wi = METAL_WARNINGS.inflacion_esperada[ins.symbol];
+      if (wi && beCh60 !== null && beCh60 >= METAL_WARNINGS.inflacion_esperada.min_bp) warnings.push({ kind: 'inflacion_esperada', text: `La inflación esperada a 10 años sube ${fmt(beCh60, 0)} pb en 3 meses: tras eso, el oro subió el ${wi[0]} % de las veces a 20 sesiones, frente al ${wi[1]} % cuando baja (2010–2026, igual en las tres épocas).` });
+    }
     if (pillars.posicionamiento.extreme) warnings.push({ kind: 'cot_extremo', text: `COT en extremo en ${ins.label}: reducir tamaño, riesgo de giro brusco.` });
     const dirUp = bias === 'alcista';
     if (strength !== 'sin sesgo' && ((p.trend.h4 !== 'lateral' && (p.trend.h4 === 'alcista') !== dirUp) || (p.trend.d1 !== 'lateral' && (p.trend.d1 === 'alcista') !== dirUp))) {
@@ -186,6 +210,7 @@ export function computeInstruments(db, input) {
       plan: planForInstrument(ins, bias, strength, score, s.digits, structure),
       evidence: ev,
       gex: gexInfo,
+      vol_move: volMove,
       // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.
       london_setup: (() => {
         const t = LONDON_BUY_SETUP[ins.symbol]; if (!t) return null;

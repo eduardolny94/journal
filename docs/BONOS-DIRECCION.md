@@ -242,3 +242,23 @@ abierto, percentil 32, vendiendo 2,1 puntos en 4 semanas.
 Estacionalidad (17 años, meses naturales): septiembre sube el 29 % de los años (−1,4 % de media), junio el 35 % (−1,1 %),
 noviembre el 38 %; enero el 65 % (+2,8 %), julio y agosto el 71 % (+1,7 % y +2,8 %). Son 5–6 años por bloque: indicio,
 no regla.
+
+### GVZ (volatilidad implícita del oro) y avisos en el radar (15-11-2026)
+
+GVZ de FRED (`GVZCLS`, 2009–2026), apartado D de `oro-bonos-flujos.mjs`.
+
+- **Dirección: no.** GVZ alto frente a bajo: +5,0 puntos a 20 sesiones (+5,4 / +3,9 / +1,6); GVZ subiendo en 5 sesiones
+  +4,7 (+9,4 / +1,2 / +2,9); GVZ por encima del VIX −8,3 (−6,8 / −1,6 / −10,7). Ninguna pasa los tres bloques.
+- **Tamaño: sí.** Correlación del GVZ con el movimiento diario de los 5 días siguientes 0,58 (0,48 / 0,60 / 0,57), mejor
+  que el movimiento de los 20 días anteriores (0,50). Por quintos de GVZ: hasta 13,3 → 0,47 % al día; 13,3–15,8 → 0,60 %;
+  15,8–17,7 → 0,65 %; 17,7–21 → 0,72 %; más de 21 → 1,06 % (máximo recorrido en 20 sesiones: 3,2 % → 5,9 %).
+
+En el radar (`instruments.js`, `GOLD_GVZ_MOVE`, `METAL_WARNINGS`; nada de esto puntúa):
+- Fila «Volatilidad del oro (GVZ)» en la tarjeta del oro con el movimiento diario esperado en % y en dólares, y campo
+  `vol_move`.
+- Aviso «Plata por delante del oro» en oro y plata cuando la plata rinde ≥ 1 punto más en 20 sesiones (oro 49 % frente a
+  57 %; plata 44 % frente a 54 %, −10,7 / −17,6 / −7,1 por bloques).
+- Aviso «Inflación esperada al alza» en el oro cuando sube ≥ 5 pb en 3 meses (51 % frente a 59 %). En la plata no es
+  estable (−2,9) y no se muestra.
+- Lectura del 15-11-2026: GVZ 25,9 (≈ 1,06 % al día, unos 41 $); plata 6,9 puntos por detrás del oro e inflación esperada
+  −10 pb en 3 meses: ningún aviso activo.

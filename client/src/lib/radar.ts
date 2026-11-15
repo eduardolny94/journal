@@ -860,6 +860,10 @@ export function warningLabel(kind: WarningKind | string): string {
       return 'Noticia en < 2 h';
     case 'cot_extremo':
       return 'COT extremo';
+    case 'plata_delante':
+      return 'Plata por delante del oro';
+    case 'inflacion_esperada':
+      return 'Inflación esperada al alza';
     case 'contra_estructura':
       return 'Contra estructura';
     case 'spread_alto':
@@ -1548,7 +1552,7 @@ export const INSTRUMENT_LABELS: Record<string, string> = {
 };
 
 export const INSTRUMENT_PILLAR_LABELS: Record<string, string> = {
-  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)',
+  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)',
 };
 /** Pesos de reserva (metales); el servidor envía el peso real de cada pilar en `weight` (índices y metales pesan distinto). */
 export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 0, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
