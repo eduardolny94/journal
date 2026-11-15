@@ -153,7 +153,7 @@ export const REFRESH_MS = {
   calendar: 30 * 60_000,
   fred: 6 * 3600_000,
   yields: 24 * 3600_000,
-  yields_tv: 6 * 3600_000,
+  yields_tv: 30 * 60_000, // bonos a 2 años en vivo (una sola petición para las 8 divisas): es lo que más cambia dentro del día
   cot: 6 * 3600_000,
   gex: 6 * 3600_000, // GEX diario (SqueezeMetrics): se publica una vez al día
   news: 10 * 60_000,

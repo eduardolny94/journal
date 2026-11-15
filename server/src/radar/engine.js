@@ -96,14 +96,17 @@ async function runSource(db, key, everyMs, fn, { force = false, now = Date.now()
 }
 
 /**
- * Intervalo del calendario: 5 min si hay un dato de alto impacto en la última hora o en la próxima
- * (para capturar el dato publicado y la sorpresa casi al momento); si no, el intervalo normal (30 min).
+ * Intervalo del calendario: 2 min justo cuando sale un dato de alto impacto (desde 2 min antes hasta 20 min después,
+ * para capturar el dato publicado y la sorpresa casi al momento); 5 min si hay uno en la última hora o en la próxima;
+ * si no, el intervalo normal (30 min).
  */
 function calendarIntervalMs(db, now) {
   try {
-    const from = new Date(now - 60 * 60_000).toISOString();
-    const to = new Date(now + 60 * 60_000).toISOString();
-    const row = db.prepare("SELECT COUNT(*) AS n FROM radar_calendar WHERE impact = 'High' AND at_utc BETWEEN ? AND ?").get(from, to);
+    const q = db.prepare("SELECT COUNT(*) AS n FROM radar_calendar WHERE impact = 'High' AND at_utc BETWEEN ? AND ?");
+    const iso = (ms) => new Date(ms).toISOString();
+    const hot = q.get(iso(now - 20 * 60_000), iso(now + 2 * 60_000));
+    if (hot && hot.n > 0) return 2 * 60_000;
+    const row = q.get(iso(now - 60 * 60_000), iso(now + 60 * 60_000));
     return row && row.n > 0 ? 5 * 60_000 : REFRESH_MS.calendar;
   } catch {
     return REFRESH_MS.calendar;
