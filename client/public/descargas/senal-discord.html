@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GTFX · Señal a Discord — instalación</title>
+<style>
+  :root { --bg: #060a08; --panel: #0e1512; --line: #1d2a23; --neon: #16f57a; --text: #e8f0ec; --muted: #8aa398; --warn: #f5b400; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 72px; }
+  .eyebrow { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--neon); }
+  h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.15; margin: 8px 0 12px; }
+  h2 { font-size: 1.2rem; margin: 36px 0 8px; padding-top: 24px; border-top: 1px solid var(--line); }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  ol { padding-left: 1.3em; margin: 12px 0; }
+  li { margin: 10px 0; }
+  b { color: #fff; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .btn { display: inline-block; font: inherit; font-weight: 600; padding: 11px 18px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text); text-decoration: none; cursor: pointer; }
+  .btn.primary { background: var(--neon); border-color: var(--neon); color: #041a0e; }
+  .btn:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+  .note { border-left: 3px solid var(--warn); padding: 6px 0 6px 12px; margin: 14px 0; color: #f3e3b0; }
+  code { background: #0a100d; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: .9em; }
+  pre { background: #0a100d; border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: .9em; line-height: 1.5; margin: 12px 0; }
+  #estado { min-height: 1.4em; font-size: .9rem; color: var(--neon); margin-top: 8px; }
+  #codigo { width: 100%; margin-top: 10px; background: #0a100d; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; }
+  footer { margin-top: 40px; font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Global Traders FX · indicador de TradingView</div>
+  <h1>GTFX · Señal a Discord</h1>
+  <p class="muted">Escribes tu stop en el gráfico y el indicador publica la señal en Discord: entrada, SL, TP1 y TP2. Después avisa solo cuando toca TP1, TP2 o el stop.</p>
+
+  <div class="card">
+    <b>1. Copia el indicador</b>
+    <p class="muted">Es un solo archivo de texto. Cópialo y pégalo en TradingView (paso 2).</p>
+    <div class="btns">
+      <button class="btn primary" id="copiar" type="button">Copiar el código</button>
+      <a class="btn" href="GTFX_SenalDiscord.pine" download>Descargar el archivo</a>
+    </div>
+    <div id="estado" role="status" aria-live="polite"></div>
+    <textarea id="codigo" readonly hidden aria-label="Código del indicador" rows="8"></textarea>
+  </div>
+
+  <h2>Lo que necesitas</h2>
+  <ol>
+    <li>Una cuenta de <b>TradingView con plan de pago</b> (Essential o superior). Las alertas con webhook no están en el plan gratuito. Si TradingView te lo pide, activa la verificación en dos pasos.</li>
+    <li>El <b>enlace del canal</b> (webhook de Discord) que te pasa el dueño del canal. Es privado: quien lo tiene puede publicar en ese canal. No lo compartas.</li>
+  </ol>
+
+  <h2>2. Instálalo en TradingView (una sola vez)</h2>
+  <ol>
+    <li>Abre TradingView en el ordenador y, abajo, entra en <b>Editor Pine</b>.</li>
+    <li>Crea un indicador nuevo, borra lo que trae y <b>pega el código</b>.</li>
+    <li>Pulsa <b>Guardar</b> y luego <b>Añadir al gráfico</b>. Verás una etiqueta azul que dice «sin operación»: es normal.</li>
+  </ol>
+
+  <h2>3. Envía una señal</h2>
+  <ol>
+    <li>Abre el gráfico del activo (oro, Nasdaq, el par que sea).</li>
+    <li>Entra en los <b>ajustes del indicador</b> (la rueda junto a su nombre) y escribe tu <b>Stop</b>. Si el stop queda por debajo del precio es compra; por encima, venta. Los TP se calculan solos (1R y 2R) o escribes los tuyos.</li>
+    <li>Comprueba las cajas roja y verde en el gráfico: entrada, stop y objetivos.</li>
+    <li>Crea la alerta: botón del <b>reloj</b> → en «Condición» elige <b>GTFX · Señal a Discord</b> y debajo <b>«Cualquier llamada a la función alert()»</b>.</li>
+    <li>En la pestaña <b>Notificaciones</b> marca <b>URL de webhook</b> y pega el enlace del canal. Pulsa <b>Crear</b>.</li>
+    <li>La señal se publica en ese momento. La alerta sigue viva y avisa de TP1, TP2 o stop.</li>
+  </ol>
+  <p>Así llega al canal:</p>
+  <pre>🔴 SELL Gold NOW
+Gold Entrada: 4012.5 (o cercano)
+SL: 4020.0
+TP1: 4005.0  (1R)
+TP2: 3997.5  (2R)
+⚠️ Gestiona tu riesgo</pre>
+  <div class="note">Una alerta por señal. Cuando la operación termine, borra esa alerta. Para la siguiente, cambia el stop en los ajustes y crea una alerta nueva.</div>
+
+  <h2>Si eres el dueño del canal: cómo dar permiso a otra persona</h2>
+  <ol>
+    <li>En Discord: <b>Ajustes del servidor → Integraciones → Webhooks → Nuevo webhook</b>.</li>
+    <li>Ponle el <b>nombre de la persona</b> (así se ve quién publicó) y elige el <b>canal</b> de señales.</li>
+    <li>Pulsa <b>Copiar URL del webhook</b> y envíasela <b>por privado</b>, junto con el enlace de esta página.</li>
+    <li>Para quitarle el permiso, <b>borra ese webhook</b>. El tuyo y los de los demás siguen funcionando.</li>
+  </ol>
+  <div class="note">Crea un webhook distinto para cada persona. No pases el tuyo: si lo compartes y luego quieres cortar el acceso, tendrías que cambiarlo también en tus propias alertas.</div>
+
+  <footer>Global Traders FX · El indicador no abre ni cierra operaciones: solo publica el mensaje. Operar es decisión y riesgo de cada uno.</footer>
+</div>
+<script src="senal-discord.js"></script>
+</body>
+</html>
