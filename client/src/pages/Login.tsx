@@ -53,13 +53,13 @@ export default function Login() {
     <div className="min-h-screen bg-bg grid lg:grid-cols-[1.1fr_1fr]">
       {/* Panel de marca con el orbe */}
       <section className="relative hidden lg:flex flex-col justify-between overflow-hidden border-r border-border bg-[#0a0b1e] bg-brand-grid p-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(22,245,122,0.12),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,229,255,0.12),transparent_60%)]" />
         <div className="relative z-10">
           <BrandLogo size={44} />
         </div>
         <div className="relative z-10 mx-auto aspect-square w-full max-w-[420px]">
-          <VoicePoweredOrb className="drop-shadow-[0_0_60px_rgba(22,245,122,0.35)]" />
-          <BrandMark size={96} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_0_24px_rgba(22,245,122,0.6)]" />
+          <VoicePoweredOrb className="drop-shadow-[0_0_60px_rgba(0,229,255,0.35)]" />
+          <BrandMark size={96} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_0_24px_rgba(0,229,255,0.6)]" />
         </div>
         <div className="relative z-10 space-y-5">
           <h2 className="text-3xl font-bold leading-tight text-white">
@@ -100,7 +100,7 @@ export default function Login() {
             </div>
             <BrandLogo size={36} />
           </div>
-          <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-panel p-6 shadow-[0_0_0_1px_rgba(22,245,122,0.08),0_20px_60px_-20px_rgba(0,0,0,0.8)]" noValidate>
+          <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-panel p-6 shadow-[0_0_0_1px_rgba(0,229,255,0.08),0_20px_60px_-20px_rgba(0,0,0,0.8)]" noValidate>
             <div>
               <h1 className="text-xl font-semibold text-white">Iniciar sesión</h1>
               <p className="mt-0.5 text-sm text-gray-400">Accede a tu journal de Global Traders FX.</p>

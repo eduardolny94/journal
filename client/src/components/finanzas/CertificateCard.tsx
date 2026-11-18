@@ -30,8 +30,8 @@ const FRAME: Record<CertificateVariant, string> = {
   otro: 'from-warn/50 via-warn/10 to-transparent glow-warn',
 };
 const LIGHT: Record<CertificateVariant, string> = {
-  fondeo: 'bg-[radial-gradient(ellipse_at_top,rgba(22,245,122,0.22),transparent_60%)]',
-  payout: 'bg-[radial-gradient(ellipse_at_top,rgba(34,211,111,0.22),transparent_60%)]',
+  fondeo: 'bg-[radial-gradient(ellipse_at_top,rgba(0,229,255,0.22),transparent_60%)]',
+  payout: 'bg-[radial-gradient(ellipse_at_top,rgba(0,255,163,0.22),transparent_60%)]',
   otro: 'bg-[radial-gradient(ellipse_at_top,rgba(245,180,0,0.18),transparent_60%)]',
 };
 
@@ -57,7 +57,7 @@ export function CertificateCard({ doc, variant, index = 0, account, payout, foot
         >
           {pdf ? (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-accent-soft">
-              <FileText className="h-12 w-12 drop-shadow-[0_0_18px_rgba(22,245,122,0.45)]" aria-hidden />
+              <FileText className="h-12 w-12 drop-shadow-[0_0_18px_rgba(0,229,255,0.45)]" aria-hidden />
               <span className="text-[11px] uppercase tracking-[0.2em] text-white/60">Documento PDF</span>
             </div>
           ) : (

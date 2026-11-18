@@ -99,9 +99,9 @@ const FRAG = /* glsl */ `
   }
 
   // Paleta Global Traders FX
-  const vec3 baseColor1 = vec3(0.086, 0.961, 0.478); // verde neón #00e5ff
-  const vec3 baseColor2 = vec3(0.640, 1.000, 0.820); // menta luminosa
-  const vec3 baseColor3 = vec3(0.020, 0.180, 0.095); // verde profundo
+  const vec3 baseColor1 = vec3(0.000, 0.898, 1.000); // cian neón #00e5ff
+  const vec3 baseColor2 = vec3(0.780, 0.560, 1.000); // violeta luminoso
+  const vec3 baseColor3 = vec3(0.160, 0.030, 0.240); // magenta profundo
   const float innerRadius = 0.6;
   const float noiseScale = 0.65;
 

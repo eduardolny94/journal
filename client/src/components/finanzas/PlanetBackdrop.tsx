@@ -18,7 +18,7 @@ export interface PlanetBackdropProps {
   className?: string;
 }
 
-const BRAND: RGB = [22, 245, 122];
+const BRAND: RGB = [0,229,255];
 
 /** Planetas disponibles (client/public/planets) con su matiz natural dominante. */
 const PLANETS = [

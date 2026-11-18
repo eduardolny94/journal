@@ -185,7 +185,7 @@ export default function Tour() {
       {rect ? (
         <div
           className="pointer-events-none fixed rounded-lg border border-accent/70 transition-all duration-300 ease-out"
-          style={{ left: rect.left - PAD, top: rect.top - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2, boxShadow: '0 0 0 9999px rgba(0,0,0,0.66), 0 0 24px rgba(22,245,122,0.35)' }}
+          style={{ left: rect.left - PAD, top: rect.top - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2, boxShadow: '0 0 0 9999px rgba(0,0,0,0.66), 0 0 24px rgba(0,229,255,0.35)' }}
           aria-hidden
         />
       ) : (
@@ -193,7 +193,7 @@ export default function Tour() {
       )}
       <div className="fixed inset-0" onClick={(e) => e.stopPropagation()} aria-hidden />
 
-      <div ref={cardRef} style={style} className="animate-rise rounded-xl border border-border bg-panel p-4 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.9),0_0_0_1px_rgba(22,245,122,0.12)]">
+      <div ref={cardRef} style={style} className="animate-rise rounded-xl border border-border bg-panel p-4 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.9),0_0_0_1px_rgba(0,229,255,0.12)]">
         <div className="flex items-start justify-between gap-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-accent-soft">{step.eyebrow}</p>
           <button type="button" onClick={() => void finish(false)} className="-mr-1 -mt-1 rounded p-1 text-gray-500 hover:bg-gray-800 hover:text-white" aria-label="Cerrar la guía" title="Cerrar (Esc)">
@@ -218,7 +218,7 @@ export default function Tour() {
                 Saltar
               </button>
             )}
-            <button type="button" onClick={next} autoFocus className="inline-flex h-8 items-center gap-1 rounded-md bg-accent px-3 text-xs font-semibold text-black shadow-[0_0_18px_-6px_rgba(22,245,122,0.8)] hover:bg-accent-soft">
+            <button type="button" onClick={next} autoFocus className="inline-flex h-8 items-center gap-1 rounded-md bg-accent px-3 text-xs font-semibold text-black shadow-[0_0_18px_-6px_rgba(0,229,255,0.8)] hover:bg-accent-soft">
               {last ? <>Empezar <Check className="h-3.5 w-3.5" aria-hidden /></> : <>Siguiente <ArrowRight className="h-3.5 w-3.5" aria-hidden /></>}
             </button>
           </div>

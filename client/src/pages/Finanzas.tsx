@@ -133,7 +133,7 @@ export default function Finanzas() {
             onClick={() => setTab(key)}
             className={cn(
               'inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors',
-              tab === key ? 'bg-accent/15 text-accent-soft shadow-[0_0_18px_-6px_rgba(22,245,122,0.6)]' : 'text-gray-400 hover:text-gray-100',
+              tab === key ? 'bg-accent/15 text-accent-soft shadow-[0_0_18px_-6px_rgba(0,229,255,0.6)]' : 'text-gray-400 hover:text-gray-100',
             )}
           >
             <Icon className="h-3.5 w-3.5" aria-hidden /> {label}

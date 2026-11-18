@@ -48,7 +48,7 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
   const hasPrev = open && (index as number) > 0;
   const hasNext = open && (index as number) < items.length - 1;
   const [full, setFull] = useState(false);
-  const [color, setColor] = useState<RGB>([22, 245, 122]);
+  const [color, setColor] = useState<RGB>([0,229,255]);
   const onColor = useCallback((c: RGB) => setColor(c), []);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
         <div className="order-1 flex min-h-0 items-center justify-center md:order-2 md:justify-end" style={{ perspective: '1400px' }}>
           {pdf ? (
             <a href={item.doc.path} target="_blank" rel="noopener" className="liquid-glass animate-blur-fade-up flex flex-col items-center gap-3 rounded-3xl px-12 py-10 text-center" style={rise(250)}>
-              <FileText size={64} className="text-accent drop-shadow-[0_0_24px_rgba(22,245,122,0.6)]" aria-hidden />
+              <FileText size={64} className="text-accent drop-shadow-[0_0_24px_rgba(0,229,255,0.6)]" aria-hidden />
               <span className="text-sm text-white/80">Documento PDF · pulsa para abrirlo</span>
             </a>
           ) : (
@@ -159,7 +159,7 @@ export default function CinematicViewer({ items, index, onClose, onNavigate, onD
           >
             {item.title}
           </h1>
-          <span className="animate-blur-fade-up mt-4 block h-1 w-20 rounded-full bg-accent shadow-[0_0_18px_rgba(22,245,122,0.8)]" style={rise(520)} aria-hidden />
+          <span className="animate-blur-fade-up mt-4 block h-1 w-20 rounded-full bg-accent shadow-[0_0_18px_rgba(0,229,255,0.8)]" style={rise(520)} aria-hidden />
           <div className="animate-blur-fade-up mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)] sm:text-sm" style={rise(600)}>
             {item.meta.map((m, i) => {
               const Icon = ICONS[m.icon];

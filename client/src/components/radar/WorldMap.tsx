@@ -68,7 +68,7 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
     for (const [code, ids] of Object.entries(COUNTRIES) as Array<[CurrencyCode, string[]]>) {
       const c = byCode[code];
       const bias = currencyBias(c?.score);
-      const fill = bias === 'alcista' ? 'rgba(34,211,111,0.55)' : bias === 'bajista' ? 'rgba(255,77,94,0.5)' : 'rgba(120,132,140,0.45)';
+      const fill = bias === 'alcista' ? 'rgba(0,255,163,0.55)' : bias === 'bajista' ? 'rgba(255,77,94,0.5)' : 'rgba(120,132,140,0.45)';
       for (const id of ids) map[id] = fill;
     }
     map[CHINA] = 'rgba(120,132,140,0.22)';
@@ -81,7 +81,7 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
         <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full min-w-[640px]" role="img" aria-label="Mapa de sesgo semanal por divisa">
           <defs>
             <pattern id="radar-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-              <path d="M24 0H0V24" fill="none" stroke="rgba(22,245,122,0.06)" strokeWidth="1" />
+              <path d="M24 0H0V24" fill="none" stroke="rgba(0,229,255,0.06)" strokeWidth="1" />
             </pattern>
           </defs>
           <rect width={W} height={H} fill="url(#radar-grid)" />
@@ -95,7 +95,7 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
             const c = byCode[code];
             const bias = currencyBias(c?.score);
             const color = bias === 'alcista' ? '#00ffa3' : bias === 'bajista' ? '#ff3d71' : '#868bc6';
-            const tint = bias === 'alcista' ? 'rgba(34,211,111,0.22)' : bias === 'bajista' ? 'rgba(255,77,94,0.22)' : 'rgba(120,132,140,0.18)';
+            const tint = bias === 'alcista' ? 'rgba(0,255,163,0.22)' : bias === 'bajista' ? 'rgba(255,77,94,0.22)' : 'rgba(120,132,140,0.18)';
             const label = c ? fmtSignedInt0(c.score) : '—';
             const arrow = bias === 'alcista' ? '▲' : bias === 'bajista' ? '▼' : '—';
             const word = bias === 'alcista' ? 'fuerte' : bias === 'bajista' ? 'débil' : 'neutral';
