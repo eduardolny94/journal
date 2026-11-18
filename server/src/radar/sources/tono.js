@@ -28,12 +28,12 @@ const KEYWORDS = { USD: /\b(Fed|FOMC|Powell|Warsh)\b/i, EUR: /\b(ECB|BCE|Lagarde
 
 const strip = (html) => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<nav[\s\S]*?<\/nav>|<header[\s\S]*?<\/header>|<footer[\s\S]*?<\/footer>/gi, '');
 const unescape = (s) => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&rsquo;|&lsquo;/g, "'").replace(/&[a-z]+;|&#\d+;/g, ' ');
-function paragraphs(html) {
+export function paragraphs(html) {
   const out = [];
   for (const m of strip(html).matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) { const t = unescape(m[1].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim(); if (t.length > 60 && !/cookies|\.gov website|Secure \.gov|javascript/i.test(t)) out.push(t); }
   return out.join('\n');
 }
-function feedItems(xml) {
+export function feedItems(xml) {
   const items = [];
   for (const m of xml.matchAll(/<(item|entry)\b[\s\S]*?<\/\1>/gi)) {
     const block = m[0];

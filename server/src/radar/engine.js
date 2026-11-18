@@ -21,6 +21,7 @@ import { refreshGex } from './sources/gex.js';
 import { refreshNews, listNews } from './sources/news.js';
 import { refreshTono } from './sources/tono.js';
 import { clienteApi } from '../mesa/agentes.js';
+import { refreshLecturas, latestLecturas } from './lecturas.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
 import { readExpectation, weekPlan } from './week.js';
 import { getMeta, getMetaJson, setMeta, listManual, setManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, saveInstrumentBias, latestSnapshotRow } from './store.js';
@@ -46,6 +47,7 @@ const state = {
     calendar: { ok: false, last_fetch: null, error: null, events_week: 0 },
     cot: { ok: false, last_fetch: null, error: null, report_date: null },
     news: { ok: false, last_fetch: null, error: null, count: 0 },
+    lecturas: { ok: false, last_fetch: null, error: null, count: 0 },
   },
 };
 
@@ -134,6 +136,8 @@ export function refreshSources({ force = false } = {}) {
     ]);
     // El tono va después de calendario y noticias (los necesita) y usa Claude si hay clave; si no, la regla simple.
     await runSource(db, 'tono', REFRESH_MS.tono, async () => { let llamar = null; try { if (process.env.ANTHROPIC_API_KEY) llamar = clienteApi(); } catch { llamar = null; } return refreshTono(db, { llamar, log: (m) => console.log('[radar tono]', m) }); }, { force, now });
+    // Lectura de noticias: datos de alto impacto y actas de USD, EUR, GBP, CHF y CAD (lecturas.js). Cada 5 min; solo llama al modelo con actas nuevas.
+    await runSource(db, 'lecturas', 5 * 60_000, async () => { let llamar = null; try { if (process.env.ANTHROPIC_API_KEY) llamar = clienteApi(); } catch { llamar = null; } return refreshLecturas(db, { now, llamar, log: (m) => console.log('[radar lecturas]', m) }); }, { force: false, now });
   })().finally(() => {
     state.refreshing = null;
   });
@@ -379,6 +383,7 @@ async function compute() {
     swing,
     intradia,
     dato_del_dia: datoDelDia,
+    lecturas: (() => { try { return latestLecturas(db, { now }); } catch (e) { console.warn('[radar] lecturas:', e.message); return null; } })(),
     cot: cot.rows,
     expectations,
     week,

@@ -638,6 +638,7 @@ export interface RadarSnapshot {
   que_operar?: QueOperar | null;
   swing?: SwingPlan | null;
   dato_del_dia?: DatoDelDia | null;
+  lecturas?: Lecturas | null;
   intradia?: Intradia | null;
 }
 
@@ -727,6 +728,7 @@ export function normalizeSnapshot(raw: unknown): RadarSnapshot {
     que_operar: (r.que_operar as QueOperar | null | undefined) ?? null,
     swing: ((r as { swing?: SwingPlan | null }).swing ?? null),
     dato_del_dia: ((r as { dato_del_dia?: DatoDelDia | null }).dato_del_dia ?? null),
+    lecturas: ((r as { lecturas?: Lecturas | null }).lecturas ?? null),
     intradia: ((r as { intradia?: Intradia | null }).intradia ?? null),
     cot: asArray<CotRow>(r.cot),
     expectations: asArray<Expectation>(r.expectations),
@@ -1814,3 +1816,7 @@ export async function fetchImpact(signal?: AbortSignal): Promise<ImpactReport | 
     return null;
   }
 }
+
+/** Lectura de noticias (server/src/radar/lecturas.js): qué salió y qué esperar por divisa. dir: 1 a favor, -1 en contra, 0 neutral. */
+export interface LecturaNoticia { currency: string; title: string; at_utc: string; kind: 'dato' | 'actas'; dir: number; lectura: string; esperar: string; detalle: string | null; fuente: string; link: string | null; updated_at: string }
+export interface Lecturas { as_of: string; currencies: string[]; por_divisa: Record<string, LecturaNoticia | null>; recientes: LecturaNoticia[]; proximas: { currency: string; title: string; at_utc: string; actas: boolean }[] }

@@ -329,6 +329,24 @@ CREATE TABLE IF NOT EXISTS radar_daily_bias (
   PRIMARY KEY(date, symbol)
 );
 
+-- Lectura de noticias (lecturas.js): qué salió y qué esperar, por divisa, para datos de alto impacto y actas.
+CREATE TABLE IF NOT EXISTS radar_lecturas (
+  clave TEXT PRIMARY KEY,
+  currency TEXT NOT NULL,
+  title TEXT NOT NULL,
+  at_utc TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  dir INTEGER NOT NULL DEFAULT 0,
+  lectura TEXT,
+  esperar TEXT,
+  detalle TEXT,
+  fuente TEXT,
+  link TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_radar_lecturas_at ON radar_lecturas(at_utc);
+
 -- Sesgo diario de índices y metales (Nasdaq, oro…): primera y última lectura de cada día UTC, con sus pilares.
 CREATE TABLE IF NOT EXISTS radar_instrument_bias (
   date TEXT NOT NULL,
