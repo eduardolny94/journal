@@ -43,7 +43,7 @@ export function RadarDashboardCards({ accountId, currency }: { accountId: number
                 <li key={p.symbol} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
                   <Link to={`/radar/${p.symbol}`} className="w-28 shrink-0 text-sm font-semibold text-gray-100 hover:text-accent-soft">{assetIcon(p)} {assetLabel(p)}</Link>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <Badge variant={biasVariant(p)}>{biasLabel(p)}</Badge>
                       {p.clarity && <Badge variant={p.clarity.tier === 'alta' ? 'profit' : p.clarity.tier === 'baja' ? 'warn' : 'default'}>claridad {p.clarity.tier}</Badge>}
                       {p.clarity && p.clarity.timing && (p.clarity.timing.state === 'buen' || p.clarity.timing.state === 'esperar') && <Badge variant={p.clarity.timing.state === 'buen' ? 'profit' : 'warn'}>hoy: {p.clarity.timing.label}</Badge>}
