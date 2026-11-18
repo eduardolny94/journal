@@ -27,18 +27,18 @@ export function BiasHistoryChart(props: HistoryProps) {
         <div className="h-56">
           <ResponsiveContainer>
             <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-              <CartesianGrid stroke="#1d2a23" vertical={false} />
-              <XAxis dataKey="at" tickFormatter={(v: string) => new Date(v).toLocaleDateString('es', { day: '2-digit', month: 'short' })} stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} minTickGap={40} />
-              <YAxis domain={[-10, 10]} stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} />
-              <ReferenceLine y={0} stroke="#3b434a" />
+              <CartesianGrid stroke="#2a2e70" vertical={false} />
+              <XAxis dataKey="at" tickFormatter={(v: string) => new Date(v).toLocaleDateString('es', { day: '2-digit', month: 'short' })} stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} minTickGap={40} />
+              <YAxis domain={[-10, 10]} stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} />
+              <ReferenceLine y={0} stroke="#4b4f96" />
               <Tooltip
-                contentStyle={{ background: '#0e1512', border: '1px solid #1d2a23', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: '#131538', border: '1px solid #2a2e70', borderRadius: 8, fontSize: 12 }}
                 labelFormatter={(v) => new Date(String(v)).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 formatter={(v) => fmtScore(Number(v))}
               />
-              {isPair && <Line type="monotone" dataKey="a" name={props.base} stroke="#16f57a" dot={false} strokeWidth={2} isAnimationActive={false} />}
-              {isPair && <Line type="monotone" dataKey="b" name={props.quote} stroke="#8aa398" dot={false} strokeWidth={2} isAnimationActive={false} />}
-              <Line type="monotone" dataKey="diff" name={isPair ? 'diferencia' : 'sesgo'} stroke="#f5b400" dot={false} strokeWidth={isPair ? 1 : 2} strokeDasharray={isPair ? '4 3' : undefined} isAnimationActive={false} />
+              {isPair && <Line type="monotone" dataKey="a" name={props.base} stroke="#00e5ff" dot={false} strokeWidth={2} isAnimationActive={false} />}
+              {isPair && <Line type="monotone" dataKey="b" name={props.quote} stroke="#868bc6" dot={false} strokeWidth={2} isAnimationActive={false} />}
+              <Line type="monotone" dataKey="diff" name={isPair ? 'diferencia' : 'sesgo'} stroke="#fcee0a" dot={false} strokeWidth={isPair ? 1 : 2} strokeDasharray={isPair ? '4 3' : undefined} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
           <p className="mt-1 text-[11px] text-gray-500">
@@ -115,7 +115,7 @@ export function TradingViewChart({ symbol, title, className }: { symbol: string;
           hide_side_toolbar: false,
           allow_symbol_change: false,
           withdateranges: true,
-          toolbar_bg: '#0e1512',
+          toolbar_bg: '#131538',
         });
       })
       .catch((e) => !cancelled && setError((e as Error).message));

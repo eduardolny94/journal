@@ -76,7 +76,7 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
   }, [byCode]);
 
   return (
-    <div className={cn('relative overflow-hidden rounded-lg border border-border bg-[#070d0a]', className)}>
+    <div className={cn('relative overflow-hidden rounded-lg border border-border bg-[#0a0b1e]', className)}>
       <div className="overflow-x-auto">
         <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full min-w-[640px]" role="img" aria-label="Mapa de sesgo semanal por divisa">
           <defs>
@@ -86,7 +86,7 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
           </defs>
           <rect width={W} height={H} fill="url(#radar-grid)" />
           {paths.map((p) => (
-            <path key={p.key} d={p.d} fill={countryFill[p.id] ?? '#141b18'} stroke="#0b100d" strokeWidth={0.6} />
+            <path key={p.key} d={p.d} fill={countryFill[p.id] ?? '#181b44'} stroke="#111333" strokeWidth={0.6} />
           ))}
           {(Object.keys(CHIP_POS) as CurrencyCode[]).map((code) => {
             const pos = projection(CHIP_POS[code].chip);
@@ -94,7 +94,7 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
             if (!pos || !anchor) return null;
             const c = byCode[code];
             const bias = currencyBias(c?.score);
-            const color = bias === 'alcista' ? '#22d36f' : bias === 'bajista' ? '#ff4d5e' : '#8aa398';
+            const color = bias === 'alcista' ? '#00ffa3' : bias === 'bajista' ? '#ff3d71' : '#868bc6';
             const tint = bias === 'alcista' ? 'rgba(34,211,111,0.22)' : bias === 'bajista' ? 'rgba(255,77,94,0.22)' : 'rgba(120,132,140,0.18)';
             const label = c ? fmtSignedInt0(c.score) : '—';
             const arrow = bias === 'alcista' ? '▲' : bias === 'bajista' ? '▼' : '—';
@@ -111,9 +111,9 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
                 <g transform={`translate(${pos[0]}, ${pos[1]})`}>
                   <title>{code}: {word} ({label}). El país se pinta con el color de su divisa.</title>
                   <rect x={-CHIP_W / 2} y={-14} width={CHIP_W} height={28} rx={14} fill={tint} stroke={color} strokeOpacity={0.85} />
-                  <rect x={-CHIP_W / 2} y={-14} width={CHIP_W} height={28} rx={14} fill="#0e1512" fillOpacity={0.55} stroke="none" />
+                  <rect x={-CHIP_W / 2} y={-14} width={CHIP_W} height={28} rx={14} fill="#131538" fillOpacity={0.55} stroke="none" />
                   <text x={-CHIP_W / 2 + 13} y={5} fontSize={13} textAnchor="middle">{flagOf(code)}</text>
-                  <text x={-CHIP_W / 2 + 25} y={4} fontSize={11} fontWeight={800} fill="#e8f0ec" fontFamily="ui-monospace, monospace">{code}</text>
+                  <text x={-CHIP_W / 2 + 25} y={4} fontSize={11} fontWeight={800} fill="#e9ebff" fontFamily="ui-monospace, monospace">{code}</text>
                   <text x={CHIP_W / 2 - 30} y={4} fontSize={11} fontWeight={700} fill={color} fontFamily="ui-monospace, monospace" textAnchor="end">{arrow}</text>
                   <text x={CHIP_W / 2 - 10} y={4} fontSize={11} fontWeight={700} fill={color} fontFamily="ui-monospace, monospace" textAnchor="end">{label}</text>
                 </g>
@@ -125,9 +125,9 @@ export default function WorldMap({ currencies, onSelect, updatedLabel, className
             return pos ? (
               <g transform={`translate(${pos[0]}, ${pos[1]})`}>
                 <title>CNY: sin datos en el radar</title>
-                <rect x={-32} y={-11} width={64} height={22} rx={11} fill="#0e1512" stroke="#3b434a" />
+                <rect x={-32} y={-11} width={64} height={22} rx={11} fill="#131538" stroke="#4b4f96" />
                 <text x={-20} y={4} fontSize={12} textAnchor="middle">🇨🇳</text>
-                <text x={8} y={4} fontSize={10} fill="#8aa398" textAnchor="middle" fontFamily="ui-monospace, monospace">CNY —</text>
+                <text x={8} y={4} fontSize={10} fill="#868bc6" textAnchor="middle" fontFamily="ui-monospace, monospace">CNY —</text>
               </g>
             ) : null;
           })()}

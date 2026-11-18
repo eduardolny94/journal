@@ -46,7 +46,7 @@ export function CertificateCard({ doc, variant, index = 0, account, payout, foot
       className={cn('animate-rise group relative rounded-2xl bg-gradient-to-b p-px transition-shadow duration-500', FRAME[variant], className)}
       style={style}
     >
-      <div className="relative overflow-hidden rounded-[15px] bg-[#070d0a]">
+      <div className="relative overflow-hidden rounded-[15px] bg-[#0a0b1e]">
         <div className={cn('pointer-events-none absolute inset-0', LIGHT[variant])} aria-hidden />
 
         <button
@@ -64,7 +64,7 @@ export function CertificateCard({ doc, variant, index = 0, account, payout, foot
             <img src={doc.path} alt={title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
           )}
           <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/15 to-transparent opacity-0 group-hover:opacity-100 group-hover:shine-sweep" aria-hidden />
-          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#070d0a] via-[#070d0a]/70 to-transparent" aria-hidden />
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0a0b1e] via-[#0a0b1e]/70 to-transparent" aria-hidden />
         </button>
 
         <div className="relative -mt-8 px-4 pb-4">

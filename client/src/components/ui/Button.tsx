@@ -14,8 +14,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-black font-semibold hover:bg-accent-soft focus-visible:ring-accent/60 shadow-[0_0_20px_-6px_rgba(22,245,122,0.7)]',
-  secondary: 'bg-panel border border-border text-gray-200 hover:bg-gray-800 hover:border-gray-600 focus-visible:ring-gray-500/60',
+  primary: 'cy-btn-primary focus-visible:ring-accent/60',
+  secondary: 'cy-btn-secondary focus-visible:ring-accent/50',
   ghost: 'bg-transparent text-gray-300 hover:bg-gray-800/70 hover:text-white focus-visible:ring-gray-500/60',
   danger: 'bg-loss/15 text-loss border border-loss/40 hover:bg-loss/25 focus-visible:ring-loss/60',
   success: 'bg-profit/15 text-profit border border-profit/40 hover:bg-profit/25 focus-visible:ring-profit/60',
@@ -39,7 +39,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center rounded-md font-medium transition-colors select-none',
+        'cy-btn inline-flex items-center justify-center font-medium select-none',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant],

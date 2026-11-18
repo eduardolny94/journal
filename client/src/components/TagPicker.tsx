@@ -36,13 +36,13 @@ export const KIND_LABEL_SINGULAR: Record<TagKind, string> = {
 };
 
 const KIND_DEFAULT_COLOR: Record<TagKind, string> = {
-  setup: '#16f57a',
+  setup: '#00e5ff',
   patron: '#a855f7',
   error: '#ef4444',
   emocion: '#f59e0b',
 };
 
-const PRESET_COLORS = ['#16f57a', '#22c55e', '#ef4444', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#eab308', '#64748b'];
+const PRESET_COLORS = ['#00e5ff', '#22c55e', '#ef4444', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#eab308', '#64748b'];
 
 /** Hook: carga las etiquetas del usuario. */
 export function useTags() {

@@ -101,7 +101,7 @@ function drawStars(canvas: HTMLCanvasElement, color: RGB) {
   if (!ctx) return;
   const w = (canvas.width = canvas.clientWidth || 1280);
   const h = (canvas.height = canvas.clientHeight || 720);
-  ctx.fillStyle = '#020403';
+  ctx.fillStyle = '#111333';
   ctx.fillRect(0, 0, w, h);
   const g1 = ctx.createRadialGradient(w * 0.12, h * 0.08, 0, w * 0.12, h * 0.08, Math.max(w, h) * 0.75);
   g1.addColorStop(0, `rgba(${BRAND.join(',')},0.22)`);

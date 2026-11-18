@@ -84,13 +84,13 @@ export default function Admin() {
               <div className="h-60">
                 <ResponsiveContainer>
                   <ComposedChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                    <CartesianGrid stroke="#1d2a23" vertical={false} />
-                    <XAxis dataKey="label" stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} minTickGap={12} />
-                    <YAxis yAxisId="l" stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} width={44} />
-                    <YAxis yAxisId="r" orientation="right" allowDecimals={false} stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} width={28} />
-                    <Tooltip contentStyle={{ background: '#0e1512', border: '1px solid #1d2a23', borderRadius: 8, fontSize: 12 }} formatter={(v, name) => (name === 'ingresos' ? [fmtMoney(Number(v), cur, { sign: false }), 'Ingresos'] : [String(v), 'Altas'])} />
-                    <Bar yAxisId="l" dataKey="ingresos" fill="#22d36f" radius={[3, 3, 0, 0]} maxBarSize={26} isAnimationActive={false} />
-                    <Line yAxisId="r" type="monotone" dataKey="altas" stroke="#f5b400" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <CartesianGrid stroke="#2a2e70" vertical={false} />
+                    <XAxis dataKey="label" stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} minTickGap={12} />
+                    <YAxis yAxisId="l" stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} width={44} />
+                    <YAxis yAxisId="r" orientation="right" allowDecimals={false} stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} width={28} />
+                    <Tooltip contentStyle={{ background: '#131538', border: '1px solid #2a2e70', borderRadius: 8, fontSize: 12 }} formatter={(v, name) => (name === 'ingresos' ? [fmtMoney(Number(v), cur, { sign: false }), 'Ingresos'] : [String(v), 'Altas'])} />
+                    <Bar yAxisId="l" dataKey="ingresos" fill="#00ffa3" radius={[3, 3, 0, 0]} maxBarSize={26} isAnimationActive={false} />
+                    <Line yAxisId="r" type="monotone" dataKey="altas" stroke="#fcee0a" strokeWidth={2} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>

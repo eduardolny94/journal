@@ -14,7 +14,7 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>
 export function Card({ title, subtitle, actions, flush = false, footer, className, children, ...rest }: CardProps) {
   const hasHeader = title || subtitle || actions;
   return (
-    <div className={cn('rounded-lg border border-border bg-panel shadow-sm', className)} {...rest}>
+    <div className={cn('cy-card', className)} {...rest}>
       {hasHeader && (
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0">
@@ -42,7 +42,7 @@ export interface StatCardProps {
 /** Tarjeta compacta para métricas (P&L del día, win rate, etc.). */
 export function StatCard({ label, value, hint, icon, valueClassName, className }: StatCardProps) {
   return (
-    <div className={cn('rounded-lg border border-border bg-panel p-4 flex items-start justify-between gap-3', className)}>
+    <div className={cn('cy-card p-4 flex items-start justify-between gap-3', className)}>
       <div className="min-w-0">
         <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
         <p className={cn('mt-1 text-2xl font-semibold tnum text-gray-100 truncate', valueClassName)}>{value}</p>

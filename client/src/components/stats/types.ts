@@ -219,7 +219,7 @@ export function shiftMonth(month: string, delta: number): string {
 export const CHART_COLORS = {
   profit: '#22c55e',
   loss: '#ef4444',
-  accent: '#16f57a',
+  accent: '#00e5ff',
   bg: '#0b0f17',
   panel: '#121826',
   border: '#1f2937',

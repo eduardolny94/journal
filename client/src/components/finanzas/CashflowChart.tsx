@@ -21,21 +21,21 @@ export default function CashflowChart({ data, currency, className }: { data: Mon
         <div className="h-64">
           <ResponsiveContainer>
             <ComposedChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid stroke="#1d2a23" vertical={false} />
-              <XAxis dataKey="label" stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} minTickGap={16} />
-              <YAxis stroke="#3b434a" tick={{ fill: '#8aa398', fontSize: 11 }} tickFormatter={(v: number) => `${Math.round(v)}`} width={48} />
-              <ReferenceLine y={0} stroke="#3b434a" />
+              <CartesianGrid stroke="#2a2e70" vertical={false} />
+              <XAxis dataKey="label" stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} minTickGap={16} />
+              <YAxis stroke="#4b4f96" tick={{ fill: '#868bc6', fontSize: 11 }} tickFormatter={(v: number) => `${Math.round(v)}`} width={48} />
+              <ReferenceLine y={0} stroke="#4b4f96" />
               <Tooltip
-                contentStyle={{ background: '#0e1512', border: '1px solid #1d2a23', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: '#131538', border: '1px solid #2a2e70', borderRadius: 8, fontSize: 12 }}
                 formatter={(value, name) => {
                   const v = Number(value);
                   const label = name === 'ingresos' ? 'Ingresos' : name === 'gastos_neg' ? 'Gastos' : 'Acumulado';
                   return [fmtMoney(name === 'gastos_neg' ? -v : v, currency, { sign: name === 'acumulado' }), label];
                 }}
               />
-              <Bar dataKey="ingresos" fill="#22d36f" radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={false} />
-              <Bar dataKey="gastos_neg" fill="#ff4d5e" radius={[0, 0, 3, 3]} maxBarSize={28} isAnimationActive={false} />
-              <Line type="monotone" dataKey="acumulado" stroke="#f5b400" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Bar dataKey="ingresos" fill="#00ffa3" radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+              <Bar dataKey="gastos_neg" fill="#ff3d71" radius={[0, 0, 3, 3]} maxBarSize={28} isAnimationActive={false} />
+              <Line type="monotone" dataKey="acumulado" stroke="#fcee0a" strokeWidth={2} dot={false} isAnimationActive={false} />
             </ComposedChart>
           </ResponsiveContainer>
           <p className="mt-1 text-[11px] text-gray-500">

@@ -5,18 +5,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta Global Traders FX: negro profundo, gris acero del escudo y verde neón.
-        bg: '#060a08',
-        panel: '#0e1512',
-        border: '#1d2a23',
-        steel: { DEFAULT: '#3b434a', light: '#6b7680', dark: '#232a2f' },
-        profit: '#22d36f',
-        loss: '#ff4d5e',
-        accent: { DEFAULT: '#16f57a', dark: '#0fbf5e', soft: '#7dffb5' },
-        warn: '#f5b400',
-        // Contraste: los grises 500/600 de Tailwind no llegan a 4,5:1 sobre el fondo (#060a08) en texto pequeño.
-        // Se aclaran un punto (500 ≈ 6,3:1, 600 ≈ 4,6:1) sin tocar el resto de la escala.
-        gray: { 500: '#8b94a3', 600: '#6e7786' },
+        // Tema de prueba: Cyberpunk (índigo + cian neón + magenta)
+        bg: '#0a0b1e',
+        panel: '#131538',
+        border: '#2a2e70',
+        steel: { DEFAULT: '#4b4f96', light: '#8f93d6', dark: '#1b1d45' },
+        profit: '#00ffa3',
+        loss: '#ff3d71',
+        accent: { DEFAULT: '#00e5ff', dark: '#00b8d4', soft: '#9af6ff' },
+        tech: '#ff2bd6',
+        warn: '#fcee0a',
+        gray: { 50: '#f6f7ff', 100: '#e9ebff', 200: '#d6d9f7', 300: '#b9bde6', 400: '#979cd0', 500: '#868bc6', 600: '#777cb8', 700: '#3d4183', 800: '#262a5c', 900: '#181b44', 950: '#111333' },
       },
       fontFamily: {
         sans: [

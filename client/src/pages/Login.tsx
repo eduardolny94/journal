@@ -52,7 +52,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-bg grid lg:grid-cols-[1.1fr_1fr]">
       {/* Panel de marca con el orbe */}
-      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden border-r border-border bg-[#070d0a] bg-brand-grid p-10">
+      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden border-r border-border bg-[#0a0b1e] bg-brand-grid p-10">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(22,245,122,0.12),transparent_60%)]" />
         <div className="relative z-10">
           <BrandLogo size={44} />

@@ -12,6 +12,14 @@
     font-family: theme('fontFamily.sans');
     font-variant-numeric: tabular-nums;
     min-height: 100vh;
+    /* Resplandor suave del color principal en las esquinas superiores: da profundidad sin oscurecer. */
+    background-image:
+      radial-gradient(1100px 520px at 12% -8%, theme('colors.accent.DEFAULT / 16%'), transparent 70%),
+      radial-gradient(900px 480px at 100% -5%, theme('colors.tech / 14%'), transparent 70%),
+      linear-gradient(theme('colors.accent.DEFAULT / 4%') 1px, transparent 1px),
+      linear-gradient(90deg, theme('colors.accent.DEFAULT / 4%') 1px, transparent 1px);
+    background-size: auto, auto, 44px 44px, 44px 44px;
+    background-attachment: fixed;
   }
   ::selection {
     @apply bg-accent/40;
@@ -19,14 +27,14 @@
   /* Scrollbars discretas */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #1d2a23 transparent;
+    scrollbar-color: #2a2e70 transparent;
   }
   *::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
   *::-webkit-scrollbar-thumb {
-    background: #1d2a23;
+    background: #2a2e70;
     border-radius: 9999px;
   }
   input[type='number']::-webkit-inner-spin-button,
@@ -200,4 +208,60 @@
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* ── Rediseño cyberpunk (prueba): tarjetas con filo de neón y botones con degradado y brillo ── */
+@layer components {
+  .cy-card {
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid theme('colors.border');
+    background: linear-gradient(180deg, theme('colors.panel / 94%'), theme('colors.bg / 90%'));
+    box-shadow: inset 0 0 0 1px theme('colors.accent.DEFAULT / 4%'), 0 18px 40px -26px rgb(0 0 0 / 0.7);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .cy-card::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, theme('colors.accent.DEFAULT / 80%'), theme('colors.tech / 70%'), transparent);
+    pointer-events: none;
+  }
+  .cy-card:hover {
+    border-color: theme('colors.accent.DEFAULT / 32%');
+    box-shadow: inset 0 0 0 1px theme('colors.accent.DEFAULT / 8%'), 0 0 30px -14px theme('colors.accent.DEFAULT / 55%');
+  }
+  .cy-btn {
+    border-radius: 10px;
+    letter-spacing: 0.02em;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .cy-btn:active:not(:disabled) { transform: translateY(1px); }
+  .cy-btn-primary {
+    background-image: linear-gradient(100deg, theme('colors.accent.DEFAULT'), theme('colors.accent.DEFAULT') 45%, theme('colors.tech') 140%);
+    color: #05061a;
+    font-weight: 600;
+    box-shadow: 0 0 0 1px theme('colors.accent.DEFAULT / 60%'), 0 0 22px -6px theme('colors.accent.DEFAULT / 75%');
+  }
+  .cy-btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08) saturate(1.1);
+    box-shadow: 0 0 0 1px theme('colors.accent.soft / 80%'), 0 0 30px -4px theme('colors.accent.DEFAULT / 85%');
+  }
+  .cy-btn-secondary {
+    background-color: theme('colors.accent.DEFAULT / 7%');
+    border: 1px solid theme('colors.accent.DEFAULT / 34%');
+    color: theme('colors.accent.soft');
+  }
+  .cy-btn-secondary:hover:not(:disabled) {
+    background-color: theme('colors.accent.DEFAULT / 14%');
+    border-color: theme('colors.accent.DEFAULT / 65%');
+    box-shadow: 0 0 20px -8px theme('colors.accent.DEFAULT / 70%');
+  }
+}
+/* Paneles sueltos (fuera del componente Card): mismo fondo en degradado y esquinas algo más redondas. */
+.bg-panel.border-border {
+  background-image: linear-gradient(180deg, theme('colors.panel / 96%'), theme('colors.bg / 92%'));
 }
