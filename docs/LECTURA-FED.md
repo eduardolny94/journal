@@ -87,3 +87,25 @@ No cubierto (candidatos; si entran, con peso 0 y medidos según la skill `radar-
 - Lectura automática tras la publicación: coherencia 2Y/10Y + DXY + oro + Nasdaq (confirmación frente a divergencia).
 - Bono nominal de EE. UU. a 10 años (hoy solo 2 años nominal, 10 años real y breakeven) y Brent además de WTI.
 - Checklist pre/post evento en la ficha del evento (ImpactCard) para actas y discursos, que hoy no tienen β calibrada.
+
+## Lectura automática de noticias (18-11-2026)
+
+Pedido de César: que las actas y las noticias de alto impacto se lean solas y quede escrito «qué salió y qué esperar»
+para **USD, EUR, GBP, CHF y CAD**. Código: `server/src/radar/lecturas.js` (tabla `radar_lecturas`), pruebas en
+`server/scripts/test-lecturas.mjs`, tarjeta «Lectura de noticias» en Radar → Panel (`LecturasCard.tsx`).
+
+- **Cuándo corre:** cada 5 minutos dentro del ciclo del radar (y el calendario se lee cada 2 minutos al salir un dato).
+- **Datos de alto impacto:** reglas fijas. Sorpresa de cada componente → a favor / en contra / en línea / mixta. Si el
+  titular sale en línea pero los componentes de impacto medio de la misma hora y del mismo tipo van todos a un lado, se
+  marca «ligeramente a favor / en contra». Se añade lo medido para ese tipo de dato (898 datos, 2023–2026: inflación
+  77 % la primera hora y 59–61 % a 5–20 días; empleo 72 % y 51–56 %; actividad 58 % y 50 %) y si el bono a 2 años de
+  esa divisa lo confirma ese día (≥ 2 pb en el mismo sentido). Se reescribe durante 24 h para recoger el bono.
+- **Actas** (FOMC Minutes, cuentas del BCE, actas del BoE y del BNS, deliberaciones del BoC): 5 minutos después de la hora
+  del calendario se busca el texto oficial (Fed y BCE por su RSS; en la Fed se sigue el enlace de la nota de prensa a las
+  actas completas y se lee desde «Participants' Views») y Claude lo lee con el método de este documento: ¿más o menos
+  duras que lo descontado (FedWatch), y lo confirma el bono? Devuelve tono −2…+2, resumen y «qué esperar». Sin clave de
+  Anthropic o sin texto: regla con el bono a 2 años (≥ 3 pb), reintentada cada 30 minutos durante 48 h.
+- **No cambia la puntuación del sesgo.** Es lectura para el trader; el tono que sí puntúa sigue saliendo de las decisiones
+  (`sources/tono.js`).
+- Probado con las actas del 7-10-2026: «algo más duras de lo descontado → a favor del dólar… el efecto debería ser
+  pequeño» (el bono se movió +1 pb), que coincide con la lectura manual de la bitácora.

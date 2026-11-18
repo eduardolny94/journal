@@ -52,6 +52,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 
 29. **Oro: avisos y tamaño esperado (15-11-2026).** Dos avisos que no puntúan, estables en tres épocas: «plata por delante del oro» (oro 49 % frente a 57 % a 20 sesiones) e «inflación esperada al alza» (51 % frente a 59 %). Fila del GVZ con el movimiento diario esperado del oro (correlación 0,58 con el tamaño; no anticipa dirección). El COT del oro no da señal estable. Detalle en [BONOS-DIRECCION.md](BONOS-DIRECCION.md).
 
+30. **Lectura automática de noticias (18-11-2026).** Tarjeta «Lectura de noticias» en el Panel: para USD, EUR, GBP, CHF y CAD, qué salió y qué esperar tras cada dato de alto impacto (reglas con lo medido y confirmación del bono a 2 años) y tras cada acta de banco central (texto oficial leído con el método «frente a lo descontado»). No puntúa. Detalle en [LECTURA-FED.md](LECTURA-FED.md).
+
 ## Lo que se descarta (medido, sin ventaja)
 
 - La reacción de la primera hora tras una noticia como señal de continuación (48 %).

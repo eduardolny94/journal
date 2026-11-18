@@ -2,6 +2,7 @@
 import FavoritesPicker from '../components/radar/FavoritesPicker';
 import QueOperarCard from '../components/radar/QueOperarCard';
 import DatoDelDiaCard from '../components/radar/DatoDelDiaCard';
+import LecturasCard from '../components/radar/LecturasCard';
 import SwingCard, { SwingChecklist } from '../components/radar/SwingCard';
 import HoyCard from '../components/radar/HoyCard';
 import MesaTab from '../components/radar/MesaTab';
@@ -136,6 +137,7 @@ export default function Radar() {
         <div className="space-y-6">
           <WorldMap currencies={snap.currencies} onSelect={(c) => setSelected(c)} updatedLabel={`Actualizado ${fmtSince(snap.computed_at, now)}`} />
           {snap.dato_del_dia && <DatoDelDiaCard data={snap.dato_del_dia} />}
+          {snap.lecturas && <LecturasCard data={snap.lecturas} />}
           <QueOperarCard data={snap.que_operar ?? null} pairs={snap.pairs} favorites={favorites} />
           <ConvictionCards pairs={snap.pairs} currencies={snap.currencies} />
           {/* Dos filas horizontales: noticias y calendario con alturas parejas; debajo, volatilidad y sentimiento. */}
