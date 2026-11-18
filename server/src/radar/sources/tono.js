@@ -66,10 +66,44 @@ async function statementFor(ccy, decisionIso) {
   const xml = await fetchText(f.url, { label: `tono ${ccy}`, headers: UA, timeoutMs: 30_000, accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' });
   const dMs = Date.parse(decisionIso);
   const hit = feedItems(xml).find((it) => f.title.test(it.title) && (!it.date || Math.abs(Date.parse(it.date) - dMs) <= 5 * 86400000));
+  if (!hit && ccy === 'USD') { // el RSS de la Fed solo guarda las últimas notas: la URL del comunicado lleva la fecha (monetaryAAAAMMDDa)
+    const link = `https://www.federalreserve.gov/newsevents/pressreleases/monetary${decisionIso.slice(0, 10).replace(/-/g, '')}a.htm`;
+    try { const html = await fetchText(link, { label: 'comunicado USD (directo)', headers: UA, timeoutMs: 30_000 }); const text = paragraphs(html).slice(0, MAX_TEXT); return text && text.length > 200 ? { title: 'FOMC statement', link, text } : null; } catch { return null; }
+  }
   if (!hit) return null;
   if (f.pdf || /\.pdf($|\?)/i.test(hit.link)) return { title: hit.title, link: hit.link, text: null };
   const html = await fetchText(hit.link, { label: `comunicado ${ccy}`, headers: UA, timeoutMs: 30_000 });
   return { title: hit.title, link: hit.link, text: paragraphs(html).slice(0, MAX_TEXT) };
+}
+
+/** Decisión de tipos anterior a la dada (para comparar el comunicado de ahora con el de la reunión previa). */
+export function previousDecision(db, ccy, beforeIso, { maxAgeDays = 130 } = {}) {
+  const titles = POLICY_EVENT_TITLES[ccy] || [];
+  const minIso = new Date(Date.parse(beforeIso) - maxAgeDays * 86400000).toISOString();
+  const maxIso = new Date(Date.parse(beforeIso) - 5 * 86400000).toISOString(); // dos calendarios pueden titular la misma reunión distinto: se descarta lo que cae en los 5 días previos
+  let best = null;
+  for (const t of titles) {
+    const row = db.prepare("SELECT title, at_utc FROM radar_calendar WHERE country = ? AND title = ? AND actual IS NOT NULL AND actual != '' AND at_utc >= ? AND at_utc < ? ORDER BY at_utc DESC LIMIT 1").get(ccy, t, minIso, maxIso);
+    if (row && (!best || row.at_utc > best.at_utc)) best = row;
+  }
+  return best;
+}
+
+// ---------- Rueda de prensa (11-2026) ----------
+// La Fed cuelga la transcripción de la rueda de prensa de su presidente en un PDF con la fecha en el nombre, unas horas después
+// de la reunión. Se le pasa tal cual al modelo (bloque «documento»): en el servidor no hay lector de PDF. Solo la Fed por ahora.
+const PRESS_CONF = { USD: { url: (ymd) => `https://www.federalreserve.gov/mediacenter/files/FOMCpresconf${ymd.replace(/-/g, '')}.pdf`, title: 'Transcripción de la rueda de prensa del presidente de la Fed' } };
+const MAX_PDF_BYTES = 4_000_000;
+export const hasPressConference = (ccy) => !!PRESS_CONF[ccy];
+export async function pressConferenceFor(ccy, decisionIso, { fetchImpl = fetch } = {}) {
+  const pc = PRESS_CONF[ccy]; if (!pc) return null;
+  const link = pc.url(decisionIso.slice(0, 10)); const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30_000);
+  try {
+    const r = await fetchImpl(link, { headers: UA, signal: ctl.signal, redirect: 'follow' }); if (!r.ok) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length < 20_000 || buf.length > MAX_PDF_BYTES || buf.subarray(0, 4).toString() !== '%PDF') return null; // aún no publicada, o no es el PDF
+    return { link, title: pc.title, base64: buf.toString('base64') };
+  } catch { return null; } finally { clearTimeout(timer); }
 }
 
 // ---------- Proyecciones del FOMC (SEP): "los tipos dan igual, las proyecciones mandan" (Protrader 5, sesión 5) ----------
@@ -125,27 +159,31 @@ export function toneByRule(decision, bp) {
   return Math.max(-2, Math.min(2, t));
 }
 
-const SCHEMA = { type: 'object', additionalProperties: false, required: ['tono', 'resumen', 'base'], properties: { tono: { type: 'integer', description: 'entero entre -2 y 2' }, resumen: { type: 'string', description: 'una frase en español, máximo 240 caracteres' }, base: { type: 'string', enum: ['comunicado', 'decision', 'mercado', 'noticias'] } } };
+const SCHEMA = { type: 'object', additionalProperties: false, required: ['tono', 'resumen', 'base'], properties: { tono: { type: 'integer', description: 'entero entre -2 y 2' }, resumen: { type: 'string', description: 'una frase en español, máximo 240 caracteres' }, base: { type: 'string', enum: ['comunicado', 'comunicado+rueda', 'decision', 'mercado', 'noticias'] } } };
 
-export async function toneByModel(llamar, { ccy, decision, statement, bp, news, sep = null, model = TONO_MODEL }) {
+export async function toneByModel(llamar, { ccy, decision, statement, bp, news, sep = null, previous = null, press = null, model = TONO_MODEL }) {
   const bank = CENTRAL_BANKS[ccy] ? CENTRAL_BANKS[ccy].long || ccy : ccy;
-  const sys = `Eres analista de bancos centrales para un radar de divisas. Devuelves el tono de la última decisión del banco central en una escala entera: -2 muy paloma (recorta o anuncia recortes), -1 paloma (sesgo a recortar, quita subidas), 0 neutro (mantiene sin señal), +1 halcón (sesgo a subir, no descarta subidas, inflación "elevada"), +2 muy halcón (sube o anuncia subidas). Juzga el tono RELATIVO a lo que el mercado esperaba: una subida ya descontada es +1, no +2; un mantener con disidentes a favor de subir es +1. Si hay proyecciones (SEP), pesan más que la decisión: una mediana de tipos más alta que la anterior es halcón (+1 o +2 según el tamaño) aunque mantengan; más baja, paloma. Responde en español, con un resumen de una frase (máximo 240 caracteres) que cite el hecho decisivo. Si no hay comunicado, usa la decisión, el bono y los titulares y dilo en "base".`;
+  const sys = `Eres analista de bancos centrales para un radar de divisas. Devuelves el tono de la última decisión del banco central en una escala entera: -2 muy paloma (recorta o anuncia recortes), -1 paloma (sesgo a recortar, quita subidas), 0 neutro (mantiene sin señal), +1 halcón (sesgo a subir, no descarta subidas, inflación "elevada"), +2 muy halcón (sube o anuncia subidas). Juzga el tono RELATIVO a lo que el mercado esperaba: una subida ya descontada es +1, no +2; un mantener con disidentes a favor de subir es +1. Si hay proyecciones (SEP), pesan más que la decisión: una mediana de tipos más alta que la anterior es halcón (+1 o +2 según el tamaño) aunque mantengan; más baja, paloma. Responde en español, con un resumen de una frase (máximo 240 caracteres) que cite el hecho decisivo. Si no hay comunicado, usa la decisión, el bono y los titulares y dilo en "base". Si se adjunta la rueda de prensa del presidente, léela entera: pesa tanto como el comunicado. Fíjate en lo que dice sobre inflación, próximos pasos, dependencia de los datos, discrepancias en el comité y qué le preocupa; un presidente que no cierra la puerta a más subidas es halcón aunque mantenga, y uno que habla de esperar o de riesgos para el crecimiento es paloma aunque suba. Si hay comunicado anterior, compáralo con el actual (frases añadidas, quitadas o suavizadas) y trata el cambio como señal. Usa solo lo que está en los textos, no tu memoria de lo que pasó después.`;
   const user = [`Banco: ${bank} (${ccy}). Decisión del ${decision.at_utc.slice(0, 10)}: real ${decision.actual}, consenso ${decision.forecast ?? '—'}, anterior ${decision.previous ?? '—'}.`,
     bp === null ? 'Bono a 2 años: sin dato.' : `Bono a 2 años en los dos días siguientes: ${bp >= 0 ? '+' : ''}${bp} pb.`,
     statement && statement.text ? `Comunicado («${statement.title}»):\n${statement.text}` : statement ? `Comunicado («${statement.title}») sin texto legible (${statement.link}).` : 'Sin comunicado disponible.',
     sepText(sep) || 'Sin proyecciones (reunión sin SEP).',
+    previous && previous.text ? `Comunicado de la reunión anterior (${previous.date}), para comparar:\n${previous.text.slice(0, 3500)}` : 'Sin comunicado anterior.',
+    press ? 'Se adjunta la transcripción de la rueda de prensa del presidente.' : 'Sin rueda de prensa.',
     news.length ? `Titulares:\n- ${news.join('\n- ')}` : 'Sin titulares.'].join('\n\n');
-  const message = await llamar({ model, max_tokens: 600, system: sys, messages: [{ role: 'user', content: user }], output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } } });
+  const content = press ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: press.base64 }, title: press.title }, { type: 'text', text: user }] : user;
+  const message = await llamar({ model, max_tokens: 600, system: sys, messages: [{ role: 'user', content }], output_config: { effort: press ? 'medium' : 'low', format: { type: 'json_schema', schema: SCHEMA } } });
   const text = (message.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
   const out = JSON.parse(text);
-  return { tone: Math.max(-2, Math.min(2, Math.round(out.tono))), resumen: String(out.resumen).slice(0, 240), base: out.base, model: message.model || model, usage: message.usage || null };
+  return { tone: Math.max(-2, Math.min(2, Math.round(out.tono))), resumen: String(out.resumen).slice(0, 240), base: press ? 'comunicado+rueda' : out.base === 'comunicado+rueda' ? 'comunicado' : out.base, model: message.model || model, usage: message.usage || null };
 }
 
 /**
  * Actualiza el tono automático de cada divisa con decisión reciente. `llamar` = cliente de Claude (clienteApi de la mesa);
  * null → regla simple. Devuelve lo que ha cambiado.
  */
-export async function refreshTono(db, { now = new Date(), llamar = null, log = () => {} } = {}) {
+export async function refreshTono(db, { now = new Date(), llamar = null, log = () => {}, io = {} } = {}) {
+  const getStatement = io.statement || statementFor, getPress = io.press || pressConferenceFor, getSep = io.sep || fedProjections;
   const manual = Object.fromEntries(listManual(db).map((m) => [m.currency, m]));
   const changed = [];
   for (const ccy of CURRENCIES) {
@@ -154,15 +192,21 @@ export async function refreshTono(db, { now = new Date(), llamar = null, log = (
       const prev = manual[ccy]; const tag = `auto ${decision.at_utc.slice(0, 10)}`;
       // Esta decisión ya está leída, salvo que se leyera SIN comunicado (decisión/titulares/regla) y ahora sí lo haya: se vuelve a leer.
       const prevSinComunicado = !!(prev && prev.note && prev.note.startsWith(tag) && /^auto [0-9-]+ \((decision|noticias|mercado|regla)/.test(prev.note));
-      if (prev && prev.note && prev.note.startsWith(tag) && !prevSinComunicado) continue;
+      // La rueda de prensa se cuelga unas horas después: si la lectura de esta reunión se hizo sin ella (y hay modelo), se repite una vez cuando aparezca (hasta 4 días).
+      const ageDays = (new Date(now).getTime() - Date.parse(decision.at_utc)) / 86400000;
+      const prevSinRueda = !!(llamar && hasPressConference(ccy) && prev && prev.note && prev.note.startsWith(tag) && !/^auto [0-9-]+ \([^)]*\+rueda/.test(prev.note) && ageDays <= 4);
+      if (prev && prev.note && prev.note.startsWith(tag) && !prevSinComunicado && !prevSinRueda) continue;
       if (prev && prev.note && /^manual/i.test(prev.note) && prev.updated_at && prev.updated_at >= decision.at_utc) continue; // el dueño la puso a mano después
-      let statement = null; try { statement = await statementFor(ccy, decision.at_utc); } catch (e) { log(`${ccy}: sin comunicado (${e.message})`); }
+      let statement = null; try { statement = await getStatement(ccy, decision.at_utc); } catch (e) { log(`${ccy}: sin comunicado (${e.message})`); }
       if (prevSinComunicado && !(statement && statement.text)) continue; // sigue sin comunicado: no se repite la lectura
+      let press = null; if (llamar && hasPressConference(ccy)) { try { press = await getPress(ccy, decision.at_utc); } catch (e) { log(`${ccy}: sin rueda de prensa (${e.message})`); } }
+      if (prevSinRueda && !press) continue; // la rueda de prensa aún no está: se mantiene la lectura del comunicado
+      let previous = null; try { const pd = previousDecision(db, ccy, decision.at_utc); if (pd) { const ps = await getStatement(ccy, pd.at_utc); if (ps && ps.text) previous = { date: pd.at_utc.slice(0, 10), text: ps.text }; } } catch { previous = null; }
       const bp = bondReaction(db, ccy, decision.at_utc); const news = headlines(db, ccy, decision.at_utc);
-      let sep = null; if (ccy === 'USD') { sep = await fedProjections(decision.at_utc); if (sep) log(`USD: SEP leído (tipos ${sep.tipos ? sep.tipos.cur.join('/') : '—'})`); }
+      let sep = null; if (ccy === 'USD') { sep = await getSep(decision.at_utc); if (sep) log(`USD: SEP leído (tipos ${sep.tipos ? sep.tipos.cur.join('/') : '—'})`); }
       let tone, resumen, base;
       if (llamar) {
-        try { const r = await toneByModel(llamar, { ccy, decision, statement, bp, news, sep }); tone = r.tone; resumen = r.resumen; base = `${r.base}, ${r.model}`; }
+        try { const r = await toneByModel(llamar, { ccy, decision, statement, bp, news, sep, previous, press }); tone = r.tone; resumen = r.resumen; base = `${r.base}, ${r.model}`; if (r.usage) log(`${ccy}: ${r.usage.input_tokens || 0} tokens de entrada${press ? ' (con rueda de prensa)' : ''}`); }
         catch (e) { log(`${ccy}: modelo falló (${e.message}); regla`); tone = toneByRule(decision, bp); resumen = `regla: ${decision.actual} frente a ${decision.previous ?? '—'} anterior, 2 años ${bp === null ? 's/d' : `${bp >= 0 ? '+' : ''}${bp} pb`}`; base = 'regla'; }
       } else { tone = toneByRule(decision, bp); resumen = `regla: ${decision.actual} frente a ${decision.previous ?? '—'} anterior, 2 años ${bp === null ? 's/d' : `${bp >= 0 ? '+' : ''}${bp} pb`}`; base = 'regla'; }
       const note = `${tag} (${base}): ${resumen}${statement ? ` · ${statement.link}` : ''}`.slice(0, 500);

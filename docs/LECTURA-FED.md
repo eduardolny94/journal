@@ -109,3 +109,15 @@ para **USD, EUR, GBP, CHF y CAD**. Código: `server/src/radar/lecturas.js` (tabl
   (`sources/tono.js`).
 - Probado con las actas del 7-10-2026: «algo más duras de lo descontado → a favor del dólar… el efecto debería ser
   pequeño» (el bono se movió +1 pb), que coincide con la lectura manual de la bitácora.
+
+## Rueda de prensa y comparación con el comunicado anterior (18-11-2026)
+
+El tono automático (`server/src/radar/sources/tono.js`, pilar «Tono», −2 a +2) ahora, tras cada decisión de la Fed:
+1. Lee el comunicado y las proyecciones, como antes.
+2. Lo compara con el comunicado de la reunión anterior (todos los bancos con comunicado; la Fed con URL directa si el RSS ya no la trae).
+3. En cuanto la Fed cuelga la transcripción de la rueda de prensa de su presidente (`FOMCpresconfAAAAMMDD.pdf`, unas horas después),
+   relee todo con el PDF adjunto (una sola vez, hasta 4 días tras la reunión) y actualiza el tono. La nota queda como
+   `auto AAAA-MM-DD (comunicado+rueda, modelo): …`.
+Sin tarjeta nueva: solo cambia el número del pilar Tono del dólar (peso 5). Un tono puesto a mano después manda. Sin clave de
+Claude solo se aplica la regla simple. Prueba real sobre la reunión del 28-10-2026: tono +1 con y sin rueda (41.400 tokens de entrada
+con el PDF, ≈ 2.000 sin él). Pruebas: `server/scripts/test-tono.mjs`. Por ahora solo la Fed tiene rueda de prensa.
