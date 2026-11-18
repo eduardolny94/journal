@@ -54,6 +54,8 @@ Orden por valor esperado. "Hecho" significa implementado, verificado y documenta
 
 30. **Lectura automática de noticias (18-11-2026).** Tarjeta «Lectura de noticias» en el Panel: para USD, EUR, GBP, CHF y CAD, qué salió y qué esperar tras cada dato de alto impacto (reglas con lo medido y confirmación del bono a 2 años) y tras cada acta de banco central (texto oficial leído con el método «frente a lo descontado»). No puntúa. Detalle en [LECTURA-FED.md](LECTURA-FED.md).
 
+31. **Sesiones 7–12 de Protrader y PDF del ciclo de liquidez (18-11-2026).** Medido en `liquidez-fed.mjs` y `protrader-7-12.mjs`, detalle en `docs/aprendizaje-videos/protrader5-sesiones7-12.md`. La liquidez neta de la Fed (activos − TGA − RRP) no va «correlacionada» con la bolsa en el mismo periodo (−0,01 / 0,08), pero subiendo en 13 semanas anticipa más subidas a 20 sesiones en los tres bloques (S&P 74 % frente a 63 %, Nasdaq 74 % frente a 61 %) y falla en 2024–26: candidata a pilar de peso 0 en índices. MOVE subiendo ≥ 15 % en 20 sesiones: el sesgo acierta 57,1 % a 3 días frente a 53,8 % en los tres bloques (10 de 16 años): candidata vigilada para «a 3 días». No aguantan: KOSPI → Nasdaq, Russell como confirmación, meses del año en FX, ruptura del bono a 2 años como continuación a 20 días, liquidez sobre los pares con dólar.
+
 ## Lo que se descarta (medido, sin ventaja)
 
 - La reacción de la primera hora tras una noticia como señal de continuación (48 %).
