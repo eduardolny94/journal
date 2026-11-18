@@ -547,7 +547,9 @@ function finishRadar(db, input, ctx) {
       const expectDiff = eb && eq && !eb.missing && !eq.missing ? (eb.value || 0) - (eq.value || 0) : null;
       const tb = byCode[base].pillars.tot, tq = byCode[quote].pillars.tot;
       const totDiff = tb && tq ? (tb.value || 0) - (tq.value || 0) : null;
-      clarity = clarityFor({ symbol: sym, diff, prevDiff20, expectDiff, totDiff, digits: s ? s.digits : 5, bars: typeof input.closesAsOf === 'function' ? (input.closesAsOf(sym) || []).slice(-60) : [] });
+      const mc = market && market.move && Array.isArray(market.move.closes) ? market.move.closes.filter((v) => Number.isFinite(v)) : [];
+      const moveUpPct = mc.length >= 21 && mc[mc.length - 21] > 0 ? 100 * (mc[mc.length - 1] / mc[mc.length - 21] - 1) : null;
+      clarity = clarityFor({ symbol: sym, diff, prevDiff20, expectDiff, totDiff, moveUpPct, digits: s ? s.digits : 5, bars: typeof input.closesAsOf === 'function' ? (input.closesAsOf(sym) || []).slice(-60) : [] });
     } catch { clarity = null; }
     if (risk.spRet !== null) reasons.push(`Riesgo global: S&P ${risk.spRet >= 0 ? '+' : ''}${fmt(risk.spRet, 1)} % en 20 días, VIX ${fmt(risk.vix, 1)}: ${risk.riskOn > 0.3 ? 'apoya AUD/NZD/CAD y pesa sobre JPY/CHF' : risk.riskOn < -0.3 ? 'apoya USD/JPY/CHF y pesa sobre AUD/NZD' : 'sin sesgo de riesgo claro'}`);
     return {

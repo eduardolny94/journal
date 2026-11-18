@@ -1,13 +1,14 @@
 // Sesgo de índices y metales. Pilares: momentum propio, tipos reales (metales) o bono a 10 años (índices),
 // dólar (metales) o crédito de alto riesgo (índices), riesgo (VIX), sorpresas macro de EE. UU., expectativas de la
 // Fed y COT (dinero gestionado / fondos apalancados). Misma forma de salida que un par FX (base/quote = null).
-import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, GOLD_GVZ_MOVE, METAL_WARNINGS, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
+import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, GOLD_GVZ_MOVE, INDEX_LIQUIDITY_EVIDENCE, METAL_WARNINGS, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
 import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
 import { pairComputations, rank01 } from './score.js';
 import { usdScenario } from './cycle-phase.js';
 import { gexRegime, gexSeries } from './sources/gex.js';
+import { netLiquidity } from './liquidity.js';
 
 const fmt = (n, k = 1) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -94,6 +95,7 @@ export function computeInstruments(db, input) {
   const ret20 = (sym) => { const d = symbols[sym] && symbols[sym].d1; if (!Array.isArray(d) || d.length < 22) return null; const a = d[d.length - 1].close, b = d[d.length - 21].close; return a > 0 && b > 0 ? 100 * (a / b - 1) : null; };
   const rs = ret20('XAGUSD'), rg = ret20('XAUUSD');
   const silverLead = rs === null || rg === null ? null : rs - rg;
+  let liq = null; try { liq = netLiquidity(getSeries(db, FRED_MARKET.walcl), getSeries(db, FRED_MARKET.wtregen), getSeries(db, FRED_MARKET.rrp), now); } catch { liq = null; }
   const gvzRow = latest(db, FRED_MARKET.gvz);
   const gvz = gvzRow && (now - new Date(`${gvzRow.date}T00:00:00Z`).getTime()) / 86400000 <= 7 ? gvzRow : null;
   const GEX_LABEL = { alto: 'alto: día de rango corto', medio: 'medio', bajo: 'bajo: día de movimiento amplio', negativo: 'negativo: movimiento muy amplio' };
@@ -147,6 +149,16 @@ export function computeInstruments(db, input) {
         pillars.gex = { value: 0, raw: gex.value, missing: false, weight: 0, regime: gex.regime, percentile: gex.percentile, text: `GEX ${GEX_LABEL[gex.regime]} (percentil ${gex.percentile} de su último año, dato del ${gex.date}): en la próxima sesión ${ins.label} suele recorrer un ${fmt(rg, 2)} % de máximo a mínimo${pts ? ` (≈ ${pts} puntos)` : ''}; con GEX alto ${fmt(gm.alto[1], 2)} % y con GEX bajo ${fmt(gm.bajo[1], 2)} % · mide cuánto se mueve, no hacia dónde` };
       } else {
         pillars.gex = { value: 0, raw: null, missing: true, weight: 0, text: 'sin dato de GEX reciente' };
+      }
+    }
+    // Liquidez neta de la Fed (candidata, peso 0): se enseña y se vigila a 20 sesiones; no puntúa.
+    if (ins.kind === 'index') {
+      if (liq) {
+        const ev = INDEX_LIQUIDITY_EVIDENCE[ins.symbol] || null; const up = liq.pct13 >= 1, down = liq.pct13 <= -1;
+        const medido = ev ? (up ? `con la liquidez subiendo el índice subió el ${ev[0]} % de las veces a 20 sesiones (${ev[1]} % con ella bajando; salió al revés en 2024–26)` : down ? `con la liquidez bajando el índice subió solo el ${ev[1]} % de las veces a 20 sesiones (${ev[0]} % con ella subiendo; salió al revés en 2024–26)` : 'sin señal clara: la liquidez casi no se mueve') : 'sin comprobación propia para este índice';
+        pillars.liquidez = { value: 0, raw: round(liq.pct13, 2), missing: false, weight: 0, text: `liquidez neta de la Fed ${fmt(liq.net, 0)} mil M$, ${liq.pct13 >= 0 ? '+' : ''}${fmt(liq.pct13, 1)} % en 13 semanas (dato del ${liq.date}): ${medido}. Solo se vigila, no puntúa` };
+      } else {
+        pillars.liquidez = { value: 0, raw: null, missing: true, weight: 0, text: 'sin dato reciente de liquidez de la Fed' };
       }
     }
     let volMove = null;

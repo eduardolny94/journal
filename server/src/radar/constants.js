@@ -141,6 +141,7 @@ export const YAHOO_MARKET_SYMBOLS = {
   dxy: 'DX-Y.NYB',
   copper: 'HG=F', // términos de intercambio de AUD y NZD
   vix3m: '^VIX3M', // curva del VIX: VIX/VIX3M ≥ 1 = estrés (candidata "miedo_contrario", 13-10-2026)
+  move: '^MOVE', // volatilidad de los bonos: con el MOVE subiendo ≥ 15 % en 20 sesiones el sesgo acierta más a 3 días (candidata vigilada, 18-11-2026)
 };
 
 /** Intervalos de refresco (ms) de cada bloque de datos. */
@@ -192,6 +193,9 @@ export const FRED_MARKET = {
   real_yield_10y: 'DFII10',
   breakeven_10y: 'T10YIE',
   gvz: 'GVZCLS', // volatilidad implícita del oro: anticipa el tamaño del movimiento, no la dirección
+  walcl: 'WALCL', // liquidez neta de la Fed = activos − cuenta del Tesoro − repos inversos (pilar candidato de índices, peso 0)
+  wtregen: 'WTREGEN',
+  rrp: 'RRPONTSYD',
   core_cpi_us: 'CPILFESL',
 };
 
@@ -439,6 +443,14 @@ export const LONDON_BUY_SETUP = {
  * Pesos anteriores al 13-11-2026. Siguen valiendo para los índices no medidos (DAX, FTSE, Nikkei): los pesos nuevos solo
  * se aplican a los activos de INSTRUMENT_EVIDENCE, que son los que tienen 15 años de comprobación.
  */
+/**
+ * Liquidez neta de la Fed y bolsa (18-11-2026, 2010–2026): % de veces que el índice sube a 20 sesiones con la liquidez subiendo
+ * ≥ 1 % en 13 semanas / bajando ≥ 1 %. Mejora en los 3 bloques de años; en 2024–26 salió al revés. Dentro del sesgo completo de
+ * índices mejora la separación 2–4 puntos a 20 sesiones y nada a 5, por eso no puntúa.
+ */
+export const INDEX_LIQUIDITY_EVIDENCE = { NAS100: [74, 61], US500: [74, 63], US30: null };
+/** MOVE subiendo ≥ 15 % en 20 sesiones: acierto del sesgo de las 8 divisas a 3 días con / sin ello (2011–2026, n 3.156 / 14.591; 57,9/56,2/57,2 frente a 55,2/51,3/54,9 por bloques; mejor en 10 de 16 años). */
+export const MOVE_TIMING_EVIDENCE = { with: 57.1, without: 53.8, min_pct: 15, n: 3156 };
 export const INSTRUMENT_PILLAR_WEIGHTS_LEGACY = { momentum: 30, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
 /** Compatibilidad: pesos de los metales. */
 export const INSTRUMENT_PILLAR_WEIGHTS = INSTRUMENT_PILLAR_WEIGHTS_BY_KIND.metal;
@@ -469,7 +481,7 @@ export const METAL_WARNINGS = {
   plata_delante: { min_pp: 1, XAUUSD: [49, 57], XAGUSD: [44, 54] },
   inflacion_esperada: { min_bp: 5, XAUUSD: [51, 59] },
 };
-export const INSTRUMENT_PILLAR_LABELS = { momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)' };
+export const INSTRUMENT_PILLAR_LABELS = { liquidez: 'Liquidez de la Fed', momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */
 export function normalizeInstrumentSymbol(raw) {

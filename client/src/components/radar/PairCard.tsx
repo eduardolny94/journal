@@ -107,6 +107,11 @@ export default function PairCard({ pair, compact = false, className, favorite, o
                     <Badge variant={pair.clarity.timing.state === 'buen' ? 'profit' : pair.clarity.timing.state === 'esperar' ? 'warn' : 'default'} size="sm">{pair.clarity.timing.label}</Badge>
                   </p>
                   <p>{pair.clarity.timing.text}</p>
+                  {pair.clarity.timing.move && pair.clarity.timing.move.active && (
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      Bonos muy movidos (MOVE {pair.clarity.timing.move.pct >= 0 ? '+' : ''}{pair.clarity.timing.move.pct.toFixed(0)} % en 20 sesiones): con eso el sesgo acertó el {pair.clarity.timing.move.with.toFixed(0)} % a 3 días frente al {pair.clarity.timing.move.without.toFixed(0)} % normal. Solo se vigila.
+                    </p>
+                  )}
                   {(pair.clarity.timing.pros.length > 0 || pair.clarity.timing.cons.length > 0) && (
                     <p className="mt-1 text-[11px] text-gray-400">
                       {pair.clarity.timing.pros.length > 0 && <span className="text-gray-300">+ {pair.clarity.timing.pros.join(' · ')}</span>}

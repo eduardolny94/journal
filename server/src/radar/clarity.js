@@ -33,6 +33,8 @@ export const CLARITY_HORIZON_D = 20;
  * «precio ya corrido» son las de la claridad. Acierto a 1/3/5 días, bloques a 3 días, % de señales y % de veces que en
  * las 5 sesiones siguientes el precio dio una entrada ≥ 0,5 ATR (y ≥ 1 ATR) mejor.
  */
+import { MOVE_TIMING_EVIDENCE } from './constants.js';
+
 export const TIMING_EVIDENCE = {
   buen: { h1: 57.0, h3: 60.8, h5: 62.0, blocks3: [62.0, 58.7, 62.5], n: 1789, share: 10, better05: 63, better1: 39 },
   normal: { h1: 53.6, h3: 55.8, h5: 57.0, blocks3: [58.4, 53.7, 56.1], n: 6737, share: 38, better05: 67, better1: 41 },
@@ -123,7 +125,10 @@ export function clarityFor(ctx) {
       : state === 'sin'
         ? `Hoy no hay ventaja en entrar (${r0(te.h3)} % a 3 días). Sin prisa: en ${r0(te.better05 / 10)} de cada 10 casos el precio dio una entrada medio ATR mejor esa misma semana${betterTxt}.`
         : `Espera: el precio ya ha corrido a favor del sesgo. Entrar así acertó solo el ${r0(te.h3)} % a 3 días; en ${r0(te.better05 / 10)} de cada 10 casos dio una entrada al menos medio ATR mejor en la semana${betterTxt}, y en casi la mitad un ATR entero.`;
-  const timing = { state, label: TIMING_LABEL[state], pros: tPros.map((k) => TIMING_TEXT[k]), cons: state === 'esperar' ? cons.map((k) => TEXT[k]) : [], h1: te.h1, h3: te.h3, h5: te.h5, n: te.n, better_05: te.better05, better_price: state === 'sin' || state === 'esperar' ? better : null, horizon_d: 3, text: timingText };
+  // MOVE (volatilidad de bonos) subiendo: candidata vigilada, no cambia el estado. Solo informa.
+  const mp = Number.isFinite(ctx.moveUpPct) ? ctx.moveUpPct : null;
+  const move = mp === null ? null : { pct: Number(mp.toFixed(1)), active: mp >= MOVE_TIMING_EVIDENCE.min_pct, with: MOVE_TIMING_EVIDENCE.with, without: MOVE_TIMING_EVIDENCE.without, n: MOVE_TIMING_EVIDENCE.n };
+  const timing = { move, state, label: TIMING_LABEL[state], pros: tPros.map((k) => TIMING_TEXT[k]), cons: state === 'esperar' ? cons.map((k) => TEXT[k]) : [], h1: te.h1, h3: te.h3, h5: te.h5, n: te.n, better_05: te.better05, better_price: state === 'sin' || state === 'esperar' ? better : null, horizon_d: 3, text: timingText };
   return {
     timing,
     tier, score, pros: pros.map((k) => TEXT[k]), cons: cons.map((k) => TEXT[k]),
