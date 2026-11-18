@@ -60,3 +60,23 @@ del euro como adelanto (falta histórico del calendario), FedWatch histórico, d
    de la eurozona para medir si lo adelantan.
 4. **Nada de**: KOSPI, Russell como confirmación, meses del año en FX, ruptura del 2 años como continuación a 20 días,
    liquidez sobre los pares con dólar (solo EURUSD y GBPUSD, sin n suficiente).
+
+## 4. Prueba sobre el sesgo de índices que ya hay (18-11-2026, `server/scripts/indices-liquidez.mjs`)
+
+Sesgo vigente (tasas 20 + fed 20, reconstruido sin mirar el futuro desde 2011, 3.826 días, 2.345 señales) frente al mismo con la
+liquidez neta de la Fed como pilar, a igual cobertura y en los 3 cortes. Separación = % de subidas con sesgo alcista − % con bajista.
+
+| Índice | Horizonte | Vigente | + liquidez 13 sem, peso 10 | peso 20 | 2024–26 (vigente → peso 20) |
+|---|---|---|---|---|---|
+| Nasdaq | 5 sesiones | +11 | +11 | +10 | +10 → +3 |
+| Nasdaq | 20 sesiones | +19 | +22 | +23 | +19 → +19 |
+| S&P 500 | 20 sesiones | +19 | +21 | +21 | +14 → +11 |
+| Dow | 20 sesiones | +17 | +19 | +19 | +6 → +11 |
+
+- A 5 sesiones, que es el horizonte de decisión de la casa, **no mejora** (las variantes empatan o empeoran).
+- A 20 sesiones mejora en los tres cortes en los tres índices con peso 10 y 20: +2 a +4 puntos de separación (con peso 20, la
+  acierto del sesgo alcista a 20 sesiones sube de 77 % a 78 % en Nasdaq y el «sube» con sesgo bajista baja de 58 % a 55 %).
+- En 2024–26 queda igual o algo peor en Nasdaq y S&P.
+- Solo con la liquidez, sin tasas ni Fed, la separación es +16 (Nasdaq) pero ≈ 0 o negativa en 2024–26.
+- Cautela: tres índices muy correlacionados, 6 variantes y 2 horizontes probados, días solapados.
+- Decisión: **no se adopta con peso**. Se enseña con peso 0 y se vigila a 20 sesiones.
