@@ -63,3 +63,30 @@ acaban a favor: mediana 0,19; 3 de cada 4 ≤ 0,34; 9 de cada 10 ≤ 0,51. Si ya
 Conclusión: la ventaja está en el sesgo y en el estado del día, no en la confirmación intradía. Reglas prácticas que salen de los datos:
 entrar pronto (apertura o Londres) los días «buen momento» o «normal»; stop de 0,5 ATR; si el precio retrocede más de 0,5 ATR la operación
 está perdida 85 de cada 100 veces y reentrar ahí no tiene ventaja (51,5 %, 0,00 R).
+
+## Tercera ronda: cómo se mejora (19-11-2026, `server/scripts/mejoras-entrada.mjs`)
+
+**A) Elegir los días** (1:1 de 0,5 ATR desde la apertura): todos 53,8 %, +0,05 R (+0,03 / +0,01 / +0,10) · «buen momento» 56,1 %, +0,10 R
+(+0,15 / +0,05 / +0,12; 2,2 operaciones por semana entre los 8 pares) · «buen» o «normal» 54,9 %, +0,07 R (+0,06 / +0,05 / +0,10; 10,3 por
+semana) · con fuerza ≥ 3 además 55,2 %, +0,08 R · «sin ventaja» o «esperar» 52,9 %, +0,03 R (0,00 / −0,04 / +0,10, inestable). Quitar
+USDCHF no mejora a este plazo.
+
+**B) La forma de la operación** (días «buen» o «normal», desde la apertura, hasta 3 sesiones, n 8.521):
+
+| Stop · objetivo (ATR diario) | Gana | R medio (bloques) | ATR por operación |
+|---|---|---|---|
+| 0,5 · 0,5 (1:1) | 54,9 % | +0,07 (+0,06 / +0,05 / +0,10) | +0,036 |
+| 0,75 · 0,75 (1:1 más ancho) | 55,6 % | +0,10 (+0,12 / +0,07 / +0,11) | +0,073 |
+| 0,5 · 0,75 | 45,8 % | +0,10 (+0,11 / +0,06 / +0,12) | +0,049 |
+| 0,5 · 1,0 | 41,6 % | +0,13 (+0,16 / +0,08 / +0,16) | +0,065 |
+| 0,5 · 1,5 | 38,9 % | +0,18 (+0,24 / +0,10 / +0,21) | +0,088 |
+| 0,5 · sin objetivo, cierre a las 3 sesiones | 38,1 % | +0,20 (+0,31 / +0,11 / +0,21) | +0,098 |
+| 0,75 · 1,5 | 48,5 % | +0,16 (+0,23 / +0,11 / +0,16) | +0,118 |
+| 0,25 · 0,5 (stop corto) | 37,2 % | +0,06 (0,00 / +0,04 / +0,13) | +0,016 |
+| 0,5 · 0,5 con stop a la entrada tras +0,3 ATR | 41,0 % | +0,05 | +0,025 |
+| 0,5 · 0,5 cerrando al final del día | 54,1 % | +0,06 | +0,029 |
+
+La ventaja del sesgo es una deriva de 1–3 días: cortar en 1:1 de medio ATR deja la mitad en la mesa; el stop corto y el stop a la entrada
+la reducen. Sin contar swaps de las noches.
+
+**C) Entrar tras un dato de alto impacto a favor del sesgo** (solo 09-2023 → 11-2026, n 600): 49,8 %, −0,04 R (−0,06 / −0,21 / +0,13). No.
