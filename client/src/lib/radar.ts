@@ -457,6 +457,8 @@ export interface RadarStatus {
   calendar: SourceStatus & { events_week?: number };
   cot: SourceStatus & { report_date?: string | null };
   news: SourceStatus & { count?: number };
+  /** Vigilante: ¿está al día cada dato del que dependen los sesgos de oro, petróleo e índices, el semáforo y las lecturas? */
+  auto?: { ok: boolean; checked: number; stale: { key: string; label: string; detail: string; age_days: number | null; max_days: number }[]; as_of: string } | null;
 }
 
 export type Priced = 'subida' | 'bajada' | 'mantener' | 'incierto';
@@ -721,6 +723,7 @@ export function normalizeSnapshot(raw: unknown): RadarSnapshot {
     computed_at: r.computed_at ?? new Date().toISOString(),
     status: {
       prices, mt5, fred: asSource(st.fred), calendar, cot, news,
+      auto: (st as { auto?: RadarStatus['auto'] }).auto ?? null,
       yields: st.yields ? { ...asSource(st.yields), fetched: st.yields.fetched, failed: st.yields.failed, detail: asArray<string>(st.yields.detail), live: st.yields.live ? { ...asSource(st.yields.live), count: st.yields.live.count } : undefined } : undefined,
     },
     currencies: asArray<RadarCurrency>(r.currencies),

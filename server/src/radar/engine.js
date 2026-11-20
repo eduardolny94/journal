@@ -2,7 +2,7 @@
 // máximo 60 s de antigüedad), guarda un histórico horario y nunca deja caer el snapshot por una fuente rota.
 import { readFileSync } from 'node:fs';
 import { getDb } from '../db.js';
-import { RADAR_PAIRS, CURRENCIES, FRED_BY_CURRENCY, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
+import { RADAR_PAIRS, CURRENCIES, FRED_BY_CURRENCY, FRED_SERIES_IDS, REFRESH_MS, PILLAR_WEIGHTS, REGIMES, POLICY_EVENT_TITLES, EXPECTATION_MAX_AGE_DAYS, regimeOf, normalizeAnySymbol } from './constants.js';
 import { computeInstruments } from './instruments.js';
 import { computeSwing } from './swing.js';
 import { computeIntradia } from './intradia.js';
@@ -22,6 +22,7 @@ import { refreshNews, listNews } from './sources/news.js';
 import { refreshTono } from './sources/tono.js';
 import { clienteApi } from '../mesa/agentes.js';
 import { refreshLecturas, latestLecturas } from './lecturas.js';
+import { dataWatch, alertIfStale } from './vigilante.js';
 import { computeRadar, marketContext, sentimentOf } from './score.js';
 import { readExpectation, weekPlan } from './week.js';
 import { getMeta, getMetaJson, setMeta, listManual, setManual, listPolicy, setPolicy, listExpectations, getExpectation, setExpectation, saveSnapshot, saveInstrumentBias, latestSnapshotRow } from './store.js';
@@ -48,8 +49,24 @@ const state = {
     cot: { ok: false, last_fetch: null, error: null, report_date: null },
     news: { ok: false, last_fetch: null, error: null, count: 0 },
     lecturas: { ok: false, last_fetch: null, error: null, count: 0 },
+    tono: { ok: false, last_fetch: null, error: null },
   },
 };
+
+/**
+ * Tras un despliegue que añade series a FRED (p. ej. liquidez, NFCI), no se espera al siguiente ciclo de 6 h: si alguna serie
+ * configurada no tiene ni un dato guardado, se fuerza la descarga. Se comprueba una vez por arranque (y otra si la descarga falla).
+ */
+function fredHasNewSeries(db) {
+  if (state.fredChecked) return false;
+  state.fredChecked = true;
+  try {
+    const have = new Set(db.prepare("SELECT DISTINCT series_id FROM radar_series WHERE source = 'fred'").all().map((r) => r.series_id));
+    const missing = FRED_SERIES_IDS.filter((id) => !have.has(id));
+    if (missing.length) console.log(`[radar] FRED: ${missing.length} serie(s) nueva(s) sin datos (${missing.slice(0, 5).join(', ')}): descarga inmediata`);
+    return missing.length > 0;
+  } catch { return false; }
+}
 
 function lastFetchMs(db, key) {
   const m = getMeta(db, `fetch:${key}`);
@@ -123,7 +140,7 @@ export function refreshSources({ force = false } = {}) {
     const now = Date.now();
     await Promise.all([
       refreshYahoo({ now, force }).catch((e) => console.warn('[radar] Yahoo:', e.message)),
-      runSource(db, 'fred', REFRESH_MS.fred, () => refreshFred(db), { force, now }),
+      runSource(db, 'fred', REFRESH_MS.fred, () => refreshFred(db), { force: force || fredHasNewSeries(db), now }),
       runSource(db, 'yields', REFRESH_MS.yields, () => refreshYieldsOfficial(db), { force: false, now }),
       runSource(db, 'yields_tv', REFRESH_MS.yields_tv, () => refreshYieldsLive(db), { force, now }),
       runSource(db, 'calendar', calendarIntervalMs(db, now), async () => {
@@ -363,9 +380,13 @@ async function compute() {
   try { datoDelDia = readingOfDay(db, prices, { now }); } catch (e) { console.warn('[radar] lectura del dato:', e.message); }
   const week = weekPlan(db, { now: nowDate, expectations, pairs: visiblePairs, cotByCurrency: cot.byCurrency, market, news: listNews(db, { limit: 60 }) });
   const newsTop = listNews(db, { limit: 5, minUrgency: 7 });
+  // Vigilante: ¿está al día cada dato del que dependen los sesgos nuevos? Informa en el estado y avisa por correo si algo se atrasa.
+  let auto = null;
+  try { auto = dataWatch(db, { now, market: prices.market, symbols: prices.symbols, sources: state.sources }); if (process.env.NODE_ENV !== 'test' && now - (state.vigilanteAt || 0) > 30 * 60_000) { state.vigilanteAt = now; alertIfStale(db, auto, { now, log: (m) => console.log('[radar vigilante]', m) }).catch(() => {}); } } catch (e) { console.warn('[radar] vigilante:', e.message); }
   const snapshot = {
     computed_at: nowDate.toISOString(),
     status: {
+      auto: auto ? { ok: auto.ok, checked: auto.checked, stale: auto.stale.map((c) => ({ key: c.key, label: c.label, detail: c.detail, age_days: c.age_days, max_days: c.max_days })), as_of: auto.as_of } : null,
       prices: prices.status,
       mt5: prices.mt5,
       fred: state.sources.fred,

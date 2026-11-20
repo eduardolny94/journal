@@ -44,6 +44,14 @@ export function StatusChips({ status, computedAt, regime }: { status: RadarStatu
       {status.yields && <SourceChip label="Bonos 2 años" ok={!!status.yields.ok || !!status.yields.live?.ok} warn={!!status.yields.error} detail={status.yields.live?.ok ? fmtSince(status.yields.live.last_fetch, now) : status.yields.error ?? 'sin datos'} />}
       <SourceChip label="COT" ok={status.cot.ok} detail={status.cot.report_date ?? undefined} />
       <SourceChip label="Noticias" ok={status.news.ok} detail={status.news.ok ? fmtSince(status.news.last_fetch, now) : undefined} />
+      {status.auto && (
+        <SourceChip
+          label={status.auto.ok ? 'Automático · todo al día' : `Automático · ${status.auto.stale.length} ${status.auto.stale.length === 1 ? 'dato atrasado' : 'datos atrasados'}`}
+          ok={status.auto.ok}
+          warn={!status.auto.ok}
+          detail={status.auto.ok ? `${status.auto.checked} datos comprobados` : status.auto.stale.map((c) => c.label).slice(0, 3).join(', ') + (status.auto.stale.length > 3 ? '…' : '')}
+        />
+      )}
       {regime && (
         <SourceChip
           label={`Régimen · ${regime.key === 'tension' ? 'tensión' : 'calma'}`}
