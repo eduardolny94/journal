@@ -195,6 +195,24 @@ export default function PairCard({ pair, compact = false, className, favorite, o
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Plan</p>
             {pair.plan}
           </div>
+          {pair.semaforo && (
+            <div className={cn('rounded-md border p-3 text-sm', pair.semaforo.level === 'verde' ? 'border-profit/40 bg-profit/5 text-gray-100' : pair.semaforo.level === 'ambar' ? 'border-warn/40 bg-warn/5 text-gray-100' : 'border-border bg-bg/40 text-gray-300')}>
+              <p className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+                Semáforo 8/18
+                <Badge variant={pair.semaforo.dir === 'compras' ? 'profit' : 'loss'} size="sm">solo {pair.semaforo.dir}</Badge>
+                <span className={cn('normal-case tracking-normal', pair.semaforo.level === 'verde' ? 'text-profit' : pair.semaforo.level === 'ambar' ? 'text-warn' : 'text-gray-400')}>{pair.semaforo.on} de 4 luces</span>
+              </p>
+              <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
+                {pair.semaforo.lights.map((l) => (
+                  <li key={l.key} className={cn('flex items-center gap-1.5', l.on ? 'text-gray-100' : 'text-gray-500')}>
+                    <span aria-hidden className={cn('inline-block h-2.5 w-2.5 rounded-full', l.on ? (pair.semaforo!.dir === 'compras' ? 'bg-profit shadow-[0_0_8px_rgba(0,255,163,0.7)]' : 'bg-warn') : 'bg-gray-700')} />
+                    {l.label}<span className="sr-only">{l.on ? ' (encendida)' : ' (apagada)'}</span>
+                  </li>
+                ))}
+              </ul>
+              {pair.semaforo.text}
+            </div>
+          )}
           {pair.london_setup && (
             <div className={cn('rounded-md border p-3 text-sm', pair.london_setup.active ? 'border-accent/40 bg-accent/5 text-gray-100' : 'border-border bg-bg/40 text-gray-400')}>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Estrategia de Londres · {pair.london_setup.active ? 'ventaja pequeña medida' : 'sin ventaja estable'}</p>

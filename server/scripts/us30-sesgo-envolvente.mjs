@@ -50,3 +50,7 @@ for (const [lab, fa, fc] of FEATS) two(lab, L, refL, fa, fc);
 console.log('\n4) SESGO FUNDAMENTAL · VENTAS (la condición «a favor» es la bajista para el índice)');
 for (const [lab, fa, fc] of FEATS) two(lab, V, refV, fc, fa);
 console.log('\n5) DÍA DE LA SEMANA (compras)'); for (const [n, w] of [['lunes', 1], ['martes', 2], ['miércoles', 3], ['jueves', 4], ['viernes', 5]]) line(n, L.filter((t) => t.wd === w), refL);
+console.log('\n6) SEMÁFORO · número de luces encendidas (VIX > 22 · ayer vela en contra ≥ 0,3 ATR · precio a < 0,5 ATR de la EMA 8 · tarde de Nueva York 17:00–22:00 ES)');
+{ const luces = (t) => (t.f.vix !== null && t.f.vix > 22 ? 1 : 0) + (t.f.ayer <= -0.3 ? 1 : 0) + (Math.abs(t.f.dist) < 0.5 ? 1 : 0) + (t.hh >= 18 && t.hh < 23 ? 1 : 0);
+  for (const [lab, A, ref] of [['COMPRAS', L, refL], ['VENTAS', V, refV]]) { console.log(`   ${lab}`); for (const [n, f] of [['0 luces', (x) => x === 0], ['1 luz', (x) => x === 1], ['2 luces', (x) => x === 2], ['3 o 4 luces', (x) => x >= 3], ['2 o más', (x) => x >= 2]]) line(`     ${n}`, A.filter((t) => f(luces(t))), ref); }
+  console.log('   VENTAS por sesión'); for (const [lab, a, b] of [['Asia 00:00–08:00', 1, 9], ['Londres 08:00–14:00', 9, 15], ['Nueva York 14:00–17:00', 15, 18], ['Nueva York 17:00–22:00', 18, 23]]) line(`     ${lab}`, V.filter((t) => t.hh >= a && t.hh < b), refV); }

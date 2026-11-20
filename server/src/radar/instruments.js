@@ -9,6 +9,7 @@ import { pairComputations, rank01 } from './score.js';
 import { usdScenario } from './cycle-phase.js';
 import { gexRegime, gexSeries } from './sources/gex.js';
 import { netLiquidity } from './liquidity.js';
+import { semaforo818 } from './semaforo818.js';
 
 const fmt = (n, k = 1) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : Number(n).toFixed(k).replace('.', ','));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -223,6 +224,8 @@ export function computeInstruments(db, input) {
       evidence: ev,
       gex: gexInfo,
       vol_move: volMove,
+      // Semáforo 8/18 (operativa del usuario en US30): dirección por el cruce diario y cuatro luces medidas. No puntúa.
+      semaforo: ins.symbol === 'US30' ? (() => { try { return semaforo818(s.d1, vix, now); } catch { return null; } })() : null,
       // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.
       london_setup: (() => {
         const t = LONDON_BUY_SETUP[ins.symbol]; if (!t) return null;

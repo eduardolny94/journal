@@ -16,7 +16,7 @@
     "smoke": "node scripts/smoke.mjs",
     "mesa": "node scripts/mesa.mjs",
     "test:mesa": "node scripts/test-mesa.mjs",
-    "test": "node scripts/test-tradingDay.js && node scripts/test-ciclo.mjs && node scripts/test-import-tradingview.mjs && node scripts/test-mesa.mjs && node scripts/test-lecturas.mjs && node scripts/test-tono.mjs && node scripts/test-liquidez.mjs && node scripts/smoke.mjs",
+    "test": "node scripts/test-tradingDay.js && node scripts/test-ciclo.mjs && node scripts/test-import-tradingview.mjs && node scripts/test-mesa.mjs && node scripts/test-lecturas.mjs && node scripts/test-tono.mjs && node scripts/test-liquidez.mjs && node scripts/test-semaforo.mjs && node scripts/smoke.mjs",
     "muros": "node scripts/muros.mjs"
   },
   "dependencies": {

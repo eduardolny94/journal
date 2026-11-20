@@ -390,6 +390,7 @@ export interface RadarPair {
   structure: PairStructure;
   plan: string;
   /** Solo Nasdaq y Dow: qué dice hoy el filtro medido (GEX) de la compra de Londres tras barrer el bajo de Asia. */
+  semaforo?: { dir: 'compras' | 'ventas'; level: 'verde' | 'ambar' | 'rojo'; on: number; lights: { key: string; on: boolean; label: string; value: number | null }[]; ema8: number; sma18: number; since: number; atr: number; evidence: { r: number; win: number; win11: number | null; n: number; base: number }; text: string } | null;
   london_setup?: { active: boolean; regime: string | null; win_15: number; r_15: number; r_2: number; n: number; years_positive: number; stop_points: number; text: string } | null;
   reasons: string[];
   warnings: RadarWarning[];
