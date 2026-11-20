@@ -1,7 +1,7 @@
 // Sesgo de índices y metales. Pilares: momentum propio, tipos reales (metales) o bono a 10 años (índices),
 // dólar (metales) o crédito de alto riesgo (índices), riesgo (VIX), sorpresas macro de EE. UU., expectativas de la
 // Fed y COT (dinero gestionado / fondos apalancados). Misma forma de salida que un par FX (base/quote = null).
-import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, GOLD_GVZ_MOVE, INDEX_LIQUIDITY_EVIDENCE, METAL_WARNINGS, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
+import { INSTRUMENTS, INSTRUMENT_PILLAR_WEIGHTS_BY_KIND, INSTRUMENT_PILLAR_WEIGHTS_LEGACY, INSTRUMENT_EVIDENCE, INSTRUMENT_GEX_MOVE, LONDON_BUY_SETUP, GOLD_GVZ_MOVE, INDEX_LIQUIDITY_EVIDENCE, INSTRUMENT_STRENGTH_EVIDENCE, METAL_WARNINGS, INSTRUMENT_PILLAR_LABELS, FRED_MARKET, EXPECTATION_MAX_AGE_DAYS } from './constants.js';
 import { getSeries, latest, changeOverDays } from './sources/fred.js';
 import { eventsBetween, surpriseOf } from './sources/calendar.js';
 import { round } from './indicators.js';
@@ -97,6 +97,7 @@ export function computeInstruments(db, input) {
   const rs = ret20('XAGUSD'), rg = ret20('XAUUSD');
   const silverLead = rs === null || rg === null ? null : rs - rg;
   let liq = null; try { liq = netLiquidity(getSeries(db, FRED_MARKET.walcl), getSeries(db, FRED_MARKET.wtregen), getSeries(db, FRED_MARKET.rrp), now); } catch { liq = null; }
+  let nfciCh = null; try { const nf = getSeries(db, FRED_MARKET.nfci); if (nf.length >= 14 && (now - new Date(`${nf[nf.length - 1].date}T00:00:00Z`).getTime()) / 86400000 <= 21) nfciCh = nf[nf.length - 1].value - nf[nf.length - 14].value; } catch { nfciCh = null; }
   const gvzRow = latest(db, FRED_MARKET.gvz);
   const gvz = gvzRow && (now - new Date(`${gvzRow.date}T00:00:00Z`).getTime()) / 86400000 <= 7 ? gvzRow : null;
   const GEX_LABEL = { alto: 'alto: día de rango corto', medio: 'medio', bajo: 'bajo: día de movimiento amplio', negativo: 'negativo: movimiento muy amplio' };
@@ -107,6 +108,7 @@ export function computeInstruments(db, input) {
     if (!s || !s.h1 || s.h1.length < 30) continue;
     const p = pairComputations(ins.symbol, s, now);
     const isMetal = ins.kind === 'metal';
+    const isEnergy = ins.kind === 'energy';
     const cotRow = input.cot.byCurrency[ins.symbol] || null;
     const momRaw = 0.2 * p.mom.m1 + 0.4 * p.mom.m5 + 0.4 * p.mom.m20;
     const scen = usdScenario(input.usdCycle || null, ins.kind);
@@ -115,7 +117,7 @@ export function computeInstruments(db, input) {
       tasas: isMetal
         ? { value: round(dgs2Ch20 === null ? (realYieldCh === null ? 0 : clamp(-realYieldCh / 25, -2, 2)) : clamp(-dgs2Ch20 / 15, -2, 2)), raw: dgs2Ch20 ?? realYieldCh, missing: dgs2Ch20 === null && realYieldCh === null, text: dgs2Ch20 === null ? (realYieldCh === null ? 'sin bonos' : `tipos reales a 10 años ${realYieldCh >= 0 ? '+' : ''}${fmt(realYieldCh, 0)} pb en 3 meses`) : `bono a 2 años ${dgs2Ch20 >= 0 ? '+' : ''}${fmt(dgs2Ch20, 0)} pb en 20 sesiones (${dgs2Ch20 > 0 ? 'pesa sobre' : 'apoya a'} ${ins.label.toLowerCase()})${realYieldCh === null ? '' : `; real a 10 años ${realYieldCh >= 0 ? '+' : ''}${fmt(realYieldCh, 0)} pb en 3 meses`}${breakeven ? `; inflación esperada ${fmt(breakeven.value, 2)} %` : ''}` }
         : { value: round(dgs10Ch === null ? 0 : clamp(-dgs10Ch / 30, -2, 2)), raw: dgs10Ch, missing: dgs10Ch === null, text: dgs10Ch === null ? 'sin bono a 10 años' : `bono de EE. UU. a 10 años ${dgs10Ch >= 0 ? '+' : ''}${fmt(dgs10Ch, 0)} pb en 3 meses (${dgs10Ch > 0 ? 'pesa sobre' : 'apoya a'} la bolsa)` },
-      dolar: isMetal
+      dolar: isMetal || isEnergy
         ? { value: round(dxyRet20 === null ? 0 : clamp(-dxyRet20 / 1.5, -2, 2)), raw: dxyRet20, missing: dxyRet20 === null, text: dxyRet20 === null ? 'sin dólar' : `dólar (DXY) ${dxyRet20 >= 0 ? '+' : ''}${fmt(dxyRet20, 1)} % en 20 días (${dxyRet20 > 0 ? 'pesa' : 'apoya'})` }
         : { value: round(hyCh === null ? 0 : clamp(-hyCh / 40, -2, 2)), raw: hyCh, missing: hyCh === null, text: hyCh === null ? 'sin crédito' : `crédito de alto riesgo ${hyCh >= 0 ? '+' : ''}${fmt(hyCh, 0)} pb en 3 meses (${hyCh > 0 ? 'estrés' : 'calma'})` },
       riesgo: isMetal
@@ -127,6 +129,10 @@ export function computeInstruments(db, input) {
       curva: { value: round(curveCh === null ? 0 : clamp(curveCh / 20, -2, 2)), raw: curveCh, missing: curveCh === null, text: curveCh === null ? 'sin bono a 30 años' : `curva 30 − 2 años ${curveCh >= 0 ? '+' : ''}${fmt(curveCh, 0)} pb en 3 meses (${curveCh > 0 ? 'se empina: a favor' : 'se aplana: en contra'}; en observación, aún no puntúa)` },
       escenario: { value: scen.value, raw: scen.scenario, missing: scen.scenario === null, scenario: scen.scenario, text: scen.text },
     };
+    if (isEnergy) {
+      pillars.liquidez = liq ? { value: round(clamp(liq.pct13 / 2, -2, 2)), raw: round(liq.pct13, 2), missing: false, text: `liquidez neta de la Fed ${liq.pct13 >= 0 ? '+' : ''}${fmt(liq.pct13, 1)} % en 13 semanas (${liq.pct13 >= 1 ? 'sube: apoya' : liq.pct13 <= -1 ? 'baja: pesa' : 'estable'})` } : { value: 0, raw: null, missing: true, text: 'sin dato reciente de liquidez de la Fed' };
+      pillars.condiciones = nfciCh !== null ? { value: round(clamp(-nfciCh / 0.08, -2, 2)), raw: round(nfciCh, 3), missing: false, text: `condiciones financieras (NFCI) ${nfciCh <= 0 ? 'relajándose' : 'endureciéndose'} en 13 semanas (${nfciCh >= 0 ? '+' : ''}${fmt(nfciCh, 2)}: ${nfciCh <= -0.04 ? 'apoya' : nfciCh >= 0.04 ? 'pesa' : 'neutro'})` } : { value: 0, raw: null, missing: true, text: 'sin dato reciente de condiciones financieras' };
+    }
     let num = 0;
     let den = 0;
     const ev = INSTRUMENT_EVIDENCE[ins.symbol] || null;
@@ -229,6 +235,14 @@ export function computeInstruments(db, input) {
       evidence: ev,
       gex: gexInfo,
       vol_move: volMove,
+      // Fuerza del sesgo: qué pasó históricamente con una puntuación así (no puntúa; evidencia de 15 años).
+      fuerza: (() => { const t = INSTRUMENT_STRENGTH_EVIDENCE[ins.symbol]; if (!t) return null; const row = t.rows.find((r) => score >= r[0]); if (!row) return null; const [, h5, h20, n] = row; const [b5, b20] = t.base; const sc = Number(score);
+        const tramo = sc >= 4 ? 'muy alcista' : sc >= 3 ? 'alcista fuerte' : sc >= 2 ? 'alcista' : sc > -2 ? 'sin sesgo' : sc > -3 ? 'bajista' : sc > -4 ? 'bajista fuerte' : 'muy bajista';
+        const text = sc >= 2 ? `Sesgo ${tramo}: con una puntuación así, ${ins.label} subió el ${h20} % de las veces a 20 sesiones y el ${h5} % a 5 (lo habitual es ${b20} % y ${b5} %; n ${n}).`
+          : sc > -2 ? `Sin sesgo: con una puntuación así, ${ins.label} subió el ${h20} % de las veces a 20 sesiones (lo habitual, ${b20} %). No hay ventaja en ningún sentido.`
+            : h20 <= 48 ? `Sesgo ${tramo}: con una puntuación así, ${ins.label} bajó el ${100 - h20} % de las veces a 20 sesiones y el ${100 - h5} % a 5 (n ${n}). Aquí el lado bajista sí informa.`
+              : `Sesgo ${tramo}: aun así ${ins.label} subió el ${h20} % de las veces a 20 sesiones (lo habitual es ${b20} %; n ${n}). Sirve para no comprar, no para vender.`;
+        return { tramo, h5, h20, n, base5: b5, base20: b20, informa: sc >= 2 || (sc <= -2 && h20 <= 48), text }; })(),
       // Semáforo 8/18 (operativa del usuario en US30): dirección por el cruce diario y cuatro luces medidas. No puntúa.
       semaforo: ins.symbol === 'US30' ? (() => { try { return semaforo818(s.d1, vix, now, s.h1); } catch { return null; } })() : null,
       // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.

@@ -195,6 +195,12 @@ export default function PairCard({ pair, compact = false, className, favorite, o
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Plan</p>
             {pair.plan}
           </div>
+          {pair.fuerza && (
+            <div className={cn('rounded-md border p-3 text-sm', pair.fuerza.informa ? 'border-accent/40 bg-accent/5 text-gray-100' : 'border-border bg-bg/40 text-gray-300')}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Qué pasó con un sesgo así · 15 años</p>
+              {pair.fuerza.text}
+            </div>
+          )}
           {pair.semaforo && (
             <div className={cn('rounded-md border p-3 text-sm', pair.semaforo.level === 'verde' ? 'border-profit/40 bg-profit/5 text-gray-100' : pair.semaforo.level === 'ambar' ? 'border-warn/40 bg-warn/5 text-gray-100' : 'border-border bg-bg/40 text-gray-300')}>
               <p className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">

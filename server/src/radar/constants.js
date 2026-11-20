@@ -193,6 +193,7 @@ export const FRED_MARKET = {
   real_yield_10y: 'DFII10',
   breakeven_10y: 'T10YIE',
   gvz: 'GVZCLS', // volatilidad implícita del oro: anticipa el tamaño del movimiento, no la dirección
+  nfci: 'NFCI', // condiciones financieras (Fed de Chicago, semanal): pilar del petróleo
   walcl: 'WALCL', // liquidez neta de la Fed = activos − cuenta del Tesoro − repos inversos (pilar candidato de índices, peso 0)
   wtregen: 'WTREGEN',
   rrp: 'RRPONTSYD',
@@ -396,6 +397,7 @@ export const INSTRUMENTS = [
   { symbol: 'US500', label: 'S&P 500', short: 'SPX', kind: 'index', yahoo: '^GSPC', digits: 1, pip: 1, tv: 'FOREXCOM:SPXUSD', cot: { dataset: 'tff', market: 'S&P 500 Consolidated - CHICAGO MERCANTILE EXCHANGE' }, aliases: ['US500', 'SPX500', 'SPX', 'ES', 'SP500', 'USA500', 'MES'] },
   { symbol: 'NAS100', label: 'Nasdaq 100', short: 'NDX', kind: 'index', yahoo: '^NDX', digits: 1, pip: 1, tv: 'FOREXCOM:NSXUSD', cot: { dataset: 'tff', market: 'NASDAQ-100 Consolidated - CHICAGO MERCANTILE EXCHANGE' }, aliases: ['NAS100', 'NDX', 'USTEC', 'NQ', 'MNQ', 'US100', 'NASDAQ', 'USTECH'] },
   { symbol: 'US30', label: 'Dow Jones', short: 'DOW', kind: 'index', yahoo: '^DJI', digits: 1, pip: 1, tv: 'FOREXCOM:DJI', cot: { dataset: 'tff', market: 'DJIA Consolidated - CHICAGO BOARD OF TRADE' }, aliases: ['US30', 'DJ30', 'DOW', 'YM', 'MYM', 'DJI', 'WS30'] },
+  { symbol: 'USOIL', label: 'Petróleo (WTI)', short: 'WTI', kind: 'energy', yahoo: 'CL=F', digits: 2, pip: 0.01, tv: 'TVC:USOIL', cot: null, aliases: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD', 'OIL', 'CRUDE', 'CL'] },
   { symbol: 'DE40', label: 'DAX 40', short: 'DAX', kind: 'index', yahoo: '^GDAXI', digits: 1, pip: 1, tv: 'INDEX:DEU40', cot: null, aliases: ['DE40', 'GER40', 'DAX', 'DE30', 'GER30'] },
   { symbol: 'JP225', label: 'Nikkei 225', short: 'NKY', kind: 'index', yahoo: '^N225', digits: 1, pip: 1, tv: 'INDEX:NKY', cot: { dataset: 'tff', market: 'NIKKEI STOCK AVERAGE YEN DENOM - CHICAGO MERCANTILE EXCHANGE' }, aliases: ['JP225', 'JPN225', 'NIKKEI', 'NKY', 'NI225', 'NK'] },
   { symbol: 'UK100', label: 'FTSE 100', short: 'FTSE', kind: 'index', yahoo: '^FTSE', digits: 1, pip: 1, tv: 'FOREXCOM:UKXGBP', cot: null, aliases: ['UK100', 'FTSE', 'FTSE100', 'UKX'] },
@@ -416,6 +418,9 @@ export const INSTRUMENT_BY_SYMBOL = Object.fromEntries(INSTRUMENTS.map((i) => [i
 export const INSTRUMENT_PILLAR_WEIGHTS_BY_KIND = {
   index: { momentum: 0, tasas: 20, dolar: 15, riesgo: 0, macro: 0, fed: 20, posicionamiento: 5, escenario: 0, curva: 0 },
   metal: { momentum: 0, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 },
+  // Petróleo (20-11-2026, server/scripts/sesgo-cinco-activos.mjs, WTI 2011–2026): el dólar solo ya separa (+12 / +11 / +7 puntos a 5 sesiones);
+  // con la liquidez de la Fed y las condiciones financieras sube a +16 / +13 / +8. Tipos, VIX, macro, Fed, COT y tendencia no aguantan los 3 cortes.
+  energy: { momentum: 0, tasas: 0, dolar: 20, riesgo: 0, macro: 0, fed: 0, posicionamiento: 0, escenario: 0, curva: 0, liquidez: 15, condiciones: 10 },
 };
 /**
  * Movimiento medio del día siguiente por régimen de GEX, en % del precio: [cierre a cierre, rango máximo–mínimo].
@@ -464,6 +469,20 @@ export const INSTRUMENT_EVIDENCE = {
   US30: { bull: 65, bear: 55, base: 58, n_bull: 918, n_bear: 1433 },
   XAUUSD: { bull: 64, bear: 53, base: 54, n_bull: 632, n_bear: 1382 },
   XAGUSD: { bull: 60, bear: 49, base: 51, n_bull: 631, n_bear: 1382 },
+  USOIL: { bull: 57, bear: 44, base: 52, n_bull: 1109, n_bear: 994 },
+};
+/**
+ * Fuerza del sesgo (20-11-2026, sesgo-cinco-activos.mjs --fuerza, 2011–2026): % de veces que el activo sube a 5 y a 20 sesiones según la
+ * puntuación. Filas: [puntuación mínima del tramo, % a 5 s, % a 20 s, n]; `base` = [% a 5 s, % a 20 s] sin mirar el sesgo.
+ * Lectura: en oro e índices solo informa el lado alcista (con sesgo bajista suben igual o algo menos: no comprar, no vender);
+ * en petróleo informan los dos lados.
+ */
+export const INSTRUMENT_STRENGTH_EVIDENCE = {
+  XAUUSD: { base: [54, 52], rows: [[4, 69, 77, 271], [3, 62, 68, 175], [2, 60, 61, 186], [-2, 51, 49, 1811], [-3, 47, 48, 527], [-4, 59, 50, 426], [-Infinity, 54, 50, 429]] },
+  USOIL: { base: [52, 52], rows: [[4, 57, 57, 703], [3, 55, 58, 325], [2, 57, 56, 307], [-2, 54, 54, 1296], [-3, 46, 47, 264], [-4, 45, 45, 251], [-Infinity, 44, 45, 677]] },
+  US500: { base: [60, 68], rows: [[4, 68, 76, 509], [3, 67, 79, 178], [2, 64, 80, 231], [-2, 60, 70, 1481], [-3, 54, 58, 325], [-4, 58, 57, 269], [-Infinity, 57, 59, 832]] },
+  NAS100: { base: [60, 67], rows: [[4, 68, 75, 509], [3, 69, 81, 178], [2, 63, 78, 231], [-2, 60, 68, 1481], [-3, 53, 60, 325], [-4, 55, 54, 269], [-Infinity, 58, 59, 832]] },
+  US30: { base: [59, 66], rows: [[4, 67, 74, 509], [3, 66, 77, 178], [2, 59, 78, 231], [-2, 58, 67, 1481], [-3, 54, 60, 325], [-4, 55, 55, 269], [-Infinity, 56, 58, 832]] },
 };
 /**
  * Oro: movimiento diario medio (% de cierre a cierre en los 5 días siguientes) según el nivel del GVZ, 2010–2026
@@ -485,7 +504,7 @@ export const METAL_WARNINGS = {
   refugio_dudoso: { min_vix: 22, min_dxy: 1, min_real_bp: 20, XAUUSD: { dolar: [50, 62, 284], ambos: [44, 62, 119] } },
   inflacion_esperada: { min_bp: 5, XAUUSD: [51, 59] },
 };
-export const INSTRUMENT_PILLAR_LABELS = { liquidez: 'Liquidez de la Fed', momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)' };
+export const INSTRUMENT_PILLAR_LABELS = { condiciones: 'Condiciones financieras', liquidez: 'Liquidez de la Fed', momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)' };
 
 /** Normaliza cualquier símbolo a un instrumento del radar (o null). */
 export function normalizeInstrumentSymbol(raw) {

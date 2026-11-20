@@ -390,6 +390,7 @@ export interface RadarPair {
   structure: PairStructure;
   plan: string;
   /** Solo Nasdaq y Dow: qué dice hoy el filtro medido (GEX) de la compra de Londres tras barrer el bajo de Asia. */
+  fuerza?: { tramo: string; h5: number; h20: number; n: number; base5: number; base20: number; informa: boolean; text: string } | null;
   semaforo?: { dir: 'compras' | 'ventas'; level: 'verde' | 'ambar' | 'rojo'; on: number; lights: { key: string; on: boolean; label: string; value: number | null }[]; ema8: number; sma18: number; since: number; atr: number; evidence: { r: number; win: number; win11: number | null; n: number; base: number }; text: string } | null;
   london_setup?: { active: boolean; regime: string | null; win_15: number; r_15: number; r_2: number; n: number; years_positive: number; stop_points: number; text: string } | null;
   reasons: string[];
@@ -1557,7 +1558,7 @@ export const INSTRUMENT_LABELS: Record<string, string> = {
 };
 
 export const INSTRUMENT_PILLAR_LABELS: Record<string, string> = {
-  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', liquidez: 'Liquidez de la Fed', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)',
+  momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', liquidez: 'Liquidez de la Fed', condiciones: 'Condiciones financieras', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)',
 };
 /** Pesos de reserva (metales); el servidor envía el peso real de cada pilar en `weight` (índices y metales pesan distinto). */
 export const INSTRUMENT_PILLAR_WEIGHTS: Record<string, number> = { momentum: 0, tasas: 20, dolar: 15, riesgo: 15, macro: 10, fed: 5, posicionamiento: 5, escenario: 0, curva: 0 };
