@@ -205,7 +205,7 @@ export default function PairCard({ pair, compact = false, className, favorite, o
               <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
                 {pair.semaforo.lights.map((l) => (
                   <li key={l.key} className={cn('flex items-center gap-1.5', l.on ? 'text-gray-100' : 'text-gray-500')}>
-                    <span aria-hidden className={cn('inline-block h-2.5 w-2.5 rounded-full', l.on ? (pair.semaforo!.dir === 'compras' ? 'bg-profit shadow-[0_0_8px_rgba(0,255,163,0.7)]' : 'bg-warn') : 'bg-gray-700')} />
+                    <span aria-hidden className={cn('inline-block h-2.5 w-2.5 rounded-full', l.on ? 'bg-profit shadow-[0_0_8px_rgba(0,255,163,0.7)]' : 'bg-gray-700')} />
                     {l.label}<span className="sr-only">{l.on ? ' (encendida)' : ' (apagada)'}</span>
                   </li>
                 ))}

@@ -225,7 +225,7 @@ export function computeInstruments(db, input) {
       gex: gexInfo,
       vol_move: volMove,
       // Semáforo 8/18 (operativa del usuario en US30): dirección por el cruce diario y cuatro luces medidas. No puntúa.
-      semaforo: ins.symbol === 'US30' ? (() => { try { return semaforo818(s.d1, vix, now); } catch { return null; } })() : null,
+      semaforo: ins.symbol === 'US30' ? (() => { try { return semaforo818(s.d1, vix, now, s.h1); } catch { return null; } })() : null,
       // Compra de Londres tras barrer el bajo de Asia: qué dice hoy el filtro medido (GEX). No depende del sesgo.
       london_setup: (() => {
         const t = LONDON_BUY_SETUP[ins.symbol]; if (!t) return null;
