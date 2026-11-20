@@ -119,7 +119,7 @@ export function computeInstruments(db, input) {
         ? { value: round(dxyRet20 === null ? 0 : clamp(-dxyRet20 / 1.5, -2, 2)), raw: dxyRet20, missing: dxyRet20 === null, text: dxyRet20 === null ? 'sin dólar' : `dólar (DXY) ${dxyRet20 >= 0 ? '+' : ''}${fmt(dxyRet20, 1)} % en 20 días (${dxyRet20 > 0 ? 'pesa' : 'apoya'})` }
         : { value: round(hyCh === null ? 0 : clamp(-hyCh / 40, -2, 2)), raw: hyCh, missing: hyCh === null, text: hyCh === null ? 'sin crédito' : `crédito de alto riesgo ${hyCh >= 0 ? '+' : ''}${fmt(hyCh, 0)} pb en 3 meses (${hyCh > 0 ? 'estrés' : 'calma'})` },
       riesgo: isMetal
-        ? { value: round(vix === null ? 0 : clamp((vix - 18) / 4, -2, 2)), raw: vix, missing: vix === null, text: vix === null ? 'sin VIX' : `VIX ${fmt(vix, 1)} (${vix > 22 ? 'miedo: refugio' : vix < 15 ? 'calma: menos refugio' : 'normal'})` }
+        ? { value: round(vix === null ? 0 : clamp((vix - 18) / 4, -2, 2)), raw: vix, missing: vix === null, text: vix === null ? 'sin VIX' : `VIX ${fmt(vix, 1)} (${vix > 22 ? (dxyRet20 !== null && dxyRet20 >= 1 ? 'miedo, pero con el dólar subiendo no suele hacer de refugio' : 'miedo: refugio') : vix < 15 ? 'calma: menos refugio' : 'normal'})` }
         : { value: round(vix === null ? 0 : clamp((18 - vix) / 4, -2, 2)), raw: vix, missing: vix === null, text: vix === null ? 'sin VIX' : `VIX ${fmt(vix, 1)} (${vix > 22 ? 'tensión' : vix < 15 ? 'calma' : 'normal'})` },
       macro: { value: round(clamp(isMetal ? -usdGrowth * 0.8 : usdGrowth, -2, 2)), raw: usdGrowth, missing: false, text: `sorpresas macro de EE. UU. ${usdGrowth >= 0 ? 'positivas' : 'negativas'} (${fmt(usdGrowth)})` },
       fed: { value: round(fedValue), raw: usdExpect !== null ? round(-usdExpect) : fedDiff, missing: usdExpect === null && !fedFresh, text: fedText },
@@ -188,6 +188,11 @@ export function computeInstruments(db, input) {
     if (isMetal) {
       const wp = METAL_WARNINGS.plata_delante[ins.symbol];
       if (wp && silverLead !== null && silverLead >= METAL_WARNINGS.plata_delante.min_pp) warnings.push({ kind: 'plata_delante', text: `La plata lleva un mes por delante del oro (+${fmt(silverLead)} puntos): tras eso, ${ins.label === 'Oro' ? 'el oro' : 'la plata'} subió el ${wp[0]} % de las veces a 20 sesiones, frente al ${wp[1]} % cuando la plata va por detrás (2010–2026, igual en las tres épocas).` });
+      const wr = METAL_WARNINGS.refugio_dudoso[ins.symbol];
+      if (wr && vix !== null && vix > METAL_WARNINGS.refugio_dudoso.min_vix && dxyRet20 !== null && dxyRet20 >= METAL_WARNINGS.refugio_dudoso.min_dxy) {
+        const ambos = realYieldCh !== null && realYieldCh >= METAL_WARNINGS.refugio_dudoso.min_real_bp; const e = ambos ? wr.ambos : wr.dolar;
+        warnings.push({ kind: 'refugio_dudoso', text: `Hay miedo (VIX ${fmt(vix, 1)}) pero el dólar sube ${fmt(dxyRet20, 1)} % en 20 días${ambos ? ` y el tipo real a 10 años ${fmt(realYieldCh, 0)} pb en 3 meses` : ''}: así el oro no ha hecho de refugio (subió el ${e[0]} % de las veces a 5 sesiones, n ${e[2]}, frente al ${e[1]} % cuando el dólar no acompaña). El pilar de riesgo suma a favor del oro, pero aquí pesa poco: es huida a liquidez. Pocos episodios; solo informa.` });
+      }
       const wi = METAL_WARNINGS.inflacion_esperada[ins.symbol];
       if (wi && beCh60 !== null && beCh60 >= METAL_WARNINGS.inflacion_esperada.min_bp) warnings.push({ kind: 'inflacion_esperada', text: `La inflación esperada a 10 años sube ${fmt(beCh60, 0)} pb en 3 meses: tras eso, el oro subió el ${wi[0]} % de las veces a 20 sesiones, frente al ${wi[1]} % cuando baja (2010–2026, igual en las tres épocas).` });
     }

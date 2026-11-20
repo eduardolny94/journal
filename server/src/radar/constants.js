@@ -479,6 +479,10 @@ export const GOLD_GVZ_MOVE = [[13.3, 0.47], [15.8, 0.6], [17.7, 0.65], [21, 0.72
  */
 export const METAL_WARNINGS = {
   plata_delante: { min_pp: 1, XAUUSD: [49, 57], XAGUSD: [44, 54] },
+  // Miedo sin refugio (20-11-2026, server/scripts/oro-sesgo-refugio.mjs, 2011–2026): con VIX > 22 y el dólar subiendo ≥ 1 % en 20 días el oro
+  // subió el 50 % de las veces a 5 sesiones (n 284) frente al 62 % con el dólar bajando (n 211); si además el tipo real a 10 años sube
+  // ≥ 20 pb en 3 meses, 44 % (n 119) frente a 62 % sin ninguna de las dos (n 366). Pocos episodios: no es estable por épocas, solo informa.
+  refugio_dudoso: { min_vix: 22, min_dxy: 1, min_real_bp: 20, XAUUSD: { dolar: [50, 62, 284], ambos: [44, 62, 119] } },
   inflacion_esperada: { min_bp: 5, XAUUSD: [51, 59] },
 };
 export const INSTRUMENT_PILLAR_LABELS = { liquidez: 'Liquidez de la Fed', momentum: 'Momentum', tasas: 'Tipos reales / bonos', dolar: 'Dólar / crédito', riesgo: 'Riesgo (VIX)', macro: 'Macro EE. UU.', fed: 'Expectativas Fed', posicionamiento: 'Posicionamiento (COT)', escenario: 'Escenario macro (Curto)', curva: 'Curva 30 − 2 años', gex: 'Gamma de dealers (GEX)', gvz: 'Volatilidad del oro (GVZ)' };

@@ -867,6 +867,8 @@ export function warningLabel(kind: WarningKind | string): string {
       return 'Plata por delante del oro';
     case 'inflacion_esperada':
       return 'Inflación esperada al alza';
+    case 'refugio_dudoso':
+      return 'Miedo sin refugio';
     case 'contra_estructura':
       return 'Contra estructura';
     case 'spread_alto':
