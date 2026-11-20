@@ -35,3 +35,28 @@ USDJPY +0,38, EURGBP +0,14, **USDCHF −0,11** (el par sin ventaja estable del r
 - Límites: radar reconstruido (84 % de acuerdo con el real), sin swap (20–30 días abiertos), posiciones correlacionadas (yen, dólar),
   bloque 2016–20 flojo, rachas de 12–17 pérdidas. Con caída de 17–21 R, en una cuenta con 10 % de pérdida máxima el riesgo por
   operación debe ser ≈ 0,4–0,5 %.
+
+## Los métodos swing famosos, probados en los 8 pares (20-11-2026, `server/scripts/swing-famosos.mjs`)
+
+Reglas publicadas, fijadas antes de mirar: Tortugas (rupturas de 20 y 55 días, stop 2 N), tendencia de 12 y 3 meses (Moskowitz, Ooi y
+Pedersen, JFE 2012), Donchian 5/20, cruce EMA 20/50, «Holy Grail» de Raschke (ADX > 30 y retroceso a la EMA 20), media de 200 días y carry.
+Velas diarias 2011-07 → 2026, coste 1 pip, sin swap. «A favor» = el sesgo del radar (≥ 2) va en el mismo sentido.
+
+| Método | Solo: R medio · años + | Con sesgo A FAVOR | Con sesgo EN CONTRA |
+|---|---|---|---|
+| Tortugas 20/10 | −0,10 · 3/16 | +0,11 (37 % gana; +0,39 / −0,12 / +0,08) | −0,27 |
+| Tortugas 55/20 | −0,10 · 5/16 | +0,16 | −0,29 |
+| Tendencia 12 meses | −0,03 · 7/16 | +0,06 (50 %) | −0,18 |
+| Tendencia 3 meses | −0,04 · 5/16 | +0,08 (50 %; 10/16 años) | −0,18 |
+| Donchian 5/20 | −0,05 · 6/16 | +0,07 | −0,25 |
+| Cruce EMA 20/50 | 0,00 · 5/16 | +0,40 (n 103; −0,03 / −0,01 / +1,24) | −0,42 |
+| Media de 200 días | +0,08 · 9/16 (gana 17 %) | +0,34 (n 149; +0,27 / +0,10 / +0,58; caída 5 R) | −0,16 |
+| Carry (tipos oficiales; 4 pares con dato) | −0,02 · 6/16 | +0,18 (57 % gana; 11/16 años; caída 5 R) | −0,12 |
+| Raschke Holy Grail | 24 señales en 15 años: sin muestra | — | — |
+| **Swing fundamental (stop 2 ATR, salida por sesgo)** | **+0,44 · 14/16** | (es el propio sesgo) | — |
+
+- Ningún método técnico famoso gana solo en estos 8 pares desde 2011; todos pasan a positivo con el sesgo a favor y a muy negativo en contra.
+  El ingrediente es el fundamental. Coincide con Dahlquist y Hasseltoft (JFE 2020): la tendencia de los fundamentales predice las divisas.
+- Ninguno, como gatillo, supera a entrar directamente con el sesgo y dejar que el sesgo cierre (+0,44 R; +0,54 R con estado buen/normal).
+- Traders de acciones (Minervini, O'Neil, Zanger) y macro discrecionales (Druckenmiller, Soros) no se han probado: sus métodos son de
+  acciones o no son mecánicos.
