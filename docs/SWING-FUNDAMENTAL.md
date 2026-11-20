@@ -60,3 +60,28 @@ Velas diarias 2011-07 → 2026, coste 1 pip, sin swap. «A favor» = el sesgo de
 - Ninguno, como gatillo, supera a entrar directamente con el sesgo y dejar que el sesgo cierre (+0,44 R; +0,54 R con estado buen/normal).
 - Traders de acciones (Minervini, O'Neil, Zanger) y macro discrecionales (Druckenmiller, Soros) no se han probado: sus métodos son de
   acciones o no son mecánicos.
+
+## Swing en índices: S&P 500, Nasdaq 100 y Dow (20-11-2026, `server/scripts/swing-indices.mjs`)
+
+Velas diarias de contado 2011-08 → 2026-10, coste 0,5 / 1,5 / 3 puntos, sin financiación nocturna. Sesgo de índices = tipos a 10 años
+(3 meses) + lo que descuenta la Fed, como en producción. Los índices suben casi siempre: la referencia es «comprar cada 10 sesiones y
+mantener 10» (60,5 % gana, +0,12 R, +0,52 % por operación).
+
+| Método | Gana | R medio (bloques) | % por op | Notas |
+|---|---|---|---|---|
+| Referencia con sesgo A FAVOR / EN CONTRA | 72,7 % / 54,6 % | +0,25 / +0,09 | +1,29 / +0,25 | el sesgo separa 18 puntos |
+| Tortugas 20/10, compras y ventas | 33,7 % | −0,04 | −0,06 | las ventas lo hunden |
+| Tortugas 20/10, solo compras | 46,7 % | +0,37 (+0,05 / +0,75 / +0,30) | +1,12 | casi todo es la subida del índice |
+| Tendencia 12 meses | 55,5 % | +0,18 | +0,54 | |
+| Media de 200 días | 28,9 % | +0,63 | +3,41 | 63 días por operación |
+| RSI(2) de Connors (retroceso sobre la media de 200) | 71,1 % | +0,05 (+0,04 / +0,05 / +0,07) | +0,18 | 13/16 años; 3,7 días |
+| Tres cierres bajistas sobre la media de 200 | 65,4 % | +0,04 | +0,11 | |
+| Cambio de mes | 56,4 % | +0,05 | +0,25 | |
+| Vender rebotes bajo la media de 200 | 58,3 % | −0,02 | −0,08 | |
+| Swing fundamental, compras y ventas | 42,8 % | +0,14 (+0,31 / −0,05 / +0,18) | +0,55 | |
+| **Swing fundamental, solo compras (sesgo ≥ 2, stop 2 ATR, salir cuando el sesgo baja de 1)** | **57,0 %** | **+0,42 (+0,41 / +0,25 / +0,59)** | +1,38 | 12/16 años; 11 días; Nasdaq +0,50 R |
+| **Sesgo alcista + RSI(2) < 10, salir sobre la media de 5** | **75,8 %** | +0,10 (+0,08 / +0,08 / +0,13) | +0,58 | 3,4 días; Nasdaq 76,9 %, +0,14 R |
+| Sesgo alcista + RSI(2) < 10, salir cuando el sesgo se gire | 61,3 % | +0,30 | +1,64 | |
+
+En índices solo compras; vender no tiene ventaja con ningún método. Los tres índices son una sola apuesta. Periodo alcista: sin el sesgo,
+comprar a ciegas ya ganaba el 60 %.
