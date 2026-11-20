@@ -85,3 +85,22 @@ mantener 10» (60,5 % gana, +0,12 R, +0,52 % por operación).
 
 En índices solo compras; vender no tiene ventaja con ningún método. Los tres índices son una sola apuesta. Periodo alcista: sin el sesgo,
 comprar a ciegas ya ganaba el 60 %.
+
+## RSI de 2 días (Connors) como entrada del swing (20-11-2026, `server/scripts/rsi2-swing.mjs`)
+
+Con el sesgo ≥ 2, entrar cuando el RSI(2) diario marca un retroceso en contra del sesgo. Dos salidas: fundamental (sesgo se gira, stop 2 ATR)
+o Connors (primer cierre al otro lado de la media de 5 días, stop 3 ATR).
+
+| | Divisas (8 pares) | Índices (solo compras) |
+|---|---|---|
+| Sesgo, entrar sin esperar · salida fundamental | 42,7 % · +0,42 R | 57,0 % · +0,42 R |
+| Sesgo + RSI(2) < 10 en contra · salida fundamental | 42,0 % · +0,39 R | 53,1 % · +0,40 R |
+| Sesgo + RSI(2) > 90 a favor · salida fundamental | 44,1 % · +0,43 R | 63,9 % · +0,50 R (14/16 años, caída 6 R) |
+| **Sesgo + RSI(2) < 10 en contra · salida Connors** | **69,8 % · +0,03 R** (4 días; 11 ops/mes; racha 7) | **75,8 % · +0,10 R** (3,4 días; racha 6) |
+| RSI(2) < 10 sin sesgo · salida Connors | 64,4 % · −0,01 R (6/16 años) | 71,1 % · +0,05 R |
+| RSI(2) < 10 con el sesgo en contra · salida Connors | 59,1 % · −0,05 R (1/16 años) | 69,5 % · +0,03 R |
+
+- Esperar el retroceso del RSI(2) no mejora el swing largo: da lo mismo que entrar cuando aparece el sesgo. El umbral (5, 10, 20, 30) no cambia nada.
+- Lo que aporta es otro perfil: operación corta (3–4 días), 70–76 % de aciertos y rachas de 6–7 pérdidas en vez de 15–18, a cambio de
+  ganar poco por operación. En divisas +0,03 R es demasiado fino (costes reales lo pueden borrar); en índices +0,10 R aguanta los tres bloques.
+- Sin sesgo o contra el sesgo, el RSI(2) no sirve en divisas.
