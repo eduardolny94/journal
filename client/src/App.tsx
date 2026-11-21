@@ -19,6 +19,7 @@ const TradeForm = lazy(() => import('./pages/TradeForm'));
 const TradeDetail = lazy(() => import('./pages/TradeDetail'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Finanzas = lazy(() => import('./pages/Finanzas'));
+const Senales = lazy(() => import('./pages/Senales'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const Notes = lazy(() => import('./pages/Notes'));
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="/operaciones/:id" element={<TradeDetail />} />
               <Route path="/cuentas" element={<Accounts />} />
               <Route path="/finanzas" element={<Finanzas />} />
+              <Route path="/senales" element={<Senales />} />
               <Route path="/suscripcion" element={<Subscription />} />
               <Route element={<RequireAdmin />}>
                 <Route path="/admin" element={<Admin />} />

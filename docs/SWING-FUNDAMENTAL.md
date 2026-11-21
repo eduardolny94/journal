@@ -104,3 +104,22 @@ o Connors (primer cierre al otro lado de la media de 5 días, stop 3 ATR).
 - Lo que aporta es otro perfil: operación corta (3–4 días), 70–76 % de aciertos y rachas de 6–7 pérdidas en vez de 15–18, a cambio de
   ganar poco por operación. En divisas +0,03 R es demasiado fino (costes reales lo pueden borrar); en índices +0,10 R aguanta los tres bloques.
 - Sin sesgo o contra el sesgo, el RSI(2) no sirve en divisas.
+
+## ¿Qué activos son más tendenciales en 4 horas? (21-11-2026)
+
+Guion: `server/scripts/tendencia-h4.mjs`. Un «tramo» va de un cruce de la EMA 8 con la media de 18 en H4 hasta el cruce contrario.
+«Resultado» = entrar en el cruce y salir en el contrario, en ATR de H4, sin costes. FX 2011–2026 (≈ 1.500 tramos por par);
+oro e índices 2020–2026 (≈ 600–650); petróleo solo 2024–2026 (215, poco historial).
+
+- **La duración es casi igual en todos**: mediana 2,0–2,4 días, ≈ 95 cruces al año, solo el 12–17 % dura 5 días o más y
+  solo un 31–42 % de los tramos termina con ganancia. Ningún activo «aguanta» el cruce mucho más que otro.
+- **Lo que cambia es cuánto recorre cuando sí aguanta** (resultado medio por tramo y por tercios del historial):
+  oro +0,19 (+0,11 / +0,03 / +0,43) · USDJPY +0,18 (+0,20 / +0,26 / +0,07) · AUDJPY +0,15 (+0,11 / +0,12 / +0,22) ·
+  EURJPY +0,11 (+0,27 / +0,07 / −0,03) · Nasdaq +0,08 · Dow +0,05 · petróleo +0,02 · GBPUSD 0,00 · USDCHF −0,02 ·
+  EURUSD −0,04 · USDCAD −0,10 · EURGBP −0,10 · S&P 500 −0,11. Positivos en los tres tercios: oro, USDJPY y AUDJPY.
+- **Cruces de compra**: Nasdaq dura más (mediana 2,7 días, 21,6 % ≥ 5 días, +0,32 ATR), S&P 500 (20,2 % ≥ 5 días, +0,17),
+  oro (+0,55 ATR, 41 % con ganancia), USDJPY (+0,33), Dow (+0,21), EURJPY (+0,20), AUDJPY (+0,16).
+- **Cruces de venta**: pierden en oro (−0,17), Nasdaq (−0,17), Dow (−0,12) y S&P 500 (−0,38; solo el 7,7 % dura ≥ 5 días).
+  AUDJPY es el único que rinde parecido en compras y ventas (+0,16 / +0,14).
+- Sin ventaja en el cruce: EURUSD, GBPUSD, USDCHF, USDCAD, EURGBP (rango). Coincide con el estudio de la operativa C4L:
+  el cruce solo no basta; con el sesgo del radar a favor es cuando paga.

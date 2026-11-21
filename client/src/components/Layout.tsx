@@ -12,6 +12,7 @@ import {
   PiggyBank,
   ShieldCheck,
   CreditCard,
+  Radio,
 } from 'lucide-react';
 import { api, logoutEverywhere } from '../lib/api';
 import { GA_ID, reopenConsent, trackPage } from '../lib/analytics';
@@ -30,6 +31,7 @@ const NAV = [
   { to: '/cuentas', label: 'Cuentas', icon: Wallet },
   { to: '/finanzas', label: 'Finanzas', icon: PiggyBank },
   { to: '/diario', label: 'Diario', icon: BookOpen },
+  { to: '/senales', label: 'Señales', icon: Radio },
   // Importar ya no va en el menú: se llega desde Operaciones («Importar CSV») y desde Cuentas → Conectar.
   { to: '/suscripcion', label: 'Mi suscripción', icon: CreditCard },
 ];
@@ -44,6 +46,7 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/admin/, 'Administración'],
   [/^\/suscripcion/, 'Mi suscripción'],
   [/^\/diario/, 'Diario'],
+  [/^\/senales/, 'Señales a Discord'],
   [/^\/importar/, 'Importar operaciones'],
   [/^\/radar\/[A-Z0-9]{4,6}/, 'Radar · activo'],
   [/^\/radar/, 'Radar · divisas, índices y metales'],

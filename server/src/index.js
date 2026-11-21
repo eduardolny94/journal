@@ -36,6 +36,8 @@ import { migrateFoundingAdmins } from './services/admin.js';
 import { requireRadarAccess } from './radar/access.js';
 import { startEngine } from './radar/engine.js';
 import { startMesa } from './mesa/index.js';
+import { publico as senalesPublico, privado as senalesPrivado } from './routes/senales.js';
+import { tickResumenes } from './services/senales.js';
 import { startMuros } from './radar/opciones.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -156,6 +158,9 @@ app.use('/api/import', requireAuth, subscriptionGate, importRoutes);
 app.use('/api/finanzas', requireAuth, subscriptionGate, finanzasRoutes);
 // Certificados de cuenta fondeada y comprobantes de payout (/api/finanzas/documentos, /api/finanzas/fondeos).
 app.use('/api/finanzas', requireAuth, subscriptionGate, documentosRoutes);
+// Señales a Discord: la entrada pública (clave en la URL, como un webhook) va antes que las rutas con sesión.
+app.use('/api/senales', senalesPublico);
+app.use('/api/senales', requireAuth, subscriptionGate, senalesPrivado);
 app.use('/api/radar', requireAuth, subscriptionGate, requireRadarAccess, radarRoutes);
 // Mesa de agentes (mesa-agentes/): solo el dueño con acceso al Radar.
 app.use('/api/mesa', requireAuth, subscriptionGate, requireRadarAccess, requireAdmin, requireOwner, mesaRoutes);
@@ -163,6 +168,8 @@ app.use('/api/mesa', requireAuth, subscriptionGate, requireRadarAccess, requireA
 // Radar de divisas: descargas y cálculo en segundo plano (no bloquea el arranque).
 try {
   startEngine();
+  // Recuento semanal de señales en Discord: se comprueba cada 10 minutos; solo publica del viernes por la noche al domingo y una vez por semana.
+  if (!isTest) { const senalesTimer = setInterval(() => { tickResumenes(getDb(), { log: (m) => console.log('[senales]', m) }).catch(() => {}); }, 10 * 60_000); if (senalesTimer.unref) senalesTimer.unref(); }
   try {
     ensureTemplates(getDb());
     const promoted = migrateFoundingAdmins(getDb());

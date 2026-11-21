@@ -342,7 +342,10 @@ export function queryCalendar(db, { from, to, countries, impacts, categories, tz
 /** Eventos de una divisa en una ventana [fromIso, toIso]. */
 export function eventsBetween(db, fromIso, toIso, { countries = null } = {}) {
   const rows = db.prepare('SELECT * FROM radar_calendar WHERE at_utc >= ? AND at_utc <= ? ORDER BY at_utc').all(fromIso, toIso);
-  return rows.filter((r) => !countries || countries.includes(r.country)).map(toEventDto);
+  // La fuente a veces trae el mismo evento dos veces (dos identificadores, mismo país, título y hora): se queda el más completo.
+  const best = new Map(); const info = (r) => (r.actual !== null && r.actual !== '' ? 2 : 0) + (r.forecast !== null && r.forecast !== '' ? 1 : 0);
+  for (const r of rows) { if (countries && !countries.includes(r.country)) continue; const k = `${r.country}|${r.title}|${r.at_utc}`; const prev = best.get(k); if (!prev || info(r) > info(prev)) best.set(k, r); }
+  return [...best.values()].sort((x, y) => (x.at_utc < y.at_utc ? -1 : x.at_utc > y.at_utc ? 1 : 0)).map(toEventDto);
 }
 
 /** Último valor publicado para uno de varios títulos (por orden de preferencia). */

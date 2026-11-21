@@ -38,7 +38,7 @@ export function StatusChips({ status, computedAt, regime }: { status: RadarStatu
   const provider = p?.provider === 'yahoo' ? 'Yahoo' : p?.provider === 'mt5' ? 'MT5' : 'Muestra';
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <SourceChip label={`Precios ${provider}`} ok={!!p?.ok} warn={p?.provider === 'sample' || !!p?.stale} detail={p ? fmtAge(p.age_seconds) : undefined} />
+      <SourceChip label={`Precios ${provider}`} ok={!!p?.ok} warn={p?.provider === 'sample' || !!p?.stale} detail={p ? (p.closed ? 'mercado cerrado' : fmtAge(p.age_seconds)) : undefined} />
       <SourceChip label="Calendario" ok={status.calendar.ok} detail={status.calendar.ok ? `${status.calendar.events_week ?? 0} eventos` : status.calendar.error ?? 'sin datos'} />
       <SourceChip label="FRED" ok={status.fred.ok} detail={status.fred.ok ? fmtSince(status.fred.last_fetch, now) : status.fred.error ?? 'sin datos'} />
       {status.yields && <SourceChip label="Bonos 2 años" ok={!!status.yields.ok || !!status.yields.live?.ok} warn={!!status.yields.error} detail={status.yields.live?.ok ? fmtSince(status.yields.live.last_fetch, now) : status.yields.error ?? 'sin datos'} />}

@@ -104,6 +104,7 @@ export function computeInstruments(db, input) {
 
   const list = [];
   for (const ins of INSTRUMENTS) {
+    if (ins.hidden) continue; // p. ej. la plata: solo hace falta su precio para el aviso del oro
     const s = symbols[ins.symbol];
     if (!s || !s.h1 || s.h1.length < 30) continue;
     const p = pairComputations(ins.symbol, s, now);

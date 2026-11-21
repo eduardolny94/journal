@@ -435,6 +435,8 @@ export interface PricesStatus {
   ok: boolean;
   age_seconds: number;
   stale: boolean;
+  /** Fin de semana: el precio es el del viernes y eso es lo normal. */
+  closed?: boolean;
   note: string;
 }
 

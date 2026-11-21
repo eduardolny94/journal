@@ -134,8 +134,8 @@ export function weekPlan(db, { now = new Date(), expectations = [], pairs = [], 
   const top = [...pairs].filter((p) => p.strength !== 'sin sesgo').sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 3);
   const noBias = [...pairs].filter((p) => p.main && p.strength === 'sin sesgo').map((p) => p.symbol);
   const sentences = [];
-  sentences.push(quiet.length ? `${cap(quiet.join(' y '))} sin datos de alto impacto.` : 'Todos los días de la semana traen datos de alto impacto.');
-  if (pivot) sentences.push(`${pivot.why}`);
+  sentences.push(quiet.length ? `${cap(quiet.length > 1 ? `${quiet.slice(0, -1).join(', ')} y ${quiet[quiet.length - 1]}` : quiet[0])} sin datos de alto impacto.` : 'Todos los días de la semana traen datos de alto impacto.');
+  if (pivot) sentences.push(`${pivotDay ? `${cap(pivotDay)}: ` : ''}${pivot.title}${pivot.country ? ` (${pivot.country})` : ''}. ${pivot.why}`); // antes salía «Es el dato de mayor impacto» sin decir cuál
   if (top.length) sentences.push(`Estimación: ${top.map((p) => `${p.symbol} ${p.bias} (${p.base} ${p.diff >= 0 ? 'fuerte' : 'débil'} frente a ${p.quote})`).join(', ')}.`);
   if (noBias.length) sentences.push(`${noBias.join(', ')} sin sesgo claro.`);
   sentences.push(stance);

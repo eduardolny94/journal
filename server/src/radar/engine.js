@@ -145,7 +145,9 @@ export function refreshSources({ force = false } = {}) {
       runSource(db, 'yields_tv', REFRESH_MS.yields_tv, () => refreshYieldsLive(db), { force, now }),
       runSource(db, 'calendar', calendarIntervalMs(db, now), async () => {
         const r = await refreshCalendar(db);
-        return { ok: r.ok, events_week: r.count };
+        // «eventos» = los de impacto medio o alto de los próximos 7 días (sin duplicados), no todo lo descargado
+        let week = r.count; try { week = eventsBetween(db, new Date(now).toISOString(), new Date(now + 7 * 86400000).toISOString()).filter((e) => e.impact === 'High' || e.impact === 'Medium').length; } catch { /* se deja el recuento bruto */ }
+        return { ok: r.ok, events_week: week };
       }, { force, now }),
       runSource(db, 'cot', REFRESH_MS.cot, () => refreshCot(db), { force, now }),
       runSource(db, 'gex', REFRESH_MS.gex, () => refreshGex(db), { force: false, now }),
@@ -391,7 +393,7 @@ async function compute() {
       mt5: prices.mt5,
       fred: state.sources.fred,
       yields: { ...state.sources.yields, live: state.sources.yields_tv },
-      calendar: state.sources.calendar,
+      calendar: { ...state.sources.calendar, events_week: (() => { try { return eventsBetween(db, nowDate.toISOString(), new Date(now + 7 * 86400000).toISOString()).filter((e) => e.impact === 'High' || e.impact === 'Medium').length; } catch { return state.sources.calendar.events_week; } })() },
       cot: { ...state.sources.cot, report_date: cot.report_date },
       news: { ...state.sources.news, count: newsTop.length },
     },

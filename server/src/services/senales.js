@@ -1,0 +1,121 @@
+// SEÑALES A DISCORD CON RECUENTO SEMANAL (21-11-2026). El indicador «GTFX · Señal a Discord» de TradingView escribe directo al webhook
+// de Discord y nadie recuerda qué pasó con cada señal. Aquí el aviso pasa por el journal: se anota la señal y cada evento (entrada, TP1,
+// TP2, BE, stop), se reenvía tal cual al canal de Discord del usuario y, al cerrar la semana, se publica el recuento en ese mismo canal.
+// El webhook de Discord es un secreto: solo se admite una URL de Discord, se guarda en el servidor y nunca se devuelve entero.
+import crypto from 'node:crypto';
+
+export const WEBHOOK_RE = /^https:\/\/(?:discord\.com|discordapp\.com|ptb\.discord\.com|canary\.discord\.com)\/api\/webhooks\/\d{5,25}\/[\w-]{20,200}$/;
+export const maskWebhook = (u) => (typeof u === 'string' && u.length > 12 ? `${u.slice(0, 33)}…${u.slice(-4)}` : '');
+const num = (s) => { const v = Number(String(s ?? '').replace(/\s/g, '').replace(',', '.')); return Number.isFinite(v) ? v : null; };
+const LADO = { SELL: -1, VENTA: -1, BUY: 1, COMPRA: 1 };
+const limpia = (l) => l.replace(/\*\*/g, '').replace(/^[^A-Za-zÁÉÍÓÚáéíóú0-9]+/, '').trim();
+
+/** Lee un mensaje del indicador. Devuelve { tipo: 'senal' | 'evento', … } o null si no lo reconoce (se reenvía igual). */
+export function parseMensaje(text) {
+  const lines = String(text || '').split(/\r?\n|\\n/).map((l) => l.trim()).filter(Boolean);
+  const ev = lines.map(limpia).map((l) => /^(SELL|BUY|VENTA|COMPRA)\s+(.+?)\s+·\s+Entrada\s+([-\d.,]+)\s+·\s+SL\s+([-\d.,]+)\s+·\s+TP1\s+([-\d.,]+)\s+·\s+TP2\s+([-\d.,]+)/i.exec(l)).find(Boolean);
+  if (ev) {
+    const titulo = lines.find((l) => /Entrada activada|Stop tocado|TP1|TP2|\bBE\b|en la entrada/i.test(l) && !/·\s+Entrada\s+[-\d.,]+\s+·\s+SL/i.test(l)) || '';
+    const evento = /\bBE\b|en la entrada/i.test(titulo) ? 'be' : /Stop tocado/i.test(titulo) ? 'sl' : /TP2/i.test(titulo) ? 'tp2' : /TP1/i.test(titulo) ? 'tp1' : /Entrada activada/i.test(titulo) ? 'entrada' : null;
+    if (!evento) return null;
+    return { tipo: 'evento', evento, lado: LADO[ev[1].toUpperCase()], activo: ev[2].trim(), entrada: num(ev[3]), sl: num(ev[4]), tp1: num(ev[5]), tp2: num(ev[6]) };
+  }
+  const head = lines.map(limpia).map((l) => /^(SELL|BUY|VENTA|COMPRA)\s+(.+?)\s+(NOW|LIMIT|AHORA|L[IÍ]MITE)\s*$/i.exec(l)).find(Boolean);
+  const get = (re) => { for (const l of lines.map(limpia)) { const m = re.exec(l); if (m) return num(m[1]); } return null; };
+  const entrada = get(/Entrada:\s*([-\d.,]+)/i), sl = get(/^SL:\s*([-\d.,]+)/i), tp1 = get(/^TP1:\s*([-\d.,]+)/i), tp2 = get(/^TP2:\s*([-\d.,]+)/i);
+  if (head && entrada !== null && sl !== null) return { tipo: 'senal', lado: LADO[head[1].toUpperCase()], activo: head[2].trim(), limite: /LIMIT|L[IÍ]MITE/i.test(head[3]), entrada, sl, tp1, tp2 };
+  return null;
+}
+
+const igual = (a, b) => a !== null && b !== null && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+export const FINALES = new Set(['tp2', 'sl', 'sl_tras_tp1', 'be']);
+
+export function getCanal(db, userId) { return db.prepare('SELECT * FROM senal_canales WHERE user_id = ?').get(userId) || null; }
+export function canalPorClave(db, clave) { return typeof clave === 'string' && /^[A-Za-z0-9_-]{20,80}$/.test(clave) ? db.prepare('SELECT * FROM senal_canales WHERE clave = ?').get(clave) || null : null; }
+export function saveCanal(db, userId, webhook, now = new Date()) {
+  if (!WEBHOOK_RE.test(String(webhook || '').trim())) { const e = new Error('Eso no parece un webhook de Discord. Tiene que empezar por https://discord.com/api/webhooks/…'); e.status = 400; throw e; }
+  const prev = getCanal(db, userId); const iso = new Date(now).toISOString();
+  if (prev) db.prepare('UPDATE senal_canales SET webhook = ?, updated_at = ? WHERE id = ?').run(webhook.trim(), iso, prev.id);
+  else db.prepare('INSERT INTO senal_canales (user_id, clave, webhook, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(userId, crypto.randomBytes(24).toString('base64url'), webhook.trim(), iso, iso);
+  return getCanal(db, userId);
+}
+export function deleteCanal(db, userId) { const c = getCanal(db, userId); if (!c) return false; db.prepare('DELETE FROM senales WHERE canal_id = ?').run(c.id); db.prepare('DELETE FROM senal_canales WHERE id = ?').run(c.id); return true; }
+
+/** Anota una señal nueva o aplica un evento a la señal abierta que coincide (mismo activo, sentido, entrada y stop). */
+export function registrar(db, canal, p, now = new Date()) {
+  if (!p) return { ok: false, motivo: 'no reconocido' };
+  const iso = new Date(now).toISOString();
+  if (p.tipo === 'senal') {
+    const dup = db.prepare('SELECT id, abierta_at, entrada, sl FROM senales WHERE canal_id = ? AND activo = ? AND lado = ? ORDER BY id DESC LIMIT 1').get(canal.id, p.activo, p.lado);
+    if (dup && igual(dup.entrada, p.entrada) && igual(dup.sl, p.sl) && Date.parse(iso) - Date.parse(dup.abierta_at) < 120_000) return { ok: true, id: dup.id, duplicada: true };
+    const r = db.prepare('INSERT INTO senales (canal_id, activo, lado, entrada, sl, tp1, tp2, limite, estado, abierta_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(canal.id, p.activo, p.lado, p.entrada, p.sl, p.tp1, p.tp2, p.limite ? 1 : 0, p.limite ? 'pendiente' : 'en_curso', iso);
+    return { ok: true, id: Number(r.lastInsertRowid), nueva: true };
+  }
+  const cand = db.prepare('SELECT * FROM senales WHERE canal_id = ? AND activo = ? AND lado = ? ORDER BY id DESC LIMIT 12').all(canal.id, p.activo, p.lado).find((s) => igual(s.entrada, p.entrada) && igual(s.sl, p.sl) && !FINALES.has(s.estado));
+  if (!cand) return { ok: false, motivo: 'sin señal abierta que coincida' };
+  const estado = p.evento === 'entrada' ? 'en_curso' : p.evento === 'tp1' ? 'tp1' : p.evento === 'tp2' ? 'tp2' : p.evento === 'be' ? 'be' : cand.estado === 'tp1' ? 'sl_tras_tp1' : 'sl';
+  db.prepare('UPDATE senales SET estado = ?, tp1_at = COALESCE(tp1_at, ?), cerrada_at = ? WHERE id = ?').run(estado, p.evento === 'tp1' ? iso : null, FINALES.has(estado) ? iso : null, cand.id);
+  return { ok: true, id: cand.id, estado };
+}
+
+/** Lunes 00:00 (hora de España, aproximada a UTC − 2 h) de la semana que contiene `now`, y el lunes siguiente. */
+export function semanaDe(now = new Date()) {
+  const d = new Date(new Date(now).getTime() + 2 * 3600e3); const wd = (d.getUTCDay() + 6) % 7;
+  const lunes = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - wd) - 2 * 3600e3);
+  return { desde: lunes.toISOString(), hasta: new Date(lunes.getTime() + 7 * 86400e3).toISOString(), clave: new Date(lunes.getTime() + 2 * 3600e3).toISOString().slice(0, 10) };
+}
+
+export function recuento(db, canalId, desde, hasta) {
+  const rows = db.prepare('SELECT * FROM senales WHERE canal_id = ? AND abierta_at >= ? AND abierta_at < ? ORDER BY abierta_at').all(canalId, desde, hasta);
+  const n = (f) => rows.filter(f).length;
+  const c = { total: rows.length, tp2: n((s) => s.estado === 'tp2'), be: n((s) => s.estado === 'be'), sl: n((s) => s.estado === 'sl'), sl_tras_tp1: n((s) => s.estado === 'sl_tras_tp1'), tp1_en_curso: n((s) => s.estado === 'tp1'), en_curso: n((s) => s.estado === 'en_curso'), pendientes: n((s) => s.estado === 'pendiente') };
+  c.tocaron_tp1 = c.tp2 + c.be + c.sl_tras_tp1 + c.tp1_en_curso; c.cerradas = c.tp2 + c.be + c.sl + c.sl_tras_tp1;
+  return { ...c, senales: rows };
+}
+
+const ICONO = { tp2: '🎯 TP2', be: '⚖️ BE tras TP1', sl: '❌ SL', sl_tras_tp1: '✅ TP1 y luego stop', tp1: '✅ TP1 · sigue abierta', en_curso: '⏳ en curso', pendiente: '⏳ sin activar' };
+const fnum = (v) => (v === null || v === undefined ? '—' : String(Number(v)));
+const dia = (iso) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: 'numeric', month: 'short' }).format(new Date(iso));
+
+/** Texto del recuento semanal para Discord (máx. 2.000 caracteres). */
+export function textoResumen(rec, { desde, hasta }) {
+  const fin = new Date(Date.parse(hasta) - 2 * 86400e3 - 3600e3).toISOString(); // viernes
+  const l = [`📊 **Recuento semanal de señales** · ${dia(new Date(Date.parse(desde) + 3 * 3600e3).toISOString())} – ${dia(fin)}`, `Señales publicadas: **${rec.total}**`];
+  if (!rec.total) { l.push('Esta semana no se publicó ninguna señal.'); return l.join('\n'); }
+  l.push(`🎯 TP (objetivo final): **${rec.tp2}**`, `⚖️ BE (tocó TP1 y cerró en la entrada): **${rec.be}**`, `❌ SL: **${rec.sl}**`);
+  if (rec.sl_tras_tp1) l.push(`✅ TP1 y luego stop: **${rec.sl_tras_tp1}**`);
+  const abiertas = rec.tp1_en_curso + rec.en_curso + rec.pendientes; if (abiertas) l.push(`⏳ Siguen abiertas o sin activar: **${abiertas}**`);
+  if (rec.cerradas) l.push(`Tocaron TP1 o más: **${rec.tocaron_tp1}** de ${rec.total} (${Math.round((100 * rec.tocaron_tp1) / rec.total)} %)`);
+  l.push('');
+  for (const s of rec.senales.slice(0, 20)) l.push(`${s.lado > 0 ? '🟢' : '🔴'} ${s.lado > 0 ? 'BUY' : 'SELL'} ${s.activo} ${fnum(s.entrada)} → ${ICONO[s.estado] || s.estado}`);
+  if (rec.senales.length > 20) l.push(`… y ${rec.senales.length - 20} más`);
+  let out = l.join('\n'); if (out.length > 1950) out = `${out.slice(0, 1940)}…`;
+  return out;
+}
+
+/** Publica en Discord. Devuelve { ok, status }. Nunca lanza. */
+export async function enviarDiscord(webhook, content, { fetchImpl = fetch, timeoutMs = 4000 } = {}) {
+  if (!WEBHOOK_RE.test(String(webhook || ''))) return { ok: false, status: 0, error: 'webhook no válido' };
+  try { const r = await fetchImpl(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: String(content).slice(0, 1990), allowed_mentions: { parse: ['everyone', 'roles', 'users'] } }), signal: AbortSignal.timeout(timeoutMs) }); return { ok: r.ok, status: r.status }; }
+  catch (e) { return { ok: false, status: 0, error: e.message || 'error de red' }; }
+}
+
+/** Envía el recuento de la semana de `now` a un canal y lo marca como enviado. `forzar` = aunque ya se enviara o no haya señales. */
+export async function enviarResumen(db, canal, { now = new Date(), forzar = false, enviar = enviarDiscord } = {}) {
+  const sem = semanaDe(now); const rec = recuento(db, canal.id, sem.desde, sem.hasta);
+  if (!forzar && (canal.ultimo_resumen === sem.clave || rec.total === 0)) return { enviado: false, motivo: rec.total === 0 ? 'sin señales' : 'ya enviado', recuento: rec };
+  const r = await enviar(canal.webhook, textoResumen(rec, sem));
+  if (r.ok && !forzar) db.prepare('UPDATE senal_canales SET ultimo_resumen = ? WHERE id = ?').run(sem.clave, canal.id);
+  return { enviado: r.ok, status: r.status, recuento: rec };
+}
+
+/** ¿Toca publicar el recuento? Viernes desde las 23:00, sábado o domingo (hora de España). */
+export function tocaResumen(now = new Date()) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', weekday: 'short', hour: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(now)).map((x) => [x.type, x.value]));
+  return p.weekday === 'Sat' || p.weekday === 'Sun' || (p.weekday === 'Fri' && Number(p.hour) >= 23);
+}
+export async function tickResumenes(db, { now = new Date(), enviar = enviarDiscord, log = () => {} } = {}) {
+  if (!tocaResumen(now)) return 0; let n = 0;
+  for (const canal of db.prepare('SELECT * FROM senal_canales').all()) { try { const r = await enviarResumen(db, canal, { now, enviar }); if (r.enviado) { n++; log(`recuento semanal enviado (canal ${canal.id}: ${r.recuento.total} señales)`); } } catch (e) { log(`recuento del canal ${canal.id} falló: ${e.message}`); } }
+  return n;
+}

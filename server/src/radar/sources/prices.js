@@ -195,14 +195,17 @@ export async function getPrices({ now = Date.now() } = {}) {
   const market = marketFromYahoo();
   if (yahooReady()) {
     const { symbols, age_seconds } = fromYahoo(now);
-    const stale = now < cache.backoffUntil || age_seconds > 20 * 60;
+    // Fin de semana (viernes 22:00 UTC → domingo 22:00 UTC): que el precio sea del viernes es lo normal, no una avería.
+    const d = new Date(now); const wd = d.getUTCDay(), hh = d.getUTCHours(); const closed = wd === 6 || (wd === 5 && hh >= 22) || (wd === 0 && hh < 22);
+    const stale = now < cache.backoffUntil || (!closed && age_seconds > 20 * 60);
     return {
       status: {
         provider: 'yahoo',
         ok: !stale,
         age_seconds,
         stale,
-        note: stale ? `Yahoo con problemas (${cache.lastError || 'precios antiguos'}); se muestra el último precio conocido.` : 'Yahoo Finance (sin spread)',
+        closed,
+        note: stale ? `Yahoo con problemas (${cache.lastError || 'precios antiguos'}); se muestra el último precio conocido.` : closed ? 'Mercado cerrado (fin de semana): último precio del viernes' : 'Yahoo Finance (sin spread)',
       },
       mt5: null,
       symbols,

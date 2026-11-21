@@ -110,7 +110,7 @@ export default function Radar() {
   // Sin favoritos elegidos: los 3 pares con el sesgo más claro hoy.
   const topPairs = sortByAbsDiff(snap.pairs).slice(0, MAX_FAVORITES);
   const published = collectPublishedEvents(snap.pairs);
-  const cardProps = (p: RadarPair) => ({ favorite: favorites.includes(p.symbol), onToggleFavorite: toggleFavorite, pair: p, key: p.symbol });
+  const cardProps = (p: RadarPair) => ({ favorite: favorites.includes(p.symbol), onToggleFavorite: toggleFavorite, pair: p });
 
   return (
     <div className="space-y-5">
@@ -163,7 +163,7 @@ export default function Radar() {
             {favNotice && <p className="mb-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">{favNotice}</p>}
             <div className="grid gap-4 2xl:grid-cols-2">
               {(favAssets.length ? sortByAbsDiff(favAssets) : topPairs).map((p) => (
-                <PairCard {...cardProps(p)} compact />
+                <PairCard key={p.symbol} {...cardProps(p)} compact />
               ))}
             </div>
           </div>
@@ -187,7 +187,7 @@ export default function Radar() {
           {snap.instruments.length === 0 && <EmptyState title="Sin datos de índices y metales todavía" description="Los precios se descargan en el primer minuto tras arrancar. Vuelve a cargar en un momento." />}
           <div className="grid gap-4 2xl:grid-cols-2">
             {sortByAbsDiff(snap.instruments).map((p) => (
-              <PairCard {...cardProps(p)} compact />
+              <PairCard key={p.symbol} {...cardProps(p)} compact />
             ))}
           </div>
         </div>

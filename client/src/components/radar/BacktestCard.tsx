@@ -432,6 +432,7 @@ export function MethodCard() {
       </tr>
     </thead>
   );
+  if (report === null) return null; // sin informe en este servidor: la tarjeta no se enseña
   return (
     <Card
       title="Tu método, medido (sesgo + vela de ayer + retroceso al 50 %)"

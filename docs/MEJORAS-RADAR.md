@@ -134,3 +134,14 @@ historial de consensos para 15 años).
 
 - **Pilar Bonos (05-11-2026):** cambio del bono de EE. UU. a 10 años en 20 sesiones, solo en el USD, peso 20. Sobre los pesos de producción mejora en los 3 bloques a 10 y 20 días (20 d: 56,5 % frente a 56,1 %; fuerte 60,0 % frente a 57,2 %; 10 de 16 años). El pilar de tipos del oro y la plata pasa al 2 años en 20 sesiones (56 % frente a 52 %, los tres cortes). Detalle en docs/BONOS-DIRECCION.md.
 - **Corrección del mismo día:** el pilar Bonos queda en peso 0. A igual cobertura (umbrales escalados por 100/120) da 56,0 % frente a 56,1 % a 20 días y no mejora en los 3 bloques; la mejora inicial era un efecto de tener un 15 % menos de señales. Regla nueva: los candidatos se comparan a igual cobertura. Además, corregido un fallo: la tasa oficial y la lectura del tono se quedaban con la primera fuente de calendario que tuviera dato aunque fuese vieja (la libra seguía en 3,75 % tras la subida a 4 %); ahora usan la decisión más reciente entre todos los títulos.
+
+- **Revisión general (21-11-2026):** «Índices y materias primas» queda en oro, petróleo, S&P 500, Nasdaq y Dow (la plata se sigue
+  descargando solo para el aviso «plata por delante» del oro). Arreglos: eventos del calendario duplicados, contador de eventos
+  de la semana (decía 2000, eran 111 de impacto medio/alto), precios marcados como «atrasados» en fin de semana (ahora «mercado
+  cerrado»), series de respaldo de FRED muertas (OCDE: tipo a 3 meses EUR/GBP, IPC GBP/CHF/CAD, paro EUR) que ya no se usan si
+  tienen más de 200 días, texto del plan semanal y tarjeta «Tu método, medido» vacía. Pendiente como mejora: fechas y
+  expectativas de reunión de BCE, BoE, BoJ, SNB y BoC (hoy solo la Fed es automática).
+- **Señales a Discord con recuento semanal (21-11-2026):** `/api/senales/in/<clave>` recibe las alertas del indicador de
+  TradingView, las reenvía al webhook de Discord del usuario (guardado en el servidor, solo URL de Discord, se enseña
+  enmascarado) y anota cada señal y su desenlace (TP2, BE, SL, TP1 y stop). Viernes 23:00 (Madrid) publica el recuento.
+  El indicador añade «Tras TP1, el stop pasa a la entrada (BE)».

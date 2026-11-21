@@ -391,16 +391,14 @@ export function normalizePairSymbol(raw) {
  * Instrumentos con precio de Yahoo, símbolo de TradingView, COT (dataset 'tff' = financiero con lev_money;
  * 'disagg' = materias primas con m_money) y alias que escribe la gente en el journal.
  */
+// Visibles: oro, petróleo, S&P 500, Nasdaq y Dow (pedido del usuario, 21-11-2026). `hidden` = se calcula y se descarga, pero no se enseña.
 export const INSTRUMENTS = [
   { symbol: 'XAUUSD', label: 'Oro', short: 'ORO', kind: 'metal', yahoo: 'GC=F', digits: 2, pip: 0.1, tv: 'OANDA:XAUUSD', cot: { dataset: 'disagg', market: 'GOLD - COMMODITY EXCHANGE INC.' }, aliases: ['GOLD', 'XAU', 'XAUUSD', 'GC', 'ORO'] },
-  { symbol: 'XAGUSD', label: 'Plata', short: 'PLATA', kind: 'metal', yahoo: 'SI=F', digits: 3, pip: 0.01, tv: 'OANDA:XAGUSD', cot: { dataset: 'disagg', market: 'SILVER - COMMODITY EXCHANGE INC.' }, aliases: ['SILVER', 'XAG', 'XAGUSD', 'SI', 'PLATA'] },
+  { symbol: 'XAGUSD', label: 'Plata', short: 'PLATA', kind: 'metal', hidden: true, yahoo: 'SI=F', digits: 3, pip: 0.01, tv: 'OANDA:XAGUSD', cot: { dataset: 'disagg', market: 'SILVER - COMMODITY EXCHANGE INC.' }, aliases: ['SILVER', 'XAG', 'XAGUSD', 'SI', 'PLATA'] },
   { symbol: 'US500', label: 'S&P 500', short: 'SPX', kind: 'index', yahoo: '^GSPC', digits: 1, pip: 1, tv: 'FOREXCOM:SPXUSD', cot: { dataset: 'tff', market: 'S&P 500 Consolidated - CHICAGO MERCANTILE EXCHANGE' }, aliases: ['US500', 'SPX500', 'SPX', 'ES', 'SP500', 'USA500', 'MES'] },
   { symbol: 'NAS100', label: 'Nasdaq 100', short: 'NDX', kind: 'index', yahoo: '^NDX', digits: 1, pip: 1, tv: 'FOREXCOM:NSXUSD', cot: { dataset: 'tff', market: 'NASDAQ-100 Consolidated - CHICAGO MERCANTILE EXCHANGE' }, aliases: ['NAS100', 'NDX', 'USTEC', 'NQ', 'MNQ', 'US100', 'NASDAQ', 'USTECH'] },
   { symbol: 'US30', label: 'Dow Jones', short: 'DOW', kind: 'index', yahoo: '^DJI', digits: 1, pip: 1, tv: 'FOREXCOM:DJI', cot: { dataset: 'tff', market: 'DJIA Consolidated - CHICAGO BOARD OF TRADE' }, aliases: ['US30', 'DJ30', 'DOW', 'YM', 'MYM', 'DJI', 'WS30'] },
   { symbol: 'USOIL', label: 'Petróleo (WTI)', short: 'WTI', kind: 'energy', yahoo: 'CL=F', digits: 2, pip: 0.01, tv: 'TVC:USOIL', cot: null, aliases: ['USOIL', 'WTI', 'XTIUSD', 'USOUSD', 'OIL', 'CRUDE', 'CL'] },
-  { symbol: 'DE40', label: 'DAX 40', short: 'DAX', kind: 'index', yahoo: '^GDAXI', digits: 1, pip: 1, tv: 'INDEX:DEU40', cot: null, aliases: ['DE40', 'GER40', 'DAX', 'DE30', 'GER30'] },
-  { symbol: 'JP225', label: 'Nikkei 225', short: 'NKY', kind: 'index', yahoo: '^N225', digits: 1, pip: 1, tv: 'INDEX:NKY', cot: { dataset: 'tff', market: 'NIKKEI STOCK AVERAGE YEN DENOM - CHICAGO MERCANTILE EXCHANGE' }, aliases: ['JP225', 'JPN225', 'NIKKEI', 'NKY', 'NI225', 'NK'] },
-  { symbol: 'UK100', label: 'FTSE 100', short: 'FTSE', kind: 'index', yahoo: '^FTSE', digits: 1, pip: 1, tv: 'FOREXCOM:UKXGBP', cot: null, aliases: ['UK100', 'FTSE', 'FTSE100', 'UKX'] },
 ];
 export const INSTRUMENT_SYMBOLS = INSTRUMENTS.map((i) => i.symbol);
 export const INSTRUMENT_BY_SYMBOL = Object.fromEntries(INSTRUMENTS.map((i) => [i.symbol, i]));

@@ -329,6 +329,33 @@ CREATE TABLE IF NOT EXISTS radar_daily_bias (
   PRIMARY KEY(date, symbol)
 );
 
+-- Señales a Discord con recuento semanal (services/senales.js): un canal por usuario y las señales que pasan por él.
+CREATE TABLE IF NOT EXISTS senal_canales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  clave TEXT NOT NULL UNIQUE,
+  webhook TEXT NOT NULL,
+  ultimo_resumen TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS senales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  canal_id INTEGER NOT NULL REFERENCES senal_canales(id) ON DELETE CASCADE,
+  activo TEXT NOT NULL,
+  lado INTEGER NOT NULL,
+  entrada REAL,
+  sl REAL,
+  tp1 REAL,
+  tp2 REAL,
+  limite INTEGER NOT NULL DEFAULT 0,
+  estado TEXT NOT NULL,
+  abierta_at TEXT NOT NULL,
+  tp1_at TEXT,
+  cerrada_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_senales_canal ON senales(canal_id, abierta_at);
+
 -- Lectura de noticias (lecturas.js): qué salió y qué esperar, por divisa, para datos de alto impacto y actas.
 CREATE TABLE IF NOT EXISTS radar_lecturas (
   clave TEXT PRIMARY KEY,

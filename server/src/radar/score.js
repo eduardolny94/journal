@@ -25,6 +25,9 @@ const bp = (n) => `${n >= 0 ? '+' : ''}${fmt(n, 0)} pb`;
 const daysBetween = (a, b) => (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86400000;
 /** Un bono con más de 15 días sin dato no vale como expectativa "viva". */
 const YIELD_MAX_AGE_DAYS = 15;
+// Series mensuales de FRED usadas como respaldo (tipo a 3 meses, IPC, paro): si el último dato tiene más de 200 días, la serie está parada
+// (pasó con varias de la OCDE en 2025–26) y no se usa; el pilar queda sin ese dato en vez de arrastrar uno viejo.
+const FRED_FALLBACK_MAX_AGE_DAYS = 200;
 
 // ---------- Pilares por divisa ----------
 
@@ -57,7 +60,8 @@ function expectationsPillar(db, ccy, now, lagDays = 0) {
   if (cfg.rate3m) {
     const rows = seriesAsOf(getSeries(db, cfg.rate3m), lagDays ? shiftDays(asOf, -lagDays) : asOf);
     const ch = changeOverDays(rows, 95);
-    if (ch) return { d20: null, d60: ch.value * 100, level: null, tenor: '3 meses', source: 'FRED', proxy: true, date: ch.to };
+    // Respaldo solo si la serie sigue viva: varias de estas series mensuales dejaron de publicarse y un dato de hace meses no es una expectativa.
+    if (ch && daysBetween(ch.to, asOf) <= FRED_FALLBACK_MAX_AGE_DAYS) return { d20: null, d60: ch.value * 100, level: null, tenor: '3 meses', source: 'FRED', proxy: true, date: ch.to };
   }
   return { d20: null, d60: null, level: null, tenor: null, source: null, proxy: true, date: null };
 }
@@ -73,11 +77,11 @@ function inflationPillar(db, ccy, now, lagDays = 0) {
   if (cfg.cpi_yoy) {
     const rows = seriesAsOf(getSeries(db, cfg.cpi_yoy), cutoff);
     const l = rows.length ? rows[rows.length - 1] : null;
-    if (l) return { value: l.value, date: l.date, source: 'FRED' };
+    if (l && daysBetween(l.date, cutoff) <= FRED_FALLBACK_MAX_AGE_DAYS) return { value: l.value, date: l.date, source: 'FRED' };
   }
   if (cfg.cpi_index) {
     const y = yoyFromIndex(seriesAsOf(getSeries(db, cfg.cpi_index), cutoff));
-    if (y) return { value: y.value, date: y.date, source: 'FRED' };
+    if (y && daysBetween(y.date, cutoff) <= FRED_FALLBACK_MAX_AGE_DAYS) return { value: y.value, date: y.date, source: 'FRED' };
   }
   return null;
 }
@@ -105,7 +109,7 @@ function growthPillar(db, ccy, now, lagDays = 0, preloaded = null, closesAsOf = 
   if (cfg.unemployment) {
     const rows = seriesAsOf(getSeries(db, cfg.unemployment), lagDays ? shiftDays(ymd(now), -lagDays) : null);
     const ch = changeOverDays(rows, cfg.unemployment_quarterly ? 190 : 100);
-    if (ch) unemp = ch.value;
+    if (ch && daysBetween(ch.to, ymd(now)) <= FRED_FALLBACK_MAX_AGE_DAYS + (cfg.unemployment_quarterly ? 120 : 0)) unemp = ch.value;
   }
   if (raw !== null && unemp !== null) raw = 0.7 * raw + 0.3 * clamp(-unemp, -1, 1);
   else if (raw === null && unemp !== null) raw = clamp(-unemp, -1, 1);
