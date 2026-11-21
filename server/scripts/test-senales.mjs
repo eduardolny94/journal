@@ -60,4 +60,75 @@ console.log('Canal, señales y recuento');
   const man = await S.enviarResumen(db, S.getCanal(db, uid), { now: new Date('2026-11-21T10:00:00Z'), forzar: true, enviar }); ok(man.enviado && enviados.length === 2, '«enviar ahora» lo manda aunque ya se enviara');
   ok((await S.enviarDiscord('https://example.com/x', 'hola', { fetchImpl: async () => { throw new Error('no debía llamar'); } })).ok === false, 'nunca se envía a una URL que no sea de Discord');
   ok(S.deleteCanal(db, uid) && S.getCanal(db, uid) === null && db.prepare('SELECT COUNT(*) c FROM senales').get().c === 0, 'borrar el canal borra sus señales'); }
+console.log('Importar mensajes pegados de Discord');
+{ db.prepare("INSERT INTO users (email, password_hash, name) VALUES ('i@example.test', 'x', 'Importa')").run(); const uid2 = db.prepare("SELECT id FROM users WHERE email = 'i@example.test'").get().id;
+  const canal2 = S.saveCanal(db, uid2, HOOK);
+  ok(S.madridAIso(2026, 11, 16, 16, 36) === '2026-11-16T15:36:00.000Z' && S.madridAIso(2026, 7, 1, 12, 0) === '2026-07-01T10:00:00.000Z', 'la hora de Discord (España) se convierte bien en invierno y en verano');
+  const pegado = `ELL USDJPY NOW
+USDJPY Entrada: 159.551 (o cercano)
+SL: 159.75
+TP1: 159.352 (1R)
+TP2: 159.153 (2R)
+⚠️ Gestiona tu riesgo
+
+1. GlobalFXAPP — 16/11/26, 16:36
+🔴 SELL Gold NOW
+Gold Entrada: 3863.125 (o cercano)
+SL: 3885
+TP1: 3841.25 (1R)
+TP2: 3819.375 (2R)
+⚠️ Gestiona tu riesgo
+2. Edu FX — 16/11/26, 17:02
+Vayan rodando el stop o a be gestionen su riesgo si van en profit
+3. GlobalFXAPP — 16/11/26, 19:10
+✅ TP1 alcanzado (1R) · Gold
+SELL Gold · Entrada 3863.125 · SL 3885 · TP1 3841.25 · TP2 3819.375
+4. GlobalFXAPP — 17/11/26, 1:22
+✅ TP1 alcanzado (1R) · USDJPY
+SELL USDJPY · Entrada 159.551 · SL 159.75 · TP1 159.352 · TP2 159.153
+5. GlobalFXAPP — 17/11/26, 5:29
+🎯 TP2 alcanzado (2R) · USDJPY
+SELL USDJPY · Entrada 159.551 · SL 159.75 · TP1 159.352 · TP2 159.153
+6. GlobalFXAPP — 17/11/26, 6:30
+❌ Stop tocado · Gold
+SELL Gold · Entrada 3863.125 · SL 3885 · TP1 3841.25 · TP2 3819.375
+7. GlobalFXAPP — 17/11/26, 15:16
+🟢 BUY EURUSD NOW
+EURUSD Entrada: 1.09862 (o cercano)
+SL: 1.0971
+TP1: 1.10014 (1R)
+TP2: 1.10166 (2R)
+⚠️ Gestiona tu riesgo
+8. Edu FX — 17/11/26, 15:17
+9. GlobalFXAPP — 17/11/26, 16:39
+✅ TP1 alcanzado (1R) · EURUSD
+BUY EURUSD · Entrada 1.09862 · SL 1.0971 · TP1 1.10014 · TP2 1.10166
+10. GlobalFXAPP — 17/11/26, 17:24
+🎯 TP2 alcanzado (2R) · EURUSD
+BUY EURUSD · Entrada 1.09862 · SL 1.0971 · TP1 1.10014 · TP2 1.10166
+11. GlobalFXAPP — 18/11/26, 13:31
+🔴 SELL Nasdaq NOW
+Nasdaq Entrada: 27195.4 (o cercano)
+SL: 27500
+TP1: 26890.8 (1R)
+TP2: 26586.2 (2R)
+⚠️ Gestiona tu riesgo
+12. Edu FX — 18/11/26, 15:48
+Mover a be
+13. GlobalFXAPP — 18/11/26, 15:49
+✅ TP1 alcanzado (1R) · Nasdaq
+SELL Nasdaq · Entrada 27195.4 · SL 27500 · TP1 26890.8 · TP2 26586.2`;
+  ok(S.partirMensajes(pegado).length === 13, 'parte el pegado en 13 mensajes con texto (el primero sin cabecera; el vacío se descarta)');
+  const r = S.importar(db, canal2, pegado, new Date('2026-11-21T10:00:00Z'));
+  ok(r.nuevas === 4 && r.ignorados >= 3, `4 señales nuevas y los mensajes de otros se ignoran (${JSON.stringify(r)})`);
+  const sem2 = S.semanaDe(new Date('2026-11-21T10:00:00Z')); const rc = S.recuento(db, canal2.id, sem2.desde, sem2.hasta);
+  const est = Object.fromEntries(rc.senales.map((s) => [s.activo, s.estado]));
+  ok(est.USDJPY === 'tp2' && est.EURUSD === 'tp2' && est.Gold === 'sl_tras_tp1' && est.Nasdaq === 'tp1', `estados: USDJPY TP2 · EURUSD TP2 · Gold TP1 y stop · Nasdaq TP1 abierta (${JSON.stringify(est)})`);
+  ok(rc.total === 4 && rc.tp2 === 2 && rc.sl_tras_tp1 === 1 && rc.tp1_en_curso === 1 && rc.tocaron_tp1 === 4, 'recuento de la semana importada: 4 señales, 2 TP, 1 TP1 y stop, 1 abierta, 4 tocaron TP1');
+  const gold = rc.senales.find((s) => s.activo === 'Gold'); ok(gold.abierta_at === '2026-11-16T15:36:00.000Z', 'la señal conserva su hora real de Discord');
+  const r2 = S.importar(db, canal2, pegado, new Date('2026-11-21T10:00:00Z')); const rc2 = S.recuento(db, canal2.id, sem2.desde, sem2.hasta);
+  ok(r2.nuevas === 0 && rc2.total === 4 && rc2.tp2 === 2, 'pegar lo mismo otra vez no duplica nada');
+  const solo = S.importar(db, canal2, '🎯 TP2 alcanzado (2R) · US30\nSELL US30 · Entrada 48000 · SL 48200 · TP1 47800 · TP2 47600', new Date('2026-11-21T10:00:00Z'));
+  ok(solo.nuevas === 1 && S.recuento(db, canal2.id, sem2.desde, sem2.hasta).tp2 === 3, 'pegado sin cabeceras: un aviso de una señal desconocida la crea con sus datos');
+  S.deleteCanal(db, uid2); }
 console.log(fallos ? `\n${fallos} fallo(s)` : '\nTodo bien'); process.exit(fallos ? 1 : 0);

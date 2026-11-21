@@ -92,6 +92,53 @@ export function fijarResultado(db, canalId, id, estado, now = new Date()) {
   return senalDe(db, canalId, s.id);
 }
 
+// ── Importar mensajes ya publicados en Discord (copiados y pegados), para señales que no pasaron por el journal.
+const msMadrid = (ms) => { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(ms)).map((x) => [x.type, x.value])); return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000; };
+/** Hora escrita en España (la que ves en Discord) → instante real (ISO). */
+export function madridAIso(y, mo, d, h, mi) {
+  const guess = Date.UTC(y, mo - 1, d, h, mi); let t = guess - msMadrid(guess); const o2 = msMadrid(t); if (guess - o2 !== t) t = guess - o2; return new Date(t).toISOString();
+}
+const CABECERA = /^\s*(?:\d+\s*[.)]\s*)?(.+?)\s+[—–-]\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4}),?\s+(\d{1,2}):(\d{2})\s*$/;
+const INICIO_SENAL = /^\W*(?:SELL|BUY|VENTA|COMPRA)\s+.+?\s+(?:NOW|LIMIT|AHORA|L[IÍ]MITE)\s*$/i;
+const INICIO_EVENTO = /^\W*(?:Entrada activada|TP1 alcanzado|TP2 alcanzado|Stop tocado|Cierre en la entrada|Precio de vuelta)/i;
+/** Parte un pegado de Discord en mensajes {cuando: ISO|null, texto}. Con cabeceras «Autor — 16/11/26, 16:36» usa su fecha; sin ellas, parte por el inicio de cada aviso. */
+export function partirMensajes(texto) {
+  const lineas = String(texto || '').replace(/\r/g, '').split('\n'); const out = []; let cur = null;
+  const hayCabeceras = lineas.some((l) => CABECERA.test(l));
+  const abre = (cuando) => { cur = { cuando, texto: '' }; out.push(cur); };
+  for (const l of lineas) {
+    const h = CABECERA.exec(l);
+    if (h) { const y = +h[4] < 100 ? 2000 + +h[4] : +h[4]; abre(madridAIso(y, +h[3], +h[2], +h[5], +h[6])); continue; }
+    if (!hayCabeceras && (INICIO_SENAL.test(l.trim()) || INICIO_EVENTO.test(l.trim()))) abre(null);
+    if (!cur) { if (!l.trim()) continue; abre(null); }
+    cur.texto += `${l}\n`;
+  }
+  return out.filter((m) => m.texto.trim());
+}
+
+/** Importa un pegado de Discord. No manda nada a Discord. Los avisos de TP/stop de una señal que no se conoce la crean con sus datos. */
+export function importar(db, canal, texto, now = new Date()) {
+  const msgs = partirMensajes(texto); const r = { leidos: msgs.length, nuevas: 0, actualizadas: 0, repetidas: 0, ignorados: 0 };
+  const fechados = msgs.length > 0 && msgs.every((m) => m.cuando); if (fechados) msgs.sort((a, b) => Date.parse(a.cuando) - Date.parse(b.cuando));
+  for (const m of msgs) {
+    const p = parseMensaje(m.texto); if (!p) { r.ignorados++; continue; }
+    const cuando = m.cuando ? new Date(m.cuando) : new Date(now); const iso = cuando.toISOString();
+    if (p.tipo === 'senal') {
+      const ya = db.prepare('SELECT abierta_at, entrada, sl FROM senales WHERE canal_id = ? AND activo = ? AND lado = ?').all(canal.id, p.activo, p.lado).some((s) => igual(s.entrada, p.entrada) && igual(s.sl, p.sl) && (!m.cuando || Math.abs(Date.parse(s.abierta_at) - cuando.getTime()) < 30 * 60_000));
+      if (ya) { r.repetidas++; continue; }
+      db.prepare('INSERT INTO senales (canal_id, activo, lado, entrada, sl, tp1, tp2, limite, estado, abierta_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(canal.id, p.activo, p.lado, p.entrada, p.sl, p.tp1, p.tp2, p.limite ? 1 : 0, p.limite ? 'pendiente' : 'en_curso', iso);
+      r.nuevas++; continue;
+    }
+    let g = registrar(db, canal, p, cuando);
+    if (!g.ok && g.motivo === 'sin señal abierta que coincida') {
+      db.prepare("INSERT INTO senales (canal_id, activo, lado, entrada, sl, tp1, tp2, limite, estado, abierta_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'en_curso', ?)").run(canal.id, p.activo, p.lado, p.entrada, p.sl, p.tp1, p.tp2, iso);
+      r.nuevas++; g = registrar(db, canal, p, cuando);
+    }
+    if (g.silenciar) r.repetidas++; else if (g.ok && !g.nueva) r.actualizadas++;
+  }
+  return r;
+}
+
 /** Lunes 00:00 (hora de España, aproximada a UTC − 2 h) de la semana que contiene `now`, y el lunes siguiente. */
 export function semanaDe(now = new Date()) {
   const d = new Date(new Date(now).getTime() + 2 * 3600e3); const wd = (d.getUTCDay() + 6) % 7;

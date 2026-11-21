@@ -147,3 +147,10 @@ historial de consensos para 15 años).
   El BE es manual (pedido por César: nada automático tras TP1): botón «Stop a BE» en la señal → se avisa en el canal y, desde
   entonces, el aviso técnico «precio de vuelta en la entrada» del indicador (opción «BE manual», solo lo ve el journal) la cierra
   como BE. Sin el botón ese aviso no hace nada. El resultado de cualquier señal se puede corregir a mano.
+- **Importar señales desde Discord (21-11-2026):** pestaña Señales → «Importar señales que ya publicaste en Discord». Se pegan los
+  mensajes copiados del canal (con sus cabeceras «Autor — 16/11/26, 16:36», hora de España); las señales se anotan con su hora
+  real, un aviso de TP/stop de una señal desconocida la crea con sus datos, lo que no es del indicador se ignora y pegar lo
+  mismo dos veces no duplica. No publica nada en Discord.
+- **Mesa de agentes fuera del journal (21-11-2026):** se quita la pestaña «Mesa» del Radar, la ruta `/api/mesa` y la pasada
+  automática diaria del servidor (gastaba API). Se conserva `server/src/mesa/` (el cliente de la API lo usa la lectura de la Fed)
+  y la carpeta `mesa-agentes/` con sus scripts, que siguen funcionando a mano.

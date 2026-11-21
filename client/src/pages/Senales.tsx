@@ -5,13 +5,14 @@ import { Copy, Lock, Radio, Send, Trash2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { Input } from '../components/ui/Input';
+import { Input, Textarea } from '../components/ui/Input';
 import { PageSpinner } from '../components/ui/Spinner';
 import api from '../lib/api';
 
 interface Senal { id: number; activo: string; lado: number; entrada: number | null; sl: number | null; tp1: number | null; tp2: number | null; estado: string; abierta_at: string; cerrada_at: string | null; be: boolean }
 interface Vista {
   canal: { url: string; webhook: string; ultimo_resumen: string | null; creado: string } | null;
+  importacion?: { leidos: number; nuevas: number; actualizadas: number; repetidas: number; ignorados: number };
   semana?: { desde: string; hasta: string; total: number; tp2: number; be: number; sl: number; sl_tras_tp1: number; abiertas: number; tocaron_tp1: number; senales: Senal[]; texto: string };
 }
 const ESTADO: Record<string, { label: string; variant: 'profit' | 'loss' | 'warn' | 'default' | 'accent' }> = {
@@ -26,11 +27,12 @@ export default function Senales() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [webhook, setWebhook] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pegado, setPegado] = useState('');
   const cargar = useCallback(() => api<Vista>('/senales').then(setData).catch((e: Error) => setError(e.message)), []);
   useEffect(() => { void cargar(); }, [cargar]);
   const hacer = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true); setError(null); setAviso(null);
-    try { const r = await fn(); if (r && typeof r === 'object' && 'canal' in r) setData(r as Vista); else await cargar(); setAviso(ok); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    try { const r = await fn(); if (r && typeof r === 'object' && 'canal' in r) setData(r as Vista); else await cargar(); const imp = (r as Vista | undefined)?.importacion; setAviso(imp ? `Importado: ${imp.nuevas} señal(es) nueva(s), ${imp.actualizadas} aviso(s) aplicado(s), ${imp.repetidas} ya estaban, ${imp.ignorados} mensaje(s) ignorado(s) (no eran del indicador).` : ok); if (imp) setPegado(''); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const copiar = async (t: string) => { try { await navigator.clipboard.writeText(t); setAviso('Copiado.'); } catch { setAviso('No se pudo copiar solo: selecciónalo y cópialo a mano.'); } };
   if (!data && !error) return <PageSpinner label="Cargando señales…" />;
@@ -107,6 +109,15 @@ export default function Senales() {
             )}
             <Button type="button" variant="secondary" disabled={busy} onClick={() => void hacer(() => api('/senales/resumen', { method: 'POST' }), 'Recuento enviado a tu canal de Discord.')}><Send className="mr-1 h-4 w-4" /> Enviar el recuento ahora</Button>
           </div>
+        </Card>
+      )}
+
+      {c && (
+        <Card title="4. Importar señales que ya publicaste en Discord" subtitle="Para lo que salió antes de usar la dirección del journal. En Discord selecciona los mensajes del indicador, cópialos y pégalos aquí. No se publica nada en tu canal. Puedes pegar lo mismo dos veces: no se duplica.">
+          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void hacer(() => api<Vista>('/senales/importar', { method: 'POST', body: { texto: pegado } }), 'Importado.'); }}>
+            <Textarea label="Mensajes copiados de Discord" rows={8} placeholder={'GlobalFXAPP — 16/11/26, 16:36\n🔴 SELL Gold NOW\nGold Entrada: 3863.125 (o cercano)\nSL: 3885\n…'} value={pegado} onChange={(e) => setPegado(e.target.value)} />
+            <Button type="submit" variant="secondary" disabled={busy || pegado.trim().length < 20}>Importar</Button>
+          </form>
         </Card>
       )}
     </div>

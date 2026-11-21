@@ -26,8 +26,7 @@ import documentosRoutes from './routes/documentos.js';
 import adminRoutes from './routes/admin.js';
 import subscriptionRoutes from './routes/subscription.js';
 import syncRoutes from './routes/sync.js';
-import mesaRoutes from './routes/mesa.js';
-import { requireAdmin, requireOwner } from './services/admin.js';
+import { requireAdmin } from './services/admin.js';
 import { requireSubscription } from './services/subscriptions.js';
 import { startSubscriptionJobs } from './services/subscriptionJobs.js';
 import { ensureTemplates } from './services/mailer.js';
@@ -35,7 +34,6 @@ import { backfillTrials } from './services/subscriptions.js';
 import { migrateFoundingAdmins } from './services/admin.js';
 import { requireRadarAccess } from './radar/access.js';
 import { startEngine } from './radar/engine.js';
-import { startMesa } from './mesa/index.js';
 import { publico as senalesPublico, privado as senalesPrivado } from './routes/senales.js';
 import { tickResumenes } from './services/senales.js';
 import { startMuros } from './radar/opciones.js';
@@ -162,8 +160,6 @@ app.use('/api/finanzas', requireAuth, subscriptionGate, documentosRoutes);
 app.use('/api/senales', senalesPublico);
 app.use('/api/senales', requireAuth, subscriptionGate, senalesPrivado);
 app.use('/api/radar', requireAuth, subscriptionGate, requireRadarAccess, radarRoutes);
-// Mesa de agentes (mesa-agentes/): solo el dueño con acceso al Radar.
-app.use('/api/mesa', requireAuth, subscriptionGate, requireRadarAccess, requireAdmin, requireOwner, mesaRoutes);
 
 // Radar de divisas: descargas y cálculo en segundo plano (no bloquea el arranque).
 try {
@@ -180,11 +176,6 @@ try {
     console.warn('[suscripciones] plantillas:', e.message);
   }
   startSubscriptionJobs();
-  try {
-    startMesa();
-  } catch (e) {
-    console.warn('[mesa] no se pudo programar:', e.message);
-  }
   try {
     startMuros();
   } catch (e) {

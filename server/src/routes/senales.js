@@ -4,7 +4,7 @@
 //  · `privado` (con sesión): ver y configurar el canal, ver el recuento de la semana y enviarlo a mano.
 import express from 'express';
 import { getDb } from '../db.js';
-import { parseMensaje, registrar, canalPorClave, getCanal, saveCanal, deleteCanal, maskWebhook, semanaDe, recuento, enviarDiscord, enviarResumen, textoResumen, ponerBE, fijarResultado, textoStopBE, textoCierreBE } from '../services/senales.js';
+import { parseMensaje, registrar, canalPorClave, getCanal, saveCanal, deleteCanal, maskWebhook, semanaDe, recuento, enviarDiscord, enviarResumen, textoResumen, importar, ponerBE, fijarResultado, textoStopBE, textoCierreBE } from '../services/senales.js';
 
 export const publico = express.Router();
 export const privado = express.Router();
@@ -65,6 +65,16 @@ privado.post('/:id/resultado', (req, res) => {
   if (!canal) return res.status(400).json({ error: 'Primero guarda el webhook de tu canal.' });
   try { fijarResultado(db, canal.id, req.params.id, req.body && req.body.estado); return res.json(vista(req, canal)); }
   catch (e) { return res.status(e.status || 500).json({ error: e.message || 'No se pudo cambiar.' }); }
+});
+// Importar mensajes copiados de Discord (señales que no pasaron por el journal). No publica nada en Discord.
+privado.post('/importar', (req, res) => {
+  const db = getDb(); const canal = getCanal(db, req.user.id);
+  if (!canal) return res.status(400).json({ error: 'Primero guarda el webhook de tu canal.' });
+  const texto = req.body && typeof req.body.texto === 'string' ? req.body.texto : '';
+  if (texto.trim().length < 20) return res.status(400).json({ error: 'Pega primero los mensajes copiados de Discord.' });
+  if (texto.length > 60_000) return res.status(400).json({ error: 'Es demasiado texto de una vez: pega unos días cada vez.' });
+  const importacion = importar(db, canal, texto);
+  return res.json({ ...vista(req, canal), importacion });
 });
 privado.post('/resumen', async (req, res) => {
   const db = getDb(); const canal = getCanal(db, req.user.id);
