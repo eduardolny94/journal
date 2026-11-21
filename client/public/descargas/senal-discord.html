@@ -68,7 +68,7 @@
     <li>Comprueba las cajas roja y verde en el gráfico: entrada, stop y objetivos.</li>
     <li>Crea la alerta: botón del <b>reloj</b> → en «Condición» elige <b>GTFX · Señal a Discord</b> y debajo <b>«Cualquier llamada a la función alert()»</b>.</li>
     <li>En la pestaña <b>Notificaciones</b> marca <b>URL de webhook</b> y pega el enlace del canal. Pulsa <b>Crear</b>.</li>
-    <li>La señal se publica en ese momento. La alerta sigue viva y avisa de TP1, TP2, cierre en la entrada (BE) o stop.</li>
+    <li>La señal se publica en ese momento. La alerta sigue viva y avisa de TP1, TP2 o stop.</li>
   </ol>
   <p>Así llega al canal:</p>
   <pre>🔴 SELL Gold NOW
@@ -85,7 +85,13 @@ TP2: 3997.5  (2R)
     <li>El journal te da <b>una dirección propia</b>. En tus alertas de TradingView, pega esa dirección en «URL de webhook» en lugar de la de Discord.</li>
     <li>Las señales se publican igual en tu canal y quedan anotadas. El <b>viernes a las 23:00 (hora de España)</b> sale solo el recuento de la semana: cuántas fueron TP, cuántas BE y cuántas SL.</li>
   </ol>
-  <div class="note">En los ajustes del indicador, «Tras TP1, el stop pasa a la entrada (BE)» decide si una señal que tocó TP1 y volvió a la entrada cuenta como BE. Viene activado.</div>
+  <h3>El BE lo pones tú</h3>
+  <ol>
+    <li>En los ajustes del indicador activa <b>«BE manual: avisar al journal si el precio vuelve a la entrada»</b> (solo si tu alerta usa la dirección del journal).</li>
+    <li>Cuando muevas tu stop a la entrada, pulsa <b>«Stop a BE»</b> en esa señal, en la sección Señales del journal. Se avisa en el canal.</li>
+    <li>Desde ese momento, si el precio vuelve a la entrada, la señal se cierra sola como <b>BE</b>. Si no lo toca, sigue hasta TP o stop.</li>
+  </ol>
+  <div class="note">Si no pulsas «Stop a BE», nada cambia: la señal solo puede acabar en TP o en SL. Y si algún resultado quedó mal, lo corriges a mano en la misma tabla.</div>
 
   <h2>Si eres el dueño del canal: cómo dar permiso a otra persona</h2>
   <ol>

@@ -1,7 +1,7 @@
 // «Señales»: el indicador de TradingView «GTFX · Señal a Discord» pasa por el journal para que cada señal quede anotada
 // (entrada, TP1, TP2, BE, stop) y, al cerrar la semana, se publique sola en Discord con el recuento.
 import { useCallback, useEffect, useState } from 'react';
-import { Copy, Radio, Send, Trash2 } from 'lucide-react';
+import { Copy, Lock, Radio, Send, Trash2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -9,7 +9,7 @@ import { Input } from '../components/ui/Input';
 import { PageSpinner } from '../components/ui/Spinner';
 import api from '../lib/api';
 
-interface Senal { id: number; activo: string; lado: number; entrada: number | null; sl: number | null; tp1: number | null; tp2: number | null; estado: string; abierta_at: string; cerrada_at: string | null }
+interface Senal { id: number; activo: string; lado: number; entrada: number | null; sl: number | null; tp1: number | null; tp2: number | null; estado: string; abierta_at: string; cerrada_at: string | null; be: boolean }
 interface Vista {
   canal: { url: string; webhook: string; ultimo_resumen: string | null; creado: string } | null;
   semana?: { desde: string; hasta: string; total: number; tp2: number; be: number; sl: number; sl_tras_tp1: number; abiertas: number; tocaron_tp1: number; senales: Senal[]; texto: string };
@@ -66,7 +66,7 @@ export default function Senales() {
       )}
 
       {c && s && (
-        <Card title="3. Esta semana" subtitle={`Señales publicadas a través del journal desde el lunes. ${c.ultimo_resumen ? `Último recuento enviado: semana del ${c.ultimo_resumen}.` : 'Aún no se ha enviado ningún recuento.'}`}>
+        <Card title="3. Esta semana" subtitle={`Señales publicadas a través del journal desde el lunes. El BE lo pones tú: cuando muevas tu stop a la entrada pulsa «Stop a BE» (se avisa en el canal) y, si el precio vuelve a tocarla, la señal se cierra sola como BE. ${c.ultimo_resumen ? `Último recuento enviado: semana del ${c.ultimo_resumen}.` : 'Aún no se ha enviado ningún recuento.'}`}>
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2 text-sm">
               <Badge variant="default">Señales {s.total}</Badge><Badge variant="profit">TP {s.tp2}</Badge><Badge variant="warn">BE {s.be}</Badge><Badge variant="loss">SL {s.sl}</Badge>
@@ -75,7 +75,7 @@ export default function Senales() {
             {s.senales.length === 0 ? <p className="text-sm text-gray-400">Todavía no ha entrado ninguna señal esta semana.</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="text-[11px] uppercase tracking-wide text-gray-500"><tr><th className="px-2 py-1">Cuándo</th><th className="px-2 py-1">Señal</th><th className="px-2 py-1 text-right">Entrada</th><th className="px-2 py-1 text-right">SL</th><th className="px-2 py-1">Resultado</th></tr></thead>
+                  <thead className="text-[11px] uppercase tracking-wide text-gray-500"><tr><th className="px-2 py-1">Cuándo</th><th className="px-2 py-1">Señal</th><th className="px-2 py-1 text-right">Entrada</th><th className="px-2 py-1 text-right">SL</th><th className="px-2 py-1">Resultado</th><th className="px-2 py-1">Stop a BE</th><th className="px-2 py-1">Corregir</th></tr></thead>
                   <tbody>
                     {s.senales.map((x) => (
                       <tr key={x.id} className="border-t border-border/60">
@@ -84,6 +84,21 @@ export default function Senales() {
                         <td className="px-2 py-1.5 text-right tabular-nums">{x.entrada ?? '—'}</td>
                         <td className="px-2 py-1.5 text-right tabular-nums">{x.sl ?? '—'}</td>
                         <td className="px-2 py-1.5"><Badge variant={(ESTADO[x.estado] || ESTADO.en_curso).variant} size="sm">{(ESTADO[x.estado] || { label: x.estado }).label}</Badge></td>
+                        <td className="px-2 py-1.5">
+                          {x.estado !== 'en_curso' && x.estado !== 'tp1' ? <span className="text-xs text-gray-600">—</span> : x.be ? (
+                            <span className="flex items-center gap-2 text-xs text-warn"><Lock className="h-3.5 w-3.5" /> puesto
+                              <button type="button" disabled={busy} className="text-gray-400 underline hover:text-gray-200" onClick={() => void hacer(() => api<Vista>(`/senales/${x.id}/be`, { method: 'POST', body: { quitar: true } }), 'Stop a BE quitado.')}>quitar</button>
+                            </span>
+                          ) : (
+                            <button type="button" disabled={busy} className="rounded-md border border-border px-2 py-1 text-xs text-gray-200 hover:border-accent hover:text-accent" onClick={() => void hacer(() => api<Vista>(`/senales/${x.id}/be`, { method: 'POST', body: {} }), `Stop a BE puesto en ${x.activo} y avisado en tu canal.`)}>Stop a BE</button>
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <select aria-label={`Corregir el resultado de ${x.activo}`} disabled={busy || x.estado === 'pendiente'} value="" className="rounded-md border border-border bg-bg/60 px-1.5 py-1 text-xs text-gray-300"
+                            onChange={(e) => { const v = e.target.value; if (v) void hacer(() => api<Vista>(`/senales/${x.id}/resultado`, { method: 'POST', body: { estado: v } }), 'Resultado corregido.'); }}>
+                            <option value="">Cambiar…</option><option value="tp2">TP</option><option value="be">BE</option><option value="sl">SL</option><option value="en_curso">Sigue abierta</option>
+                          </select>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

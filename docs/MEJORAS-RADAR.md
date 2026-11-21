@@ -144,4 +144,6 @@ historial de consensos para 15 años).
 - **Señales a Discord con recuento semanal (21-11-2026):** `/api/senales/in/<clave>` recibe las alertas del indicador de
   TradingView, las reenvía al webhook de Discord del usuario (guardado en el servidor, solo URL de Discord, se enseña
   enmascarado) y anota cada señal y su desenlace (TP2, BE, SL, TP1 y stop). Viernes 23:00 (Madrid) publica el recuento.
-  El indicador añade «Tras TP1, el stop pasa a la entrada (BE)».
+  El BE es manual (pedido por César: nada automático tras TP1): botón «Stop a BE» en la señal → se avisa en el canal y, desde
+  entonces, el aviso técnico «precio de vuelta en la entrada» del indicador (opción «BE manual», solo lo ve el journal) la cierra
+  como BE. Sin el botón ese aviso no hace nada. El resultado de cualquier señal se puede corregir a mano.

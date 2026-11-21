@@ -352,7 +352,8 @@ CREATE TABLE IF NOT EXISTS senales (
   estado TEXT NOT NULL,
   abierta_at TEXT NOT NULL,
   tp1_at TEXT,
-  cerrada_at TEXT
+  cerrada_at TEXT,
+  be_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_senales_canal ON senales(canal_id, abierta_at);
 
@@ -496,6 +497,7 @@ const COLUMN_MIGRATIONS = [
   { table: 'radar_calendar', column: 'actual_inferred', ddl: 'INTEGER DEFAULT 0' },
   { table: 'radar_calendar', column: 'category', ddl: 'TEXT' },
   { table: 'radar_news', column: 'fetched_at', ddl: 'TEXT' },
+  { table: 'senales', column: 'be_at', ddl: 'TEXT' },
 ];
 
 function applyColumnMigrations(conn) {

@@ -31,7 +31,7 @@ pie      = input.string("⚠️ Gestiona tu riesgo", "Última línea de la seña
 mencion  = input.string("", "Mención (opcional, p. ej. @everyone)", group = G2)
 formato  = input.string("Discord", "Formato", options = ["Discord", "Texto"], tooltip = "Discord: el mensaje va en JSON, como lo pide el webhook de Discord. Texto: para Telegram u otros.", group = G2)
 seguir   = input.bool(true, "Avisar también de entrada, TP1, TP2 y stop", group = G2)
-beTP1    = input.bool(true, "Tras TP1, el stop pasa a la entrada (BE)", tooltip = "Activado: si después de tocar TP1 el precio vuelve a la entrada, la señal se cierra como BE (ni gana ni pierde) en vez de esperar al stop inicial. Así el recuento semanal separa TP, BE y SL.", group = G2)
+vueltaBE = input.bool(false, "BE manual: avisar al journal si el precio vuelve a la entrada", tooltip = "Actívalo SOLO si tu alerta usa la dirección del journal (sección Señales). El stop a la entrada lo pones tú con el botón «Stop a BE» del journal; desde ese momento, si el precio vuelve a la entrada la señal se cierra como BE. Sin pulsar el botón este aviso no publica nada. Con el webhook directo de Discord déjalo apagado.", group = G2)
 G3 = "Dibujo"
 barras   = input.int(30, "Ancho de las cajas (velas)", minval = 5, maxval = 300, group = G3)
 cRojo    = input.color(color.new(#f23645, 78), "Colores de cajas: riesgo / beneficio", inline = "c", group = G3)
@@ -117,7 +117,8 @@ aviso(string titulo, int d, float e, float s, float t1, float t2) =>
     mensaje(l)
 
 // ── Publicación y seguimiento (solo en tiempo real). Al publicar, la operación queda fijada con el precio de ese momento.
-// estado: 0 esperando la entrada (límite) · 1 en curso · 2 TP1 tocado · 3 TP2 (cerrada) · 4 stop (cerrada) · 5 BE (cerrada en la entrada tras TP1)
+// estado: 0 esperando la entrada (límite) · 1 en curso · 2 TP1 tocado · 3 TP2 (cerrada) · 4 stop (cerrada)
+// El BE es manual y lo lleva el journal: aquí solo se avisa (si «vueltaBE») de que el precio volvió a la entrada tras ir a favor.
 varip bool  publicada = false
 varip int   estado = -1
 varip int   dF = 0
@@ -126,6 +127,7 @@ varip float sF = na
 varip float t1F = na
 varip float t2F = na
 varip int   barIni = na
+varip bool  aFavor = false
 if barstate.isrealtime and valida and not publicada
     publicada := true
     dF := dir
@@ -139,13 +141,11 @@ if barstate.isrealtime and valida and not publicada
 else if barstate.isrealtime and publicada and estado >= 0 and estado <= 2
     float p = close
     string evento = ""
+    bool tecnico = false
     if estado == 0
         if dF == 1 ? p <= eF : p >= eF
             estado := 1
             evento := "▶️ Entrada activada"
-    else if estado == 2 and beTP1 and (dF == 1 ? p <= eF : p >= eF)
-        estado := 5
-        evento := "⚖️ Cierre en la entrada (BE)"
     else if dF == 1 ? p <= sF : p >= sF
         estado := 4
         evento := "❌ Stop tocado"
@@ -155,7 +155,15 @@ else if barstate.isrealtime and publicada and estado >= 0 and estado <= 2
     else if estado == 1 and (dF == 1 ? p >= t1F : p <= t1F)
         estado := 2
         evento := "✅ TP1 alcanzado (" + str.tostring(rrDe(t1F, eF, sF), "#.#") + "R)"
-    if seguir and evento != ""
+    else if vueltaBE
+        float margen = 0.2 * math.abs(eF - sF)
+        if dF == 1 ? p >= eF + margen : p <= eF - margen
+            aFavor := true
+        else if aFavor and (dF == 1 ? p <= eF : p >= eF)
+            aFavor := false
+            tecnico := true
+            evento := "↩️ Precio de vuelta en la entrada"
+    if (seguir or tecnico) and evento != ""
         alert(aviso(evento, dF, eF, sF, t1F, t2F), alert.freq_all)
 
 // ── Dibujo
@@ -192,7 +200,7 @@ if barstate.islast
             lnS := line.new(x1, s, x2, s, extend = extend.right, color = cSL, width = 2)
             ln1 := line.new(x1, a1, x2, a1, extend = extend.right, color = cTP, width = 1, style = line.style_dashed)
             ln2 := line.new(x1, a2, x2, a2, extend = extend.right, color = cTP, width = 2)
-        string est = not publicada ? "lista: crea la alerta" : estado == 0 ? "esperando la entrada" : estado == 1 ? "en curso" : estado == 2 ? "TP1 ✓" : estado == 3 ? "TP2 ✓ · cerrada" : estado == 5 ? "BE · cerrada" : estado == 4 ? "stop · cerrada" : ""
+        string est = not publicada ? "lista: crea la alerta" : estado == 0 ? "esperando la entrada" : estado == 1 ? "en curso" : estado == 2 ? "TP1 ✓" : estado == 3 ? "TP2 ✓ · cerrada" : estado == 4 ? "stop · cerrada" : ""
         lbE := label.new(x2, e, ladoDe(d) + " @" + f(e) + "  ·  " + est, style = label.style_label_left, color = cEntrada, textcolor = color.white, size = size.small)
         lbS := label.new(x2, s, "SL " + f(s), style = label.style_label_left, color = color.new(#f23645, 15), textcolor = color.white, size = size.small)
         lb1 := label.new(x2, a1, "TP1 " + f(a1) + " · " + str.tostring(rrDe(a1, e, s), "#.#") + "R", style = label.style_label_left, color = color.new(#089981, 30), textcolor = color.white, size = size.small)

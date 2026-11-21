@@ -37,6 +37,18 @@ console.log('Canal, señales y recuento');
   reg(sig(1, 'EURUSD', 1.09, 1.089, 1.091, 1.092), t(30)); reg(evn('✅ TP1 alcanzado (1R)', 1, 'EURUSD', 1.09, 1.089, 1.091, 1.092), t(31)); ok(reg(evn('❌ Stop tocado', 1, 'EURUSD', 1.09, 1.089, 1.091, 1.092), t(32)).estado === 'sl_tras_tp1', 'señal 4 → TP1 y luego stop');
   reg(sig(-1, 'US30', 48000, 48200, 47800, 47600), t(50));
   ok(!reg(evn('❌ Stop tocado', 1, 'GBPUSD', 1.3, 1.29, 1.31, 1.32), t(51)).ok, 'un evento sin señal previa no inventa nada');
+  // BE manual: la vuelta a la entrada no hace nada hasta que el usuario pone el stop en la entrada.
+  const us30 = db.prepare("SELECT id FROM senales WHERE activo = 'US30'").get().id; const vuelta = evn('↩️ Precio de vuelta en la entrada', -1, 'US30', 48000, 48200, 47800, 47600);
+  ok(S.parseMensaje(vuelta).evento === 'vuelta', 'la vuelta a la entrada es un aviso propio (no un BE)');
+  const v1 = reg(vuelta, t(52)); ok(v1.silenciar && S.senalDe(db, canal.id, us30).estado === 'en_curso', 'sin «Stop a BE» la vuelta a la entrada no cierra nada ni se publica');
+  ok(S.ponerBE(db, canal.id, us30).be_at && /Stop movido a la entrada/.test(S.textoStopBE(S.senalDe(db, canal.id, us30))), '«Stop a BE» queda puesto y tiene su aviso');
+  ok(!S.ponerBE(db, canal.id, us30, { quitar: true }).be_at && reg(vuelta, t(52.5)).silenciar, 'quitarlo vuelve a dejar la vuelta sin efecto'); S.ponerBE(db, canal.id, us30);
+  const v2 = reg(vuelta, t(53)); ok(v2.cierreBE && v2.estado === 'be' && /Cierre en la entrada \(BE\) · US30/.test(S.textoCierreBE(v2.senal)), 'con «Stop a BE» puesto, la vuelta a la entrada cierra en BE');
+  ok(reg(evn('❌ Stop tocado', -1, 'US30', 48000, 48200, 47800, 47600), t(54)).silenciar && S.senalDe(db, canal.id, us30).estado === 'be', 'tras el BE, el stop que avisa después el indicador no cambia nada ni se publica');
+  let lanza = false; try { S.ponerBE(db, canal.id, us30); } catch { lanza = true; } ok(lanza, 'no se puede poner BE en una señal cerrada');
+  ok(S.fijarResultado(db, canal.id, us30, 'en_curso').estado === 'en_curso' && S.fijarResultado(db, canal.id, us30, 'be').estado === 'be', 'el resultado se puede corregir a mano');
+  let lanza2 = false; try { S.fijarResultado(db, canal.id, 999999, 'sl'); } catch { lanza2 = true; } ok(lanza2, 'no se toca una señal de otro canal o inexistente');
+  db.prepare("UPDATE senales SET estado = 'en_curso', cerrada_at = NULL, be_at = NULL WHERE id = ?").run(us30);
   const sem = S.semanaDe(t(60)); const rec = S.recuento(db, canal.id, sem.desde, sem.hasta);
   ok(rec.total === 5 && rec.tp2 === 1 && rec.sl === 1 && rec.be === 1 && rec.sl_tras_tp1 === 1 && rec.en_curso === 1 && rec.tocaron_tp1 === 3, `recuento: 5 señales · TP2 1 · SL 1 · BE 1 · TP1 y stop 1 · en curso 1 (${JSON.stringify({ t: rec.total, tp2: rec.tp2, sl: rec.sl, be: rec.be })})`);
   const txt = S.textoResumen(rec, sem); ok(/Recuento semanal/.test(txt) && /TP \(objetivo final\): \*\*1\*\*/.test(txt) && /BE[^\n]*\*\*1\*\*/.test(txt) && /SL: \*\*1\*\*/.test(txt) && txt.length < 2000 && /16 nov/.test(txt), 'texto del recuento con TP, BE y SL');
