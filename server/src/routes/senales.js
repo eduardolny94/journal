@@ -4,7 +4,7 @@
 //  · `privado` (con sesión): ver y configurar el canal, ver el recuento de la semana y enviarlo a mano.
 import express from 'express';
 import { getDb } from '../db.js';
-import { parseMensaje, registrar, canalPorClave, getCanal, saveCanal, deleteCanal, maskWebhook, semanaDe, recuento, enviarDiscord, enviarResumen, textoResumen, importar, ponerBE, fijarResultado, textoStopBE, textoCierreBE } from '../services/senales.js';
+import { parseMensaje, registrar, canalPorClave, getCanal, saveCanal, deleteCanal, maskWebhook, semanaDe, recuento, enviarDiscord, enviarResumen, textoResumen, importar, ponerBE, borrarSenal, fijarResultado, textoStopBE, textoCierreBE } from '../services/senales.js';
 
 export const publico = express.Router();
 export const privado = express.Router();
@@ -59,6 +59,13 @@ privado.post('/:id/be', async (req, res) => {
     const env = quitar ? { ok: true } : await enviarDiscord(canal.webhook, textoStopBE(s));
     return res.json({ ...vista(req, canal), avisado: !quitar && env.ok });
   } catch (e) { return res.status(e.status || 500).json({ error: e.message || 'No se pudo cambiar.' }); }
+});
+privado.delete('/:id', (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'No encuentro esa señal.' });
+  const db = getDb(); const canal = getCanal(db, req.user.id);
+  if (!canal) return res.status(400).json({ error: 'Primero guarda el webhook de tu canal.' });
+  try { borrarSenal(db, canal.id, req.params.id); return res.json(vista(req, canal)); }
+  catch (e) { return res.status(e.status || 500).json({ error: e.message || 'No se pudo borrar.' }); }
 });
 privado.post('/:id/resultado', (req, res) => {
   const db = getDb(); const canal = getCanal(db, req.user.id);

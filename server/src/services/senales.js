@@ -83,6 +83,11 @@ export function ponerBE(db, canalId, id, { quitar = false, now = new Date() } = 
   db.prepare('UPDATE senales SET be_at = ? WHERE id = ?').run(quitar ? null : new Date(now).toISOString(), s.id);
   return senalDe(db, canalId, s.id);
 }
+/** Borra una señal anotada (p. ej. una importada por error o una prueba). No toca Discord. */
+export function borrarSenal(db, canalId, id) {
+  const s = senalDe(db, canalId, id); if (!s) { const e = new Error('No encuentro esa señal.'); e.status = 404; throw e; }
+  db.prepare('DELETE FROM senales WHERE id = ?').run(s.id); return s;
+}
 /** Corrección a mano del resultado de una señal (p. ej. la cerraste tú o el aviso no llegó). */
 export function fijarResultado(db, canalId, id, estado, now = new Date()) {
   const s = senalDe(db, canalId, id); const err = (m) => { const e = new Error(m); e.status = 400; return e; };

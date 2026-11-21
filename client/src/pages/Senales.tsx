@@ -97,8 +97,10 @@ export default function Senales() {
                         </td>
                         <td className="px-2 py-1.5">
                           <select aria-label={`Corregir el resultado de ${x.activo}`} disabled={busy || x.estado === 'pendiente'} value="" className="rounded-md border border-border bg-bg/60 px-1.5 py-1 text-xs text-gray-300"
-                            onChange={(e) => { const v = e.target.value; if (v) void hacer(() => api<Vista>(`/senales/${x.id}/resultado`, { method: 'POST', body: { estado: v } }), 'Resultado corregido.'); }}>
-                            <option value="">Cambiar…</option><option value="tp2">TP</option><option value="be">BE</option><option value="sl">SL</option><option value="en_curso">Sigue abierta</option>
+                            onChange={(e) => { const v = e.target.value;
+                              if (v === 'eliminar') { if (window.confirm(`¿Eliminar la señal ${x.lado > 0 ? 'BUY' : 'SELL'} ${x.activo} (${fecha(x.abierta_at)}) del recuento? No se toca nada en Discord.`)) void hacer(() => api<Vista>(`/senales/${x.id}`, { method: 'DELETE' }), 'Señal eliminada del recuento.'); return; }
+                              if (v) void hacer(() => api<Vista>(`/senales/${x.id}/resultado`, { method: 'POST', body: { estado: v } }), 'Resultado corregido.'); }}>
+                            <option value="">Cambiar…</option><option value="tp2">TP</option><option value="be">BE</option><option value="sl">SL</option><option value="en_curso">Sigue abierta</option><option value="eliminar">Eliminar…</option>
                           </select>
                         </td>
                       </tr>

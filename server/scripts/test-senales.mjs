@@ -130,5 +130,8 @@ SELL Nasdaq · Entrada 27195.4 · SL 27500 · TP1 26890.8 · TP2 26586.2`;
   ok(r2.nuevas === 0 && rc2.total === 4 && rc2.tp2 === 2, 'pegar lo mismo otra vez no duplica nada');
   const solo = S.importar(db, canal2, '🎯 TP2 alcanzado (2R) · US30\nSELL US30 · Entrada 48000 · SL 48200 · TP1 47800 · TP2 47600', new Date('2026-11-21T10:00:00Z'));
   ok(solo.nuevas === 1 && S.recuento(db, canal2.id, sem2.desde, sem2.hasta).tp2 === 3, 'pegado sin cabeceras: un aviso de una señal desconocida la crea con sus datos');
+  const gold2 = S.recuento(db, canal2.id, sem2.desde, sem2.hasta).senales.find((s) => s.activo === 'Gold');
+  S.borrarSenal(db, canal2.id, gold2.id); ok(S.recuento(db, canal2.id, sem2.desde, sem2.hasta).total === 4 && !S.senalDe(db, canal2.id, gold2.id), 'eliminar una señal la quita del recuento');
+  let nolanza = true; try { S.borrarSenal(db, canal2.id, gold2.id); } catch (e) { nolanza = e.status === 404 ? false : true; } ok(!nolanza, 'eliminar una señal que no existe da error 404');
   S.deleteCanal(db, uid2); }
 console.log(fallos ? `\n${fallos} fallo(s)` : '\nTodo bien'); process.exit(fallos ? 1 : 0);
